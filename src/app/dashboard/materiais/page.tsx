@@ -17,7 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
 
 const initialNewItemState: Omit<MaterialItem, 'id'> = {
-  tipo: '',
+  tipo: 'Bobina',
   descricao: '',
   unidade: 'kg',
   quantidade: null,
