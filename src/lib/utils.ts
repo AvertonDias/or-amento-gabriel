@@ -10,16 +10,21 @@ export function formatCurrency(value: number | null | undefined, showSymbol: boo
   if (value === null || value === undefined || isNaN(value)) {
     return showSymbol ? 'R$ 0,00' : '0,00';
   }
-  return new Intl.NumberFormat('pt-BR', {
+
+  const options: Intl.NumberFormatOptions = {
     style: 'currency',
     currency: 'BRL',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(value).replace(showSymbol ? '' : 'R$', '').trim();
+  };
+
+  const formatted = new Intl.NumberFormat('pt-BR', options).format(value);
+  
+  return showSymbol ? formatted : formatted.replace('R$', '').trim();
 }
 
 export function formatSmallValueCurrency(value: number | null | undefined, digits: number = 5): string {
-  const options = {
+  const options: Intl.NumberFormatOptions = {
     style: 'currency',
     currency: 'BRL',
     minimumFractionDigits: digits,
@@ -35,10 +40,13 @@ export function formatNumber(value: number | null | undefined, decimalPlaces: nu
   if (value === null || value === undefined || isNaN(value)) {
     return '0,00';
   }
-  return new Intl.NumberFormat('pt-BR', {
+
+  const options: Intl.NumberFormatOptions = {
     minimumFractionDigits: decimalPlaces,
     maximumFractionDigits: decimalPlaces,
-  }).format(value);
+  };
+
+  return new Intl.NumberFormat('pt-BR', options).format(value);
 }
 
 export const maskTelefone = (value: string): string => {
