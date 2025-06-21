@@ -217,7 +217,7 @@ export default function MateriaisPage() {
               <div>
                 <Label htmlFor="tipo">Tipo de Material</Label>
                  <Select name="tipo" onValueChange={(val) => handleNewItemSelectChange('tipo', val)} value={newItem.tipo}>
-                  <SelectTrigger id="tipo" required>
+                  <SelectTrigger id="tipo">
                     <SelectValue placeholder="Selecione"/>
                   </SelectTrigger>
                   <SelectContent>
