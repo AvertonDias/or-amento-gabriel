@@ -9,9 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, KeyRound } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import Image from 'next/image';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -66,7 +67,13 @@ export default function ForgotPasswordPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="flex justify-center items-center mb-4">
-            <KeyRound className="h-8 w-8 text-primary" />
+            <Image
+              src="/apple-touch-icon.jpg"
+              alt="Logo do Site"
+              width={80}
+              height={80}
+              className="rounded-lg"
+            />
           </div>
           <CardTitle className="text-2xl">Recuperar Senha</CardTitle>
           <CardDescription>

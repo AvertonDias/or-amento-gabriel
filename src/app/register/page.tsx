@@ -9,9 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LayoutDashboard, Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import Image from "next/image";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -87,8 +88,14 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <div className="flex justify-center items-center gap-2 mb-4">
-            <LayoutDashboard className="h-8 w-8 text-primary" />
+          <div className="flex justify-center items-center flex-col gap-2 mb-4">
+            <Image
+              src="/apple-touch-icon.jpg"
+              alt="Logo do Site"
+              width={80}
+              height={80}
+              className="rounded-lg"
+            />
             <h1 className="text-2xl font-bold">Orçamento de Calhas Pro</h1>
           </div>
           <CardTitle className="text-2xl">Criar Conta</CardTitle>
