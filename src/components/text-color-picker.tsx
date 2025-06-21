@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useTextTheme } from "@/contexts/text-theme-provider";
@@ -17,7 +18,7 @@ const textColors = [
   { name: "marrom", label: "Marrom", className: "text-marrom", colorClass: "bg-yellow-900" },
   { name: "cinza-claro", label: "Cinza Claro", className: "text-cinza-claro", colorClass: "bg-gray-300" },
   { name: "cinza-escuro", label: "Cinza Escuro", className: "text-cinza-escuro", colorClass: "bg-gray-500" },
-];
+] as const;
 
 export function TextColorPicker() {
   const { textTheme, setTextTheme } = useTextTheme();

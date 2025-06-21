@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useBackgroundTheme } from "@/contexts/background-theme-provider";
@@ -17,7 +18,7 @@ const backgroundColors = [
   { name: "marrom", label: "Marrom", className: "bg-marrom", colorClass: "bg-yellow-900" },
   { name: "cinza-claro", label: "Cinza Claro", className: "bg-cinza-claro", colorClass: "bg-gray-300" },
   { name: "cinza-escuro", label: "Cinza Escuro", className: "bg-cinza-escuro", colorClass: "bg-gray-500" },
-];
+] as const;
 
 export function BackgroundColorPicker() {
   const { bgTheme, setBgTheme } = useBackgroundTheme();
