@@ -59,7 +59,7 @@ const fillCustomerDataFlow = ai.defineFlow(
     inputSchema: FillCustomerDataInputSchema,
     outputSchema: FillCustomerDataOutputSchema,
   },
-  async (input any) => {
+  async (input: any) => {
     const {output} = await prompt(input);
     return output!;
   }
