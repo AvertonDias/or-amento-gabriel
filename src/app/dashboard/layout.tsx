@@ -194,8 +194,16 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                       )}
                     </Tooltip>
                 </div>
-                 <div className="flex items-center gap-2 mt-2">
-                     <Button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} variant="outline" size="icon" className="flex-1">
+                 <div className={cn(
+                  "flex gap-2 mt-2",
+                  isSidebarCollapsed ? "flex-col" : "items-center"
+                 )}>
+                     <Button 
+                        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
+                        variant="outline" 
+                        size="icon" 
+                        className={cn(!isSidebarCollapsed && "flex-1")}
+                      >
                         {isSidebarCollapsed ? <PanelRightOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
                         <span className="sr-only">Recolher/Expandir menu</span>
                     </Button>

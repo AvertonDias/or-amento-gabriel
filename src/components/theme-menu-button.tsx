@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -20,7 +21,6 @@ export function ThemeMenuButton() {
         <Button
           variant="outline"
           size="icon"
-          className="flex-1"
           title="Personalizar Tema"
         >
           <Paintbrush className="h-5 w-5" />
