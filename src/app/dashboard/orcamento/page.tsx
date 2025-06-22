@@ -292,6 +292,7 @@ export default function OrcamentoPage() {
     mensagem += `*Nº do Orçamento:* ${orcamento.numeroOrcamento}\n`;
     mensagem += `*Cliente:* ${orcamento.cliente.nome}\n`;
     if (orcamento.cliente.telefone) mensagem += `*Tel. Cliente:* ${orcamento.cliente.telefone}\n`;
+    if (orcamento.cliente.endereco) mensagem += `*Endereço:* ${orcamento.cliente.endereco}\n`;
     mensagem += `*Valor Total:* ${formatCurrency(orcamento.totalVenda)}\n\n`;
     mensagem += `*Itens do Serviço:*\n`;
     orcamento.itens.forEach(item => {
