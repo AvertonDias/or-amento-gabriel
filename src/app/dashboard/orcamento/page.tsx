@@ -136,11 +136,11 @@ export default function OrcamentoPage() {
   const [pdfBudget, setPdfBudget] = useState<Orcamento | null>(null);
 
   useEffect(() => {
-    if (user) {
-        let unsubMateriais: (() => void) | undefined;
-        let unsubClientes: (() => void) | undefined;
-        let unsubOrcamentos: (() => void) | undefined;
+    let unsubMateriais: (() => void) | undefined;
+    let unsubClientes: (() => void) | undefined;
+    let unsubOrcamentos: (() => void) | undefined;
 
+    if (user) {
         unsubMateriais = getMateriais(user.uid, (data) => {
             setMateriais(data);
             setIsLoading(prev => ({...prev, materiais: false}));
@@ -161,13 +161,14 @@ export default function OrcamentoPage() {
         }
         fetchEmpresa();
 
-        return () => {
-            if (unsubMateriais) unsubMateriais();
-            if (unsubClientes) unsubClientes();
-            if (unsubOrcamentos) unsubOrcamentos();
-        }
     } else if(!loadingAuth) {
         setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
+    }
+
+    return () => {
+        if (unsubMateriais) unsubMateriais();
+        if (unsubClientes) unsubClientes();
+        if (unsubOrcamentos) unsubOrcamentos();
     }
   }, [user, loadingAuth]);
 
@@ -857,5 +858,3 @@ export default function OrcamentoPage() {
     </div>
   );
 }
-
-    
