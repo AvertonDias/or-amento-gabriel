@@ -37,23 +37,25 @@ export default function MateriaisPage() {
   const { toast } = useToast();
   
   useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+  
     if (loadingAuth) {
       setIsLoadingData(true);
-      return;
-    }
-    if (!user) {
+    } else if (user) {
+      unsubscribe = getMateriais(user.uid, (data) => {
+        setMateriais(data);
+        setIsLoadingData(false);
+      });
+    } else {
+      setMateriais([]);
       setIsLoadingData(false);
-      setMateriais([]); // Clear data if user logs out
-      return;
     }
-
-    const unsubscribe = getMateriais(user.uid, (data) => {
-      setMateriais(data);
-      setIsLoadingData(false);
-    });
-
-    // Return the cleanup function
-    return () => unsubscribe();
+  
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [user, loadingAuth]);
 
   const handleNewItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
