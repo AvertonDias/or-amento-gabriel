@@ -144,7 +144,8 @@ export default function MateriaisPage() {
     
     setIsSubmitting(true);
     try {
-        await updateMaterial(editingMaterial.id, editingMaterial);
+        const { id, userId, ...materialToUpdate } = editingMaterial;
+        await updateMaterial(id, materialToUpdate);
         setIsEditModalOpen(false);
         setEditingMaterial(null);
         await fetchMateriais(); // Refresh list

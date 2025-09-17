@@ -1,6 +1,6 @@
 'use client';
 
-import React, { FormEvent, useState, useEffect, useRef } from 'react';
+import React, { FormEvent, useState, useEffect, useRef, useCallback } from 'react';
 import type { EmpresaData } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -33,17 +33,19 @@ export default function EmpresaPage() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const fetchEmpresaData = useCallback(async () => {
+    if (!user) return;
+    setIsLoadingData(true);
+    const data = await getEmpresaData(user.uid);
+    setEmpresa(data || { ...initialEmpresaState, userId: user.uid });
+    setIsLoadingData(false);
+  }, [user]);
+
   useEffect(() => {
     if (user) {
-      const fetchData = async () => {
-        setIsLoadingData(true);
-        const data = await getEmpresaData(user.uid);
-        setEmpresa(data || { ...initialEmpresaState, userId: user.uid });
-        setIsLoadingData(false);
-      };
-      fetchData();
+      fetchEmpresaData();
     }
-  }, [user]);
+  }, [user, fetchEmpresaData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!empresa) return;
@@ -107,10 +109,10 @@ export default function EmpresaPage() {
     
     setIsSaving(true);
     try {
-      await saveEmpresaData(empresa);
+      await saveEmpresaData({ ...empresa, userId: user.uid });
       toast({
         title: 'Sucesso!',
-        description: 'Os dados da empresa foram salvos com sucesso no Firebase.',
+        description: 'Os dados da empresa foram salvos com sucesso.',
       });
     } catch(error) {
        toast({
