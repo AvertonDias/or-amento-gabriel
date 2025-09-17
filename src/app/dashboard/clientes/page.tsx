@@ -301,16 +301,6 @@ export default function ClientesPage() {
                 <Contact className="mr-2 h-4 w-4" />
                 Importar dos Contatos
               </Button>
-               <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleAiFill} disabled={isFillingData || isSubmitting}>
-                {isFillingData ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="mr-2 h-4 w-4">
-                        <path d="M12.75 4.75L15.25 7.25L12.75 9.75L14.15 8.35L17.5 11.7L18.9 10.3L15.55 6.95L16.95 5.55L12.75 1.35V4.75ZM9.85 15.65L6.5 12.3L5.1 13.7L8.45 17.05L7.05 18.45L11.25 22.65V19.25L8.75 16.75L11.25 14.25L9.85 15.65ZM19.25 1.35L15.05 5.55L16.45 6.95L19.8 3.6L21.2 5L17.85 8.35L19.25 9.75L23.65 5.55V1.35H19.25ZM5.55 18.45L1.35 14.25V18.45H5.55Z" />
-                    </svg>
-                )}
-                Preencher com IA
-              </Button>
             </div>
           </form>
 
@@ -449,3 +439,5 @@ export default function ClientesPage() {
     </div>
   );
 }
+
+    
