@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { maskCpfCnpj, maskTelefone } from '@/lib/utils';
-import { fillCustomerData, FillCustomerDataInput } from '@/ai/flows/fill-customer-data';
 import { Loader2 } from 'lucide-react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
@@ -36,7 +35,6 @@ export default function ClientesPage() {
   
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<ClienteData | null>(null);
-  const [isFillingData, setIsFillingData] = useState(false);
 
   const { toast } = useToast();
 
@@ -75,50 +73,6 @@ export default function ClientesPage() {
     setNewClient(prev => ({ ...prev, [name]: maskedValue }));
   };
 
-  const handleAiFill = async () => {
-    if(!newClient.nome && !newClient.cpfCnpj) {
-        toast({
-            title: "Dados insuficientes",
-            description: "Preencha o Nome ou o CPF/CNPJ para usar a busca com IA.",
-            variant: "destructive"
-        });
-        return;
-    }
-
-    setIsFillingData(true);
-    try {
-        const input: FillCustomerDataInput = {
-            nome: newClient.nome,
-            cpfCnpj: newClient.cpfCnpj?.replace(/[^\d]/g, ''), // Enviar sem máscara
-        };
-        const result = await fillCustomerData(input);
-        
-        setNewClient({
-            nome: result.nome || newClient.nome,
-            cpfCnpj: result.cpfCnpj ? maskCpfCnpj(result.cpfCnpj) : newClient.cpfCnpj,
-            endereco: result.endereco || newClient.endereco,
-            telefone: result.telefone ? maskTelefone(result.telefone) : newClient.telefone,
-            email: result.email || newClient.email,
-        });
-
-        toast({
-            title: "Dados preenchidos com IA!",
-            description: "Verifique as informações e complete o que faltar.",
-        });
-
-    } catch (error) {
-        console.error("Erro ao preencher dados com IA:", error);
-        toast({
-            title: "Erro na busca com IA",
-            description: "Não foi possível completar os dados. Tente novamente.",
-            variant: "destructive"
-        });
-    } finally {
-        setIsFillingData(false);
-    }
-  };
-
-
   const handleAdicionarCliente = async (e: FormEvent) => {
     e.preventDefault();
     if (!user) {
@@ -136,7 +90,15 @@ export default function ClientesPage() {
 
     setIsSubmitting(true);
     try {
-      await addCliente(user.uid, newClient);
+      // Create a plain object from the state before sending to the server action
+      const clientData = {
+        nome: newClient.nome,
+        cpfCnpj: newClient.cpfCnpj,
+        endereco: newClient.endereco,
+        telefone: newClient.telefone,
+        email: newClient.email,
+      };
+      await addCliente(user.uid, clientData);
       setNewClient(initialNewClientState);
       await fetchClientes(); // Refresh list
       toast({
@@ -144,6 +106,7 @@ export default function ClientesPage() {
         description: 'Cliente adicionado.',
       });
     } catch (error) {
+      console.error("Erro ao adicionar cliente:", error);
       toast({ title: 'Erro ao adicionar cliente', variant: 'destructive' });
     } finally {
         setIsSubmitting(false);
@@ -195,7 +158,9 @@ export default function ClientesPage() {
     
     setIsSubmitting(true);
     try {
-        await updateCliente(editingClient.id, editingClient);
+        // Create a plain object for updating as well
+        const { id, userId, ...clientToUpdate } = editingClient;
+        await updateCliente(id, clientToUpdate);
         setIsEditModalOpen(false);
         setEditingClient(null);
         await fetchClientes(); // Refresh list
@@ -204,6 +169,7 @@ export default function ClientesPage() {
             description: 'Cliente atualizado com sucesso.',
         });
     } catch(error) {
+        console.error("Erro ao atualizar cliente:", error);
         toast({ title: 'Erro ao atualizar cliente', variant: 'destructive' });
     } finally {
         setIsSubmitting(false);
@@ -293,11 +259,11 @@ export default function ClientesPage() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="submit" className="w-full sm:w-auto" disabled={isFillingData || isSubmitting}>
+              <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                 Adicionar Cliente
               </Button>
-              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleImportContacts} disabled={isFillingData || isSubmitting}>
+              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleImportContacts} disabled={isSubmitting}>
                 <Contact className="mr-2 h-4 w-4" />
                 Importar dos Contatos
               </Button>
@@ -439,5 +405,3 @@ export default function ClientesPage() {
     </div>
   );
 }
-
-    

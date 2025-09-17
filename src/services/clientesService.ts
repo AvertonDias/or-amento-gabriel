@@ -15,7 +15,7 @@ export const addCliente = async (userId: string, cliente: Omit<ClienteData, 'id'
 };
 
 // Update an existing client
-export const updateCliente = async (clienteId: string, cliente: Partial<ClienteData>) => {
+export const updateCliente = async (clienteId: string, cliente: Partial<Omit<ClienteData, 'id' | 'userId'>>) => {
   const clienteDoc = doc(db, CLIENTES_COLLECTION, clienteId);
   await updateDoc(clienteDoc, cliente);
 };
