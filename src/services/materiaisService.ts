@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import type { MaterialItem } from '@/lib/types';
 
 const MATERIAIS_COLLECTION = 'materiais';
@@ -28,7 +28,7 @@ export const deleteMaterial = async (materialId: string) => {
 
 // Get all materials for a user with real-time updates
 export const getMateriais = (userId: string, callback: (data: MaterialItem[]) => void) => {
-  const q = query(collection(db, MATERIAIS_COLLECTION), where('userId', '==', userId));
+  const q = query(collection(db, MATERIAIS_COLLECTION), where('userId', '==', userId), orderBy('descricao', 'asc'));
   
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const materiais: MaterialItem[] = [];
@@ -36,6 +36,9 @@ export const getMateriais = (userId: string, callback: (data: MaterialItem[]) =>
       materiais.push({ id: doc.id, ...doc.data() } as MaterialItem);
     });
     callback(materiais);
+  }, (error) => {
+    console.error("Erro ao buscar materiais: ", error);
+    callback([]);
   });
 
   return unsubscribe;

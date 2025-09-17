@@ -135,52 +135,44 @@ export default function OrcamentoPage() {
 
   const [pdfBudget, setPdfBudget] = useState<Orcamento | null>(null);
 
- useEffect(() => {
-    let unsubMateriais: (() => void) | undefined;
-    let unsubClientes: (() => void) | undefined;
-    let unsubOrcamentos: (() => void) | undefined;
-
-    const setLoadingState = (materiais: boolean, clientes: boolean, empresa: boolean, orcamentos: boolean) => {
-        setIsLoading({ materiais, clientes, empresa, orcamentos });
-    };
-
+  useEffect(() => {
     if (loadingAuth) {
-        setLoadingState(true, true, true, true);
-    } else if (user) {
-        setLoadingState(true, true, true, true);
-
-        unsubMateriais = getMateriais(user.uid, (data) => {
-            setMateriais(data);
-            setIsLoading(prev => ({...prev, materiais: false}));
-        });
-        unsubClientes = getClientes(user.uid, (data) => {
-            setClientes(data);
-            setIsLoading(prev => ({...prev, clientes: false}));
-        });
-        unsubOrcamentos = getOrcamentos(user.uid, (data) => {
-            setOrcamentosSalvos(data);
-            setIsLoading(prev => ({...prev, orcamentos: false}));
-        });
-        
-        getEmpresaData(user.uid).then(data => {
-            setEmpresa(data);
-            setIsLoading(prev => ({...prev, empresa: false}));
-        });
-
-    } else {
-        setMateriais([]);
-        setClientes([]);
-        setOrcamentosSalvos([]);
-        setEmpresa(null);
-        setLoadingState(false, false, false, false);
+      setIsLoading({ materiais: true, clientes: true, empresa: true, orcamentos: true });
+      return;
+    }
+    if (!user) {
+      setMateriais([]);
+      setClientes([]);
+      setOrcamentosSalvos([]);
+      setEmpresa(null);
+      setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
+      return;
     }
 
-    return () => {
-        if (unsubMateriais) unsubMateriais();
-        if (unsubClientes) unsubClientes();
-        if (unsubOrcamentos) unsubOrcamentos();
-    };
-}, [user, loadingAuth]);
+    const unsubscribes: (() => void)[] = [];
+
+    unsubscribes.push(getMateriais(user.uid, (data) => {
+        setMateriais(data);
+        setIsLoading(prev => ({...prev, materiais: false}));
+    }));
+
+    unsubscribes.push(getClientes(user.uid, (data) => {
+        setClientes(data);
+        setIsLoading(prev => ({...prev, clientes: false}));
+    }));
+    
+    unsubscribes.push(getOrcamentos(user.uid, (data) => {
+        setOrcamentosSalvos(data);
+        setIsLoading(prev => ({...prev, orcamentos: false}));
+    }));
+    
+    getEmpresaData(user.uid).then(data => {
+        setEmpresa(data);
+        setIsLoading(prev => ({...prev, empresa: false}));
+    });
+
+    return () => unsubscribes.forEach(unsub => unsub());
+  }, [user, loadingAuth]);
 
 
   const filteredOrcamentos = useMemo(() => {

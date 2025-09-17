@@ -41,29 +41,23 @@ export default function ClientesPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // We need a variable to hold the unsubscribe function
-    let unsubscribe: (() => void) | undefined;
-  
     if (loadingAuth) {
       setIsLoadingData(true);
-    } else if (user) {
-      // When user is authenticated, get the unsubscribe function from the service
-      unsubscribe = getClientes(user.uid, (data) => {
-        setClientes(data);
-        setIsLoadingData(false);
-      });
-    } else {
-      // When user is not authenticated, clear data
+      return;
+    }
+    if (!user) {
       setClientes([]);
       setIsLoadingData(false);
+      return;
     }
-  
-    // Return a cleanup function that checks if unsubscribe is a function before calling it
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
+
+    const unsubscribe = getClientes(user.uid, (data) => {
+      setClientes(data);
+      setIsLoadingData(false);
+    });
+
+    // Return a cleanup function
+    return () => unsubscribe();
   }, [user, loadingAuth]);
 
 
