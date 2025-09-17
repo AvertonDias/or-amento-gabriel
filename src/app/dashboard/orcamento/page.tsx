@@ -137,15 +137,19 @@ export default function OrcamentoPage() {
 
   useEffect(() => {
     if (user) {
-        const unsubMateriais = getMateriais(user.uid, (data) => {
+        let unsubMateriais: (() => void) | undefined;
+        let unsubClientes: (() => void) | undefined;
+        let unsubOrcamentos: (() => void) | undefined;
+
+        unsubMateriais = getMateriais(user.uid, (data) => {
             setMateriais(data);
             setIsLoading(prev => ({...prev, materiais: false}));
         });
-        const unsubClientes = getClientes(user.uid, (data) => {
+        unsubClientes = getClientes(user.uid, (data) => {
             setClientes(data);
             setIsLoading(prev => ({...prev, clientes: false}));
         });
-        const unsubOrcamentos = getOrcamentos(user.uid, (data) => {
+        unsubOrcamentos = getOrcamentos(user.uid, (data) => {
             setOrcamentosSalvos(data);
             setIsLoading(prev => ({...prev, orcamentos: false}));
         });
@@ -158,9 +162,9 @@ export default function OrcamentoPage() {
         fetchEmpresa();
 
         return () => {
-            unsubMateriais();
-            unsubClientes();
-            unsubOrcamentos();
+            if (unsubMateriais) unsubMateriais();
+            if (unsubClientes) unsubClientes();
+            if (unsubOrcamentos) unsubOrcamentos();
         }
     } else if(!loadingAuth) {
         setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
@@ -853,3 +857,5 @@ export default function OrcamentoPage() {
     </div>
   );
 }
+
+    

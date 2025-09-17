@@ -41,15 +41,21 @@ export default function ClientesPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
     if (user) {
-      const unsubscribe = getClientes(user.uid, (data) => {
+      unsubscribe = getClientes(user.uid, (data) => {
         setClientes(data);
         setIsLoadingData(false);
       });
-      return () => unsubscribe();
     } else if (!loadingAuth) {
       setIsLoadingData(false);
     }
+    
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [user, loadingAuth]);
 
 
@@ -426,3 +432,5 @@ export default function ClientesPage() {
     </div>
   );
 }
+
+    
