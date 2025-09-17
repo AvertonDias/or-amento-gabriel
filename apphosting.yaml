@@ -5,3 +5,7 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+# Grant App Hosting's service account the permission to deploy Firestore rules.
+iam:
+  roles:
+  - 'firebase.rulesAdmin'
