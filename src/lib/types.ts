@@ -1,5 +1,3 @@
-
-
 export interface EmpresaData {
   nome: string;
   endereco: string;
@@ -17,27 +15,23 @@ export interface ClienteData {
   cpfCnpj?: string;
 }
 
-// Definição de um tipo genérico para materiais
+// Tipo generalizado para itens e serviços
 export interface MaterialItem {
   id: string;
-  tipo: 'Bobina' | 'Condutor' | 'Outros'; // Tipos fixos
-  descricao: string; // O nome/descrição específica do item. Ex: "Bobina Galvalume 0.43mm", "Condutor Retangular 28cm"
-  unidade: 'kg' | 'm' | 'un';        // Unidade de medida principal
-  quantidade: number | null;         // Peso em kg ou comprimento em m
-  espessura: number | null;          // em mm (apenas para Bobina)
-  largura: number | null;            // em cm (apenas para Bobina)
-  precoUnitario: number | null;      // R$/kg ou R$/m ou R$/un
+  descricao: string; // O nome/descrição específica do item. Ex: "Troca de tomada", "Pintura (m²)"
+  unidade: string;     // Unidade de medida (un, h, m, m², serv, etc.)
+  precoUnitario: number | null; // R$ por unidade
 }
 
 export interface OrcamentoItem {
   id: string;
   materialId: string;
-  materialNome: string; // Para "Outros", guarda a descrição customizada
-  materialTipo: 'Bobina' | 'Condutor' | 'Outros'; // Ajuda a UI e os cálculos
-  corteCm: number;
-  metros: number;
-  total: number; // Custo da peça
-  margemLucro: number; // Margem de lucro em %
+  materialNome: string;
+  unidade: string;
+  quantidade: number;
+  precoUnitario: number;
+  total: number; // Custo do item (quantidade * precoUnitario)
+  margemLucro: number; // Acréscimo em %
   precoVenda: number; // Preço final para o cliente
 }
 

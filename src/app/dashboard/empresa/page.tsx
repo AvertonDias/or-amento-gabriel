@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { FormEvent, useState, useEffect, useRef } from 'react';
@@ -137,13 +136,13 @@ export default function EmpresaPage() {
                 
                 <div className='border-t pt-6 space-y-6'>
                     <div>
-                        <Label htmlFor="nome">Nome da Empresa</Label>
+                        <Label htmlFor="nome">Nome da Empresa / Seu Nome</Label>
                         <Input
                         id="nome"
                         name="nome"
                         value={empresa.nome}
                         onChange={handleChange}
-                        placeholder="Ex: Calhas & Cia"
+                        placeholder="Ex: João da Silva - Reparos Residenciais"
                         required
                         />
                     </div>
@@ -154,7 +153,7 @@ export default function EmpresaPage() {
                         name="endereco"
                         value={empresa.endereco}
                         onChange={handleChange}
-                        placeholder="Rua das Calhas, 123, Bairro, Cidade - UF"
+                        placeholder="Rua, 123, Bairro, Cidade - UF"
                         required
                         />
                     </div>
@@ -169,7 +168,7 @@ export default function EmpresaPage() {
                         />
                     </div>
                     <div>
-                        <Label htmlFor="cnpj">CNPJ</Label>
+                        <Label htmlFor="cnpj">CNPJ / CPF</Label>
                         <Input
                         id="cnpj"
                         name="cnpj"

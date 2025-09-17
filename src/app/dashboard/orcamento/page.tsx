@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, FormEvent, useRef } from 'react';
@@ -8,9 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableTotalFooter } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, AlertTriangle, FileText, Eraser, Pencil, MessageCircle, UserPlus, History, CheckCircle2, XCircle, Search } from 'lucide-react';
+import { PlusCircle, Trash2, AlertTriangle, FileText, Eraser, Pencil, MessageCircle, History, CheckCircle2, XCircle, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -21,8 +20,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-
-const DENSITY_KG_PER_M3_REFERENCE = 7850;
 
 // Componente para o layout do PDF
 const BudgetPDFLayout = ({ orcamento, empresa }: {
@@ -59,7 +56,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
           <div className="text-sm space-y-1">
             <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
             {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
-            <p><span className="font-medium">Endereço:</span> {orcamento.cliente.endereco}</p>
+            {orcamento.cliente.endereco && <p><span className="font-medium">Endereço:</span> {orcamento.cliente.endereco}</p>}
             <p><span className="font-medium">Telefone:</span> {orcamento.cliente.telefone}</p>
             {orcamento.cliente.email && <p><span className="font-medium">Email:</span> {orcamento.cliente.email}</p>}
           </div>
@@ -68,30 +65,28 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
         <Table className="text-sm">
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Material / Descrição</TableHead>
-              <TableHead className="text-right">Corte(cm)</TableHead>
-              <TableHead className="text-right">Metros/Qtd</TableHead>
-              <TableHead className="text-right">Valor</TableHead>
+              <TableHead>Item / Descrição</TableHead>
+              <TableHead className="text-right">Qtd.</TableHead>
+              <TableHead className="text-right">Preço Unit.</TableHead>
+              <TableHead className="text-right">Subtotal</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {orcamento.itens.map(item => (
               <TableRow key={item.id} className="even:bg-muted/20">
-                <TableCell>{item.materialTipo}</TableCell>
                 <TableCell>{item.materialNome}</TableCell>
-                <TableCell className="text-right">{item.corteCm > 0 ? formatNumber(item.corteCm, 2) : '-'}</TableCell>
-                <TableCell className="text-right">{item.metros > 0 ? formatNumber(item.metros, 2) : '-'}</TableCell>
+                <TableCell className="text-right">{formatNumber(item.quantidade, 2)} {item.unidade}</TableCell>
+                <TableCell className="text-right">{formatCurrency(item.precoUnitario)}</TableCell>
                 <TableCell className="text-right font-medium">{formatCurrency(item.precoVenda)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
-          <TableFooter>
+          <TableTotalFooter>
             <TableRow className="bg-muted font-bold text-base">
-              <TableCell colSpan={4} className="text-right">TOTAL</TableCell>
+              <TableCell colSpan={3} className="text-right">TOTAL</TableCell>
               <TableCell className="text-right">{formatCurrency(orcamento.totalVenda)}</TableCell>
             </TableRow>
-          </TableFooter>
+          </TableTotalFooter>
         </Table>
       </div>
     )
@@ -99,20 +94,19 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
 
 
 export default function OrcamentoPage() {
-  const [materiais] = useLocalStorage<MaterialItem[]>('materiaisList', []);
+  const [materiais] = useLocalStorage<MaterialItem[]>('servicosListV1', []);
   const [clientes, setClientes] = useLocalStorage<ClienteData[]>('clientesList', []);
   const [empresa] = useLocalStorage<EmpresaData>('dadosEmpresa', { nome: '', endereco: '', telefone: '', cnpj: '', logo: '' });
-  const [orcamentoItens, setOrcamentoItens] = useLocalStorage<OrcamentoItem[]>('orcamentoItensV5', []);
-  const [orcamentosSalvos, setOrcamentosSalvos] = useLocalStorage<Orcamento[]>('orcamentosSalvosV2', []);
+  const [orcamentoItens, setOrcamentoItens] = useLocalStorage<OrcamentoItem[]>('orcamentoItensV6', []);
+  const [orcamentosSalvos, setOrcamentosSalvos] = useLocalStorage<Orcamento[]>('orcamentosSalvosV3', []);
 
   const { toast } = useToast();
   const pdfRef = useRef<HTMLDivElement>(null);
 
   const [novoItem, setNovoItem] = useState({
     materialId: '',
-    corteCm: '',
-    metros: '',
-    margemLucro: '100',
+    quantidade: '',
+    margemLucro: '0',
   });
   
   const [isClient, setIsClient] = useState(false);
@@ -162,45 +156,37 @@ export default function OrcamentoPage() {
 
   const addLinha = () => {
     if (!selectedMaterial) {
-      toast({ title: 'Seleção necessária', description: 'Por favor, selecione um material.', variant: 'destructive' });
+      toast({ title: 'Seleção necessária', description: 'Por favor, selecione um item ou serviço.', variant: 'destructive' });
       return;
     }
 
-    const { tipo, precoUnitario, espessura, id: materialId, descricao } = selectedMaterial;
+    const { precoUnitario, id: materialId, descricao, unidade } = selectedMaterial;
     const numMargemLucro = parseFloat(novoItem.margemLucro) || 0;
+    const numQuantidade = parseFloat(novoItem.quantidade);
     
-    let custoFinal: number | null = null;
-    let novoOrcamentoItem: Omit<OrcamentoItem, 'precoVenda'> | null = null;
-    const numMetrosOuQtd = parseFloat(novoItem.metros);
-
-    if (tipo === 'Bobina') {
-      const numCorteCm = parseFloat(novoItem.corteCm);
-      if (isNaN(numCorteCm) || isNaN(numMetrosOuQtd) || numCorteCm <= 0 || numMetrosOuQtd <= 0 || precoUnitario === null || espessura === null) {
-        toast({ title: 'Valores inválidos', description: 'Para Bobina, preencha Corte, Metragem e verifique os dados do material.', variant: 'destructive' });
-        return;
-      }
-      const espessuraM = espessura / 1000;
-      const areaM2 = (numCorteCm / 100) * numMetrosOuQtd;
-      const pesoM2 = espessuraM * DENSITY_KG_PER_M3_REFERENCE;
-      custoFinal = areaM2 * pesoM2 * precoUnitario;
-      
-      novoOrcamentoItem = { id: crypto.randomUUID(), materialId, materialNome: descricao, materialTipo: tipo, corteCm: numCorteCm, metros: numMetrosOuQtd, total: custoFinal, margemLucro: numMargemLucro };
-
-    } else if (tipo === 'Condutor' || tipo === 'Outros') {
-      if (isNaN(numMetrosOuQtd) || numMetrosOuQtd <= 0 || precoUnitario === null) {
-        toast({ title: 'Valores inválidos', description: `Para ${tipo}, preencha a Quantidade/Metragem e verifique o preço do material.`, variant: 'destructive' });
-        return;
-      }
-      custoFinal = precoUnitario * numMetrosOuQtd;
-      novoOrcamentoItem = { id: crypto.randomUUID(), materialId, materialNome: descricao, materialTipo: tipo, corteCm: 0, metros: numMetrosOuQtd, total: custoFinal, margemLucro: numMargemLucro };
+    if (isNaN(numQuantidade) || numQuantidade <= 0 || precoUnitario === null) {
+      toast({ title: 'Valores inválidos', description: 'Preencha a Quantidade e verifique os dados do item.', variant: 'destructive' });
+      return;
     }
 
-    if (custoFinal !== null && novoOrcamentoItem) {
-      const precoVenda = custoFinal * (1 + novoOrcamentoItem.margemLucro / 100);
-      setOrcamentoItens(prev => [...prev, { ...novoOrcamentoItem!, precoVenda }]);
-      setNovoItem({ materialId: '', corteCm: '', metros: '', margemLucro: novoItem.margemLucro });
-      toast({ title: 'Sucesso', description: 'Item adicionado ao orçamento.' });
-    }
+    const custoFinal = precoUnitario * numQuantidade;
+    const precoVenda = custoFinal * (1 + numMargemLucro / 100);
+
+    const novoOrcamentoItem: OrcamentoItem = { 
+      id: crypto.randomUUID(), 
+      materialId, 
+      materialNome: descricao, 
+      unidade,
+      quantidade: numQuantidade, 
+      precoUnitario,
+      total: custoFinal, 
+      margemLucro: numMargemLucro,
+      precoVenda,
+    };
+
+    setOrcamentoItens(prev => [...prev, novoOrcamentoItem]);
+    setNovoItem({ materialId: '', quantidade: '', margemLucro: novoItem.margemLucro });
+    toast({ title: 'Sucesso', description: 'Item adicionado ao orçamento.' });
   };
 
   const removeLinha = (id: string) => {
@@ -296,12 +282,7 @@ export default function OrcamentoPage() {
     mensagem += `*Valor Total:* ${formatCurrency(orcamento.totalVenda)}\n\n`;
     mensagem += `*Itens do Serviço:*\n`;
     orcamento.itens.forEach(item => {
-      let linha = `- ${item.materialNome}`;
-       if (item.materialTipo === 'Bobina') {
-         linha += ` (Corte: ${item.corteCm}cm, Metros: ${item.metros}m)`;
-       } else {
-         linha += ` (Qtd: ${item.metros} ${item.materialTipo === 'Outros' ? 'un' : 'm'})`;
-       }
+      let linha = `- ${item.materialNome} (Qtd: ${formatNumber(item.quantidade, 2)} ${item.unidade})`;
       mensagem += `${linha}\n`;
     });
     
@@ -341,18 +322,14 @@ export default function OrcamentoPage() {
         return;
     }
 
-    let mensagem = `*Orçamento de ${empresa?.nome || 'Calhas'}*\n\n`;
+    let mensagem = `*Orçamento de ${empresa?.nome || 'Serviços'}*\n\n`;
     mensagem += `*Nº do Orçamento:* ${orcamento.numeroOrcamento}\n\n`;
     mensagem += `Olá, *${orcamento.cliente.nome}*!\n`;
     mensagem += `Segue o seu orçamento:\n\n`;
 
     orcamento.itens.forEach(item => {
-      let linha = `*- ${item.materialTipo}:* ${item.materialNome}`;
-      if (item.corteCm > 0) {
-        linha += ` (Corte: ${formatNumber(item.corteCm)}cm, Metragem: ${formatNumber(item.metros)}m)`;
-      } else {
-        linha += ` (Qtd: ${formatNumber(item.metros)})`;
-      }
+      let linha = `*- ${item.materialNome}*`;
+      linha += ` (Qtd: ${formatNumber(item.quantidade, 2)} ${item.unidade})`;
       linha += ` - *${formatCurrency(item.precoVenda)}*\n`;
       mensagem += linha;
     });
@@ -374,7 +351,7 @@ export default function OrcamentoPage() {
   const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingItem) return;
     const { name, value } = e.target;
-    const numValue = (name === 'corteCm' || name === 'metros' || name === 'margemLucro' || name === 'total') ? parseFloat(value) : value;
+    const numValue = (name === 'quantidade' || name === 'margemLucro') ? parseFloat(value) : value;
     setEditingItem(prev => prev ? { ...prev, [name]: numValue } : null);
   };
 
@@ -382,46 +359,22 @@ export default function OrcamentoPage() {
     e.preventDefault();
     if (!editingItem) return;
 
-    const materialSelecionado = materiais.find(m => m.id === editingItem.materialId);
-    if (!materialSelecionado) {
-        toast({ title: 'Erro', description: 'Material base não encontrado.', variant: 'destructive' });
-        return;
-    }
+    const { precoUnitario } = editingItem;
 
-    let custoFinal: number | null = null;
-    const { precoUnitario, espessura } = materialSelecionado;
-
-    if (editingItem.materialTipo === 'Bobina') {
-        if (precoUnitario === null || espessura === null || editingItem.corteCm <= 0 || editingItem.metros <= 0) {
-            toast({ title: 'Valores inválidos', variant: 'destructive' }); return;
-        }
-        const espessuraM = espessura / 1000;
-        const areaM2 = (editingItem.corteCm / 100) * editingItem.metros;
-        const pesoM2 = espessuraM * DENSITY_KG_PER_M3_REFERENCE;
-        custoFinal = areaM2 * pesoM2 * precoUnitario;
-
-    } else if (editingItem.materialTipo === 'Condutor' || editingItem.materialTipo === 'Outros') {
-        if (precoUnitario === null || editingItem.metros <= 0) {
-            toast({ title: 'Valores inválidos', variant: 'destructive' }); return;
-        }
-        custoFinal = precoUnitario * editingItem.metros;
+    if (precoUnitario === null || editingItem.quantidade <= 0) {
+        toast({ title: 'Valores inválidos', variant: 'destructive' }); return;
     }
     
-    if (custoFinal === null) return;
-    
+    const custoFinal = precoUnitario * editingItem.quantidade;
     const precoVendaCalculado = custoFinal * (1 + (editingItem.margemLucro || 0) / 100);
+
     const itemAtualizado: OrcamentoItem = { ...editingItem, total: custoFinal, precoVenda: precoVendaCalculado };
+    
     setOrcamentoItens(prev => prev.map(item => item.id === itemAtualizado.id ? itemAtualizado : item));
     setIsEditModalOpen(false);
     setEditingItem(null);
     toast({ title: 'Item atualizado com sucesso.' });
   };
-  
-  const getMetragemLabel = () => {
-    if (!selectedMaterial) return 'Metragem (m)';
-    if (selectedMaterial.unidade === 'un') return 'Quantidade (un)';
-    return 'Metragem (m)';
-  }
   
   const getStatusBadgeVariant = (status: Orcamento['status']): "default" | "destructive" | "secondary" => {
     switch (status) {
@@ -472,10 +425,10 @@ export default function OrcamentoPage() {
               {materiais.length === 0 && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Nenhum Material Cadastrado</AlertTitle>
+                  <AlertTitle>Nenhum Item ou Serviço Cadastrado</AlertTitle>
                   <AlertDescription>
-                    Você precisa cadastrar materiais antes de criar um orçamento. 
-                    <Button asChild variant="link" className="p-1 h-auto"><Link href="/dashboard/materiais">Cadastrar Materiais</Link></Button>
+                    Você precisa cadastrar itens ou serviços antes de criar um orçamento. 
+                    <Button asChild variant="link" className="p-1 h-auto"><Link href="/dashboard/materiais">Cadastrar Itens</Link></Button>
                   </AlertDescription>
                 </Alert>
               )}
@@ -492,34 +445,22 @@ export default function OrcamentoPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6 p-4 border rounded-lg items-end">
-                <div className="sm:col-span-2 lg:col-span-4 xl:col-span-1">
-                  <Label htmlFor="material-select">Material</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 p-4 border rounded-lg items-end">
+                <div className="sm:col-span-2">
+                  <Label htmlFor="material-select">Item / Serviço</Label>
                    <Select value={novoItem.materialId} onValueChange={(val) => handleNovoItemChange('materialId', val)}>
                     <SelectTrigger id="material-select"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>
-                      {materiais.map(mat => (<SelectItem key={mat.id} value={mat.id}>{`${mat.tipo} - ${mat.descricao}`}</SelectItem>))}
+                      {materiais.map(mat => (<SelectItem key={mat.id} value={mat.id}>{`${mat.descricao} (${formatCurrency(mat.precoUnitario)}/${mat.unidade})`}</SelectItem>))}
                     </SelectContent>
                   </Select>
                 </div>
                 
-                {selectedMaterial?.tipo === 'Bobina' && (
-                  <>
-                    <div><Label htmlFor="corte-cm">Corte (cm)</Label><Input id="corte-cm" type="number" placeholder="Ex: 28" value={novoItem.corteCm} onChange={e => handleNovoItemChange('corteCm', e.target.value)} /></div>
-                    <div><Label htmlFor="metros">{getMetragemLabel()}</Label><Input id="metros" type="number" placeholder="Ex: 10.5" value={novoItem.metros} onChange={e => handleNovoItemChange('metros', e.target.value)} /></div>
-                  </>
-                )}
-
-                {(selectedMaterial?.tipo === 'Condutor' || selectedMaterial?.tipo === 'Outros') && (
-                  <>
-                    <div className="lg:col-span-2"><Label htmlFor="metros">{getMetragemLabel()}</Label><Input id="metros" type="number" placeholder="Ex: 10.5" value={novoItem.metros} onChange={e => handleNovoItemChange('metros', e.target.value)} /></div>
-                  </>
-                )}
-
                 {selectedMaterial && (
                   <>
-                    <div><Label htmlFor="margem-lucro">Margem (%)</Label><Input id="margem-lucro" type="number" placeholder="Ex: 100" value={novoItem.margemLucro} onChange={e => handleNovoItemChange('margemLucro', e.target.value)} /></div>
-                    <div className="xl:col-span-1"><Button onClick={addLinha} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Adicionar</Button></div>
+                    <div><Label htmlFor="quantidade">Quantidade ({selectedMaterial.unidade})</Label><Input id="quantidade" type="number" step="0.01" placeholder="Ex: 1.5" value={novoItem.quantidade} onChange={e => handleNovoItemChange('quantidade', e.target.value)} /></div>
+                    <div><Label htmlFor="margem-lucro">Acréscimo (%)</Label><Input id="margem-lucro" type="number" placeholder="Ex: 10" value={novoItem.margemLucro} onChange={e => handleNovoItemChange('margemLucro', e.target.value)} /></div>
+                    <div className="lg:col-span-1"><Button onClick={addLinha} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Adicionar</Button></div>
                   </>
                 )}
               </div>
@@ -531,12 +472,11 @@ export default function OrcamentoPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Tipo</TableHead>
-                                    <TableHead>Material / Descrição</TableHead>
-                                    <TableHead className="text-right">Corte(cm)</TableHead>
-                                    <TableHead className="text-right">Metros/Qtd</TableHead>
-                                    <TableHead className="text-right font-bold">Custo Peça</TableHead>
-                                    <TableHead className="w-[120px] text-right">Margem (%)</TableHead>
+                                    <TableHead className="w-[40%]">Item / Descrição</TableHead>
+                                    <TableHead className="text-right">Qtd.</TableHead>
+                                    <TableHead className="text-right">Preço Unit.</TableHead>
+                                    <TableHead className="text-right">Custo Total</TableHead>
+                                    <TableHead className="w-[120px] text-right">Acréscimo (%)</TableHead>
                                     <TableHead className="text-right font-bold text-primary">Preço Venda</TableHead>
                                     <TableHead className="text-center">Ações</TableHead>
                                 </TableRow>
@@ -544,10 +484,9 @@ export default function OrcamentoPage() {
                             <TableBody>
                             {orcamentoItens.map(item => (
                                 <TableRow key={item.id}>
-                                    <TableCell>{item.materialTipo}</TableCell>
                                     <TableCell>{item.materialNome}</TableCell>
-                                    <TableCell className="text-right">{item.corteCm > 0 ? formatNumber(item.corteCm, 2) : '-'}</TableCell>
-                                    <TableCell className="text-right">{item.metros > 0 ? formatNumber(item.metros, 2) : '-'}</TableCell>
+                                    <TableCell className="text-right">{formatNumber(item.quantidade, 2)} {item.unidade}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(item.precoUnitario)}</TableCell>
                                     <TableCell className="text-right font-medium">{formatCurrency(item.total)}</TableCell>
                                     <TableCell className="text-right">
                                         <Input type="number" step="1" value={item.margemLucro} onChange={(e) => handleMargemLucroChange(item.id, e.target.value)} className="text-right min-w-[80px]" />
@@ -560,15 +499,15 @@ export default function OrcamentoPage() {
                                 </TableRow>
                             ))}
                             </TableBody>
-                            <TableFooter>
+                            <TableTotalFooter>
                                 <TableRow className="bg-muted/50 font-bold text-base">
-                                    <TableCell colSpan={4}>TOTAL</TableCell>
+                                    <TableCell colSpan={3}>TOTAL</TableCell>
                                     <TableCell className="text-right">{formatCurrency(totalCusto)}</TableCell>
                                     <TableCell />
                                     <TableCell className="text-right text-primary">{formatCurrency(totalVenda)}</TableCell>
                                     <TableCell></TableCell>
                                 </TableRow>
-                            </TableFooter>
+                            </TableTotalFooter>
                         </Table>
                     </div>
                     
@@ -579,7 +518,7 @@ export default function OrcamentoPage() {
                                 <CardHeader className="flex flex-row items-center justify-between p-4">
                                     <div>
                                         <CardTitle className="text-base">{item.materialNome}</CardTitle>
-                                        <CardDescription>{item.materialTipo}</CardDescription>
+                                        <CardDescription>{formatNumber(item.quantidade, 2)} {item.unidade} x {formatCurrency(item.precoUnitario)}</CardDescription>
                                     </div>
                                     <div className="flex gap-1">
                                         <Button variant="ghost" size="icon" onClick={() => handleEditClick(item)}><Pencil className="h-4 w-4 text-primary" /></Button>
@@ -587,18 +526,9 @@ export default function OrcamentoPage() {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="p-4 pt-0 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                                    {item.corteCm > 0 && (
-                                        <div><p className="text-muted-foreground">Corte</p><p>{formatNumber(item.corteCm, 2)} cm</p></div>
-                                    )}
-                                    {item.metros > 0 && (
-                                        <div>
-                                            <p className="text-muted-foreground">{item.materialTipo === 'Bobina' || item.materialTipo === 'Condutor' ? 'Metragem' : 'Qtd.'}</p>
-                                            <p>{formatNumber(item.metros, 2)} {item.materialTipo === 'Outros' ? 'un' : 'm'}</p>
-                                        </div>
-                                    )}
-                                    <div><p className="text-muted-foreground">Custo Peça</p><p>{formatCurrency(item.total)}</p></div>
+                                    <div><p className="text-muted-foreground">Custo Total</p><p>{formatCurrency(item.total)}</p></div>
                                     <div>
-                                        <Label htmlFor={`margem-lucro-mobile-${item.id}`} className="text-muted-foreground">Margem (%)</Label>
+                                        <Label htmlFor={`margem-lucro-mobile-${item.id}`} className="text-muted-foreground">Acréscimo (%)</Label>
                                         <Input id={`margem-lucro-mobile-${item.id}`} type="number" step="1" value={item.margemLucro} onChange={(e) => handleMargemLucroChange(item.id, e.target.value)} className="h-9"/>
                                     </div>
                                 </CardContent>
@@ -670,7 +600,7 @@ export default function OrcamentoPage() {
                                     {orcamento.itens.map(item => (
                                         <TableRow key={item.id}>
                                             <TableCell>{item.materialNome}</TableCell>
-                                            <TableCell className="text-right">{formatNumber(item.metros)} {item.materialTipo === 'Outros' ? 'un' : 'm'}</TableCell>
+                                            <TableCell className="text-right">{formatNumber(item.quantidade)} {item.unidade}</TableCell>
                                             <TableCell className="text-right">{formatCurrency(item.precoVenda)}</TableCell>
                                         </TableRow>
                                     ))}
@@ -832,14 +762,8 @@ export default function OrcamentoPage() {
           <DialogHeader><DialogTitle>Editar Item do Orçamento</DialogTitle></DialogHeader>
           {editingItem && (
             <form onSubmit={salvarEdicao} className="space-y-4 py-4">
-              {editingItem.materialTipo === 'Bobina' && (<>
-                <div><Label htmlFor="edit-corte-cm">Corte (cm)</Label><Input id="edit-corte-cm" name="corteCm" type="number" step="0.01" value={editingItem.corteCm} onChange={handleEditFormChange}/></div>
-                <div><Label htmlFor="edit-metros">Metragem (m)</Label><Input id="edit-metros" name="metros" type="number" step="0.01" value={editingItem.metros} onChange={handleEditFormChange}/></div>
-              </>)}
-              {(editingItem.materialTipo === 'Condutor' || editingItem.materialTipo === 'Outros') && (
-                <div><Label htmlFor="edit-metros">Metragem/Qtd</Label><Input id="edit-metros" name="metros" type="number" step="0.01" value={editingItem.metros} onChange={handleEditFormChange}/></div>
-              )}
-              <div><Label htmlFor="edit-margemLucro">Margem de Lucro (%)</Label><Input id="edit-margemLucro" name="margemLucro" type="number" step="1" value={editingItem.margemLucro} onChange={handleEditFormChange}/></div>
+              <div><Label htmlFor="edit-quantidade">Quantidade ({editingItem.unidade})</Label><Input id="edit-quantidade" name="quantidade" type="number" step="0.01" value={editingItem.quantidade} onChange={handleEditFormChange}/></div>
+              <div><Label htmlFor="edit-margemLucro">Acréscimo (%)</Label><Input id="edit-margemLucro" name="margemLucro" type="number" step="1" value={editingItem.margemLucro} onChange={handleEditFormChange}/></div>
               <DialogFooter>
                 <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
                 <Button type="submit">Salvar Alterações</Button>

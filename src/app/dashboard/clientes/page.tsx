@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, FormEvent, useEffect } from 'react';
@@ -14,6 +13,8 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { maskCpfCnpj, maskTelefone } from '@/lib/utils';
+import { fillCustomerData, FillCustomerDataInput } from '@/ai/flows/fill-customer-data';
+import { Loader2 } from 'lucide-react';
 
 const initialNewClientState: Omit<ClienteData, 'id'> = {
   nome: '',
@@ -29,6 +30,7 @@ export default function ClientesPage() {
   
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<ClienteData | null>(null);
+  const [isFillingData, setIsFillingData] = useState(false);
 
   const [isClient, setIsClient] = useState(false);
 
@@ -48,6 +50,50 @@ export default function ClientesPage() {
     }
     setNewClient(prev => ({ ...prev, [name]: maskedValue }));
   };
+
+  const handleAiFill = async () => {
+    if(!newClient.nome && !newClient.cpfCnpj) {
+        toast({
+            title: "Dados insuficientes",
+            description: "Preencha o Nome ou o CPF/CNPJ para usar a busca com IA.",
+            variant: "destructive"
+        });
+        return;
+    }
+
+    setIsFillingData(true);
+    try {
+        const input: FillCustomerDataInput = {
+            nome: newClient.nome,
+            cpfCnpj: newClient.cpfCnpj?.replace(/[^\d]/g, ''), // Enviar sem máscara
+        };
+        const result = await fillCustomerData(input);
+        
+        setNewClient({
+            nome: result.nome || newClient.nome,
+            cpfCnpj: result.cpfCnpj ? maskCpfCnpj(result.cpfCnpj) : newClient.cpfCnpj,
+            endereco: result.endereco || newClient.endereco,
+            telefone: result.telefone ? maskTelefone(result.telefone) : newClient.telefone,
+            email: result.email || newClient.email,
+        });
+
+        toast({
+            title: "Dados preenchidos com IA!",
+            description: "Verifique as informações e complete o que faltar.",
+        });
+
+    } catch (error) {
+        console.error("Erro ao preencher dados com IA:", error);
+        toast({
+            title: "Erro na busca com IA",
+            description: "Não foi possível completar os dados. Tente novamente.",
+            variant: "destructive"
+        });
+    } finally {
+        setIsFillingData(false);
+    }
+  };
+
 
   const adicionarCliente = (e: FormEvent) => {
     e.preventDefault();
@@ -196,13 +242,23 @@ export default function ClientesPage() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="submit" className="w-full sm:w-auto">
+              <Button type="submit" className="w-full sm:w-auto" disabled={isFillingData}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Adicionar Cliente
               </Button>
-              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleImportContacts}>
+              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleImportContacts} disabled={isFillingData}>
                 <Contact className="mr-2 h-4 w-4" />
                 Importar dos Contatos
+              </Button>
+               <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleAiFill} disabled={isFillingData}>
+                {isFillingData ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="mr-2 h-4 w-4">
+                        <path d="M12.75 4.75L15.25 7.25L12.75 9.75L14.15 8.35L17.5 11.7L18.9 10.3L15.55 6.95L16.95 5.55L12.75 1.35V4.75ZM9.85 15.65L6.5 12.3L5.1 13.7L8.45 17.05L7.05 18.45L11.25 22.65V19.25L8.75 16.75L11.25 14.25L9.85 15.65ZM19.25 1.35L15.05 5.55L16.45 6.95L19.8 3.6L21.2 5L17.85 8.35L19.25 9.75L23.65 5.55V1.35H19.25ZM5.55 18.45L1.35 14.25V18.45H5.55Z" />
+                    </svg>
+                )}
+                Preencher com IA
               </Button>
             </div>
           </form>
@@ -326,5 +382,3 @@ export default function ClientesPage() {
     </div>
   );
 }
-
-    

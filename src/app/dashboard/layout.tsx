@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -27,9 +26,9 @@ import {
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { href: '/dashboard/orcamento', label: 'Orçamento', icon: Home },
+  { href: '/dashboard/orcamento', label: 'Novo Orçamento', icon: Home },
   { href: '/dashboard/clientes', label: 'Clientes', icon: Users },
-  { href: '/dashboard/materiais', label: 'Materiais', icon: Wrench },
+  { href: '/dashboard/materiais', label: 'Itens e Serviços', icon: Wrench },
   { href: '/dashboard/empresa', label: 'Dados da Empresa', icon: Building },
   { href: '/dashboard/minhas-informacoes', label: 'Minhas Informações', icon: User },
 ];
