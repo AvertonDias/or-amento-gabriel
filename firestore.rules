@@ -2,16 +2,15 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Regra genérica para coleções de documentos por usuário (materiais, clientes, orçamentos)
-    // Cada documento NESTAS coleções DEVE ter um campo 'userId' com o UID do proprietário.
-    match /{collectionName}/{documentId} 
-      where collectionName in ['materiais', 'clientes', 'orcamentos'] {
+    // Esta regra é genérica para coleções onde cada documento tem um campo 'userId'
+    // (Ex: materiais, clientes, orçamentos)
+    match /{collectionName}/{documentId} {
       allow read, create: if request.auth != null && request.auth.uid == request.resource.data.userId;
       allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
 
-    // Regra específica para a coleção 'empresa'
-    // Nesta coleção, o ID DO DOCUMENTO DEVE ser o UID do usuário.
+    // Esta regra é ESPECÍFICA para a coleção 'empresa'
+    // Aqui, o ID DO DOCUMENTO (userId no match path) deve ser o UID do usuário.
     match /empresa/{userId} {
       allow read, create: if request.auth != null && request.auth.uid == userId;
       allow update, delete: if request.auth != null && request.auth.uid == userId;
