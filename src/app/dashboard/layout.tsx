@@ -165,7 +165,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                             height={32}
                             className="rounded-md"
                         />
-                        <span className={cn('transition-all overflow-hidden', isSidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100')}>Orçamento de Calhas Pro</span>
+                        <span className={cn('transition-all overflow-hidden', isSidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100')}>Meu orçamento</span>
                     </Link>
                 </div>
                 <div className="flex-1 py-4">
@@ -232,7 +232,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                           height={32}
                           className="rounded-md"
                       />
-                    <span className="">Orçamento de Calhas Pro</span>
+                    <span className="">Meu orçamento</span>
                   </Link>
                 </div>
                 <MobileNavContent />

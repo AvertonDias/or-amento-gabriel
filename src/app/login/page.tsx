@@ -80,7 +80,7 @@ export default function LoginPage() {
               height={80}
               className="rounded-lg"
             />
-            <h1 className="text-2xl font-bold">Orçamento de Calhas Pro</h1>
+            <h1 className="text-2xl font-bold">Meu orçamento</h1>
           </div>
           <CardTitle className="text-2xl">Login</CardTitle>
           <CardDescription>

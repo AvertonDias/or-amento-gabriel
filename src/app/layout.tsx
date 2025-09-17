@@ -9,7 +9,7 @@ import { UnifiedThemeProvider } from "@/contexts/unified-theme-provider";
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'Orçamento de Calhas Pro',
+  title: 'Meu orçamento',
   description: 'Gere orçamentos de calhas de forma rápida, precisa e profissional.',
   manifest: '/manifest.json',
 };
@@ -25,7 +25,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#64B5F6" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Orçamento de Calhas Pro" />
+        <meta name="apple-mobile-web-app-title" content="Meu orçamento" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.jpg" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
