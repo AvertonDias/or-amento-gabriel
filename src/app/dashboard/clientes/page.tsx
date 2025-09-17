@@ -90,7 +90,6 @@ export default function ClientesPage() {
 
     setIsSubmitting(true);
     try {
-      // Create a plain object from the state before sending to the server action
       const clientData = {
         nome: newClient.nome,
         cpfCnpj: newClient.cpfCnpj,
@@ -158,9 +157,16 @@ export default function ClientesPage() {
     
     setIsSubmitting(true);
     try {
-        // Create a plain object for updating as well
         const { id, userId, ...clientToUpdate } = editingClient;
-        await updateCliente(id, clientToUpdate);
+        const plainClientObject = {
+            nome: clientToUpdate.nome,
+            cpfCnpj: clientToUpdate.cpfCnpj,
+            endereco: clientToUpdate.endereco,
+            telefone: clientToUpdate.telefone,
+            email: clientToUpdate.email,
+        };
+
+        await updateCliente(id, plainClientObject);
         setIsEditModalOpen(false);
         setEditingClient(null);
         await fetchClientes(); // Refresh list
