@@ -46,7 +46,7 @@ export default function ClientesPage() {
       setClientes(data);
     } catch (error) {
       console.error("Erro ao buscar clientes:", error);
-      toast({ title: 'Erro ao carregar clientes', variant: 'destructive' });
+      toast({ title: 'Erro ao carregar clientes', description: 'Verifique suas permissões do Firestore.', variant: 'destructive' });
     } finally {
       setIsLoadingData(false);
     }
