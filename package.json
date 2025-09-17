@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "firebase deploy --only firestore:rules --non-interactive && next dev",
     "build": "next build",
     "postbuild": "firebase deploy --only firestore:rules --non-interactive",
     "start": "next start",
