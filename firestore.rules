@@ -2,15 +2,19 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Permite que o usuário acesse (leia, escreva, apague) documentos em qualquer coleção
-    // desde que o documento tenha um campo 'userId' que corresponda ao ID do usuário autenticado.
-    match /{collection}/{docId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+    // Regra genérica para coleções de documentos por usuário (materiais, clientes, orçamentos)
+    // Cada documento NESTAS coleções DEVE ter um campo 'userId' com o UID do proprietário.
+    match /{collectionName}/{documentId} 
+      where collectionName in ['materiais', 'clientes', 'orcamentos'] {
+      allow read, create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
 
-    // Regra específica para a coleção 'empresa', onde o ID do documento é o próprio userId.
+    // Regra específica para a coleção 'empresa'
+    // Nesta coleção, o ID DO DOCUMENTO DEVE ser o UID do usuário.
     match /empresa/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, create: if request.auth != null && request.auth.uid == userId;
+      allow update, delete: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
