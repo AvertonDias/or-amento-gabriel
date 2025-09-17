@@ -41,21 +41,23 @@ export default function ClientesPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
-    if (user) {
-      unsubscribe = getClientes(user.uid, (data) => {
-        setClientes(data);
-        setIsLoadingData(false);
-      });
-    } else if (!loadingAuth) {
-      setIsLoadingData(false);
+    if (loadingAuth) {
+      setIsLoadingData(true);
+      return;
     }
-    
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
+    if (!user) {
+      setIsLoadingData(false);
+      setClientes([]); // Clear data if user logs out
+      return;
+    }
+
+    const unsubscribe = getClientes(user.uid, (data) => {
+      setClientes(data);
+      setIsLoadingData(false);
+    });
+
+    // Return the cleanup function
+    return () => unsubscribe();
   }, [user, loadingAuth]);
 
 
