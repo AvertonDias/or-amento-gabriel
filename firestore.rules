@@ -1,29 +1,25 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permite que um usuário autenticado crie, leia, atualize e apague
-    // seus próprios documentos na coleção 'clientes'.
+    
+    // As regras 'get' e 'list' são para leitura, 'write' cobre create, update, delete.
+    // 'list' é necessário para queries em coleções.
+    
     match /clientes/{clientId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow get, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow list, create: if request.auth != null && request.auth.uid == request.query.userId;
     }
 
-    // Permite que um usuário autenticado crie, leia, atualize e apague
-    // seus próprios documentos na coleção 'materiais'.
     match /materiais/{materialId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow get, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow list, create: if request.auth != null && request.auth.uid == request.query.userId;
     }
 
-    // Permite que um usuário autenticado crie, leia, atualize e apague
-    // seus próprios documentos na coleção 'orcamentos'.
     match /orcamentos/{orcamentoId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow get, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow list, create: if request.auth != null && request.auth.uid == request.query.userId;
     }
 
-    // Permite que um usuário autenticado crie, leia e atualize o documento
-    // da sua própria empresa, usando o UID do usuário como ID do documento.
     match /empresa/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
