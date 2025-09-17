@@ -2,28 +2,15 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Regra para coleção 'materiais'
-    match /materiais/{materialId} {
-      allow read, create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    // Permite que o usuário acesse (leia, escreva, apague) documentos em qualquer coleção
+    // desde que o documento tenha um campo 'userId' que corresponda ao ID do usuário autenticado.
+    match /{collection}/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
     }
 
-    // Regra para coleção 'clientes'
-    match /clientes/{clientId} {
-      allow read, create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-    }
-
-    // Regra para coleção 'orcamentos'
-    match /orcamentos/{orcamentoId} {
-      allow read, create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-    }
-
-    // Regra para coleção 'empresa' (o ID do documento DEVE ser o UID do usuário)
+    // Regra específica para a coleção 'empresa', onde o ID do documento é o próprio userId.
     match /empresa/{userId} {
-      allow read, create: if request.auth != null && request.auth.uid == userId;
-      allow update, delete: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
