@@ -1,14 +1,22 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy, limit, getCountFromServer } from 'firebase/firestore';
 import type { Orcamento } from '@/lib/types';
 
 const ORCAMENTOS_COLLECTION = 'orcamentos';
 
 // Add a new orcamento
 export const addOrcamento = async (orcamento: Omit<Orcamento, 'id'>) => {
-  await addDoc(collection(db, ORCAMENTOS_COLLECTION), orcamento);
+  console.log(`[ORCAMENTO SERVICE - addOrcamento] Tentando salvar orçamento para cliente: ${orcamento.cliente.nome}`);
+  try {
+      const docRef = await addDoc(collection(db, ORCAMENTOS_COLLECTION), orcamento);
+      console.log(`[ORCAMENTO SERVICE - addOrcamento] Orçamento salvo com ID: ${docRef.id}`);
+      return docRef.id;
+  } catch (error: any) {
+    console.error("[ORCAMENTO SERVICE - addOrcamento] Erro ao adicionar orçamento:", error.code, "-", error.message);
+    throw new Error(`Falha ao adicionar orçamento: ${error.message}`);
+  }
 };
 
 // Update an orcamento status
@@ -36,28 +44,28 @@ export const getOrcamentos = async (userId: string): Promise<Orcamento[]> => {
 
 // Get the next sequential orcamento number for the current year
 export const getNextOrcamentoNumber = async (userId: string): Promise<string> => {
+    console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Chamado com userId: ${userId}`);
+    if (!userId) {
+      console.error("[ORCAMENTO SERVICE - getNextOrcamentoNumber] userId é nulo.");
+      throw new Error("User ID é nulo, impossível gerar número do orçamento.");
+    }
     const currentYear = new Date().getFullYear();
-    const startOfYear = new Date(currentYear, 0, 1).toISOString();
-    const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59).toISOString();
-
-    const q = query(
-        collection(db, ORCAMENTOS_COLLECTION),
-        where('userId', '==', userId),
-        where('dataCriacao', '>=', startOfYear),
-        where('dataCriacao', '<=', endOfYear),
-        orderBy('dataCriacao', 'desc'),
-        limit(1)
-    );
-
-    const querySnapshot = await getDocs(q);
-
-    if (querySnapshot.empty) {
+    
+    try {
+        const q = query(
+            collection(db, ORCAMENTOS_COLLECTION),
+            where('userId', '==', userId),
+            where('numeroOrcamento', '>=', `${currentYear}-000`),
+            where('numeroOrcamento', '<', `${currentYear + 1}-000`)
+        );
+        const snapshot = await getCountFromServer(q);
+        const count = snapshot.data().count;
+        const newNumber = count + 1;
+        console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Total de orçamentos para o usuário em ${currentYear}: ${count}. Novo número: ${newNumber}`);
+        return `${currentYear}-${String(newNumber).padStart(3, '0')}`;
+    } catch (e: any) {
+        console.error("[ORCAMENTO SERVICE - getNextOrcamentoNumber] Erro ao obter próximo número:", e.message, e.code);
+        // Fallback para um número inicial em caso de erro de permissão na contagem, por exemplo.
         return `${currentYear}-001`;
     }
-
-    const lastOrcamento = querySnapshot.docs[0].data() as Orcamento;
-    const lastNumberStr = lastOrcamento.numeroOrcamento.split('-')[1];
-    const lastNumber = parseInt(lastNumberStr, 10);
-    const newNumber = lastNumber + 1;
-    return `${currentYear}-${String(newNumber).padStart(3, '0')}`;
 };
