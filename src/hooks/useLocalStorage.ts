@@ -1,4 +1,5 @@
 
+'use client';
 import { useState, useEffect } from 'react';
 
 /**
@@ -11,31 +12,38 @@ import { useState, useEffect } from 'react';
  */
 export function useLocalStorage<T>(key: string, initialValue: T) {
   // Estado interno que representa o valor salvo
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    // SSR safety: se não houver window, retorna valor inicial
-    if (typeof window === 'undefined') {
-      return initialValue;
+  const [storedValue, setStoredValue] = useState<T>(initialValue);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (isClient) {
+      try {
+        const item = window.localStorage.getItem(key);
+        setStoredValue(item ? (JSON.parse(item) as T) : initialValue);
+      } catch (error) {
+        console.error(`Erro ao ler a chave localStorage “${key}”:`, error);
+        setStoredValue(initialValue);
+      }
     }
-    try {
-      const item = window.localStorage.getItem(key);
-      return item ? (JSON.parse(item) as T) : initialValue;
-    } catch (error) {
-      console.error(`Erro ao ler a chave localStorage “${key}”:`, error);
-      return initialValue;
-    }
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClient, key]);
+
 
   // Função para atualizar o estado e o localStorage
   const setValue = (value: T | ((prev: T) => T)) => {
+    if (!isClient) return;
+    
     try {
       // Permite atualização baseada no valor anterior
       const valueToStore = value instanceof Function ? value(storedValue) : value;
       // Atualiza o estado React
       setStoredValue(valueToStore);
       // Grava no localStorage
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
-      }
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
     } catch (error) {
       console.error(`Erro ao gravar a chave localStorage “${key}”:`, error);
     }

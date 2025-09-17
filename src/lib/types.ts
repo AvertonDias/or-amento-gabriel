@@ -1,4 +1,6 @@
 export interface EmpresaData {
+  id?: string; // Firestore document ID
+  userId: string;
   nome: string;
   endereco: string;
   telefone: string;
@@ -7,7 +9,8 @@ export interface EmpresaData {
 }
 
 export interface ClienteData {
-  id?: string;
+  id?: string; // Firestore document ID
+  userId: string;
   nome: string;
   endereco: string;
   telefone:string;
@@ -17,7 +20,8 @@ export interface ClienteData {
 
 // Tipo generalizado para itens e serviços
 export interface MaterialItem {
-  id: string;
+  id: string; // Firestore document ID
+  userId: string;
   descricao: string; // O nome/descrição específica do item. Ex: "Troca de tomada", "Pintura (m²)"
   unidade: string;     // Unidade de medida (un, h, m, m², serv, etc.)
   precoUnitario: number | null; // R$ por unidade
@@ -36,7 +40,8 @@ export interface OrcamentoItem {
 }
 
 export interface Orcamento {
-  id: string;
+  id: string; // Firestore document ID
+  userId: string;
   numeroOrcamento: string;
   cliente: ClienteData;
   itens: OrcamentoItem[];

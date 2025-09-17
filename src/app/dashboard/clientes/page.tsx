@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, FormEvent, useEffect } from 'react';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 import type { ClienteData } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,8 +14,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { maskCpfCnpj, maskTelefone } from '@/lib/utils';
 import { fillCustomerData, FillCustomerDataInput } from '@/ai/flows/fill-customer-data';
 import { Loader2 } from 'lucide-react';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
+import { addCliente, deleteCliente, getClientes, updateCliente } from '@/services/clientesService';
 
-const initialNewClientState: Omit<ClienteData, 'id'> = {
+const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
   nome: '',
   cpfCnpj: '',
   endereco: '',
@@ -25,20 +27,31 @@ const initialNewClientState: Omit<ClienteData, 'id'> = {
 };
 
 export default function ClientesPage() {
-  const [clientes, setClientes] = useLocalStorage<ClienteData[]>('clientesList', []);
-  const [newClient, setNewClient] = useState<Omit<ClienteData, 'id'>>(initialNewClientState);
+  const [user, loadingAuth] = useAuthState(auth);
+  const [clientes, setClientes] = useState<ClienteData[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [newClient, setNewClient] = useState(initialNewClientState);
   
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<ClienteData | null>(null);
   const [isFillingData, setIsFillingData] = useState(false);
 
-  const [isClient, setIsClient] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
-    setIsClient(true);
-  }, []);
+    if (user) {
+      const unsubscribe = getClientes(user.uid, (data) => {
+        setClientes(data);
+        setIsLoadingData(false);
+      });
+      return () => unsubscribe();
+    } else if (!loadingAuth) {
+      setIsLoadingData(false);
+    }
+  }, [user, loadingAuth]);
 
-  const { toast } = useToast();
 
   const handleNewClientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -95,8 +108,12 @@ export default function ClientesPage() {
   };
 
 
-  const adicionarCliente = (e: FormEvent) => {
+  const handleAdicionarCliente = async (e: FormEvent) => {
     e.preventDefault();
+    if (!user) {
+        toast({ title: 'Usuário não autenticado', variant: 'destructive' });
+        return;
+    }
     if (!newClient.nome) {
       toast({
         title: 'Campo Obrigatório',
@@ -106,21 +123,31 @@ export default function ClientesPage() {
       return;
     }
 
-    setClientes(prev => [...prev, { ...newClient, id: crypto.randomUUID() }]);
-    setNewClient(initialNewClientState);
-    toast({
-      title: 'Sucesso!',
-      description: 'Cliente adicionado à lista.',
-    });
+    setIsSubmitting(true);
+    try {
+      await addCliente(user.uid, newClient);
+      setNewClient(initialNewClientState);
+      toast({
+        title: 'Sucesso!',
+        description: 'Cliente adicionado.',
+      });
+    } catch (error) {
+      toast({ title: 'Erro ao adicionar cliente', variant: 'destructive' });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
-  const removerCliente = (id: string) => {
-    setClientes(clientes.filter(item => item.id !== id));
-    toast({
-      title: 'Cliente Removido',
-      description: 'O cliente foi removido da sua lista.',
-      variant: 'destructive',
-    });
+  const handleRemoverCliente = async (id: string) => {
+    try {
+        await deleteCliente(id);
+        toast({
+            title: 'Cliente Removido',
+            variant: 'destructive',
+        });
+    } catch(error) {
+        toast({ title: 'Erro ao remover cliente', variant: 'destructive' });
+    }
   };
   
   const handleEditClick = (client: ClienteData) => {
@@ -140,7 +167,7 @@ export default function ClientesPage() {
     setEditingClient(prev => prev ? { ...prev, [name]: maskedValue } : null);
   };
 
-  const salvarEdicao = (e: FormEvent) => {
+  const handleSalvarEdicao = async (e: FormEvent) => {
     e.preventDefault();
     if (!editingClient || !editingClient.id) return;
 
@@ -152,14 +179,21 @@ export default function ClientesPage() {
       });
       return;
     }
-
-    setClientes(clientes.map(c => c.id === editingClient.id ? editingClient : c));
-    setIsEditModalOpen(false);
-    setEditingClient(null);
-    toast({
-      title: 'Sucesso!',
-      description: 'Cliente atualizado com sucesso.',
-    });
+    
+    setIsSubmitting(true);
+    try {
+        await updateCliente(editingClient.id, editingClient);
+        setIsEditModalOpen(false);
+        setEditingClient(null);
+        toast({
+            title: 'Sucesso!',
+            description: 'Cliente atualizado com sucesso.',
+        });
+    } catch(error) {
+        toast({ title: 'Erro ao atualizar cliente', variant: 'destructive' });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   const handleImportContacts = async () => {
@@ -203,6 +237,9 @@ export default function ClientesPage() {
       });
     }
   };
+  
+  const showSkeleton = loadingAuth || isLoadingData;
+
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
@@ -213,11 +250,11 @@ export default function ClientesPage() {
             Cadastro de Clientes
           </CardTitle>
           <CardDescription>
-            Adicione e gerencie os seus clientes. Estes dados ficarão salvos no seu navegador e poderão ser usados nos orçamentos.
+            Adicione e gerencie os seus clientes. Estes dados ficarão salvos na nuvem e poderão ser usados nos orçamentos.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={adicionarCliente} className="space-y-6 border-b pb-6 mb-6">
+          <form onSubmit={handleAdicionarCliente} className="space-y-6 border-b pb-6 mb-6">
             <h2 className="text-xl font-semibold">Adicionar Novo Cliente</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -242,15 +279,15 @@ export default function ClientesPage() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="submit" className="w-full sm:w-auto" disabled={isFillingData}>
-                <PlusCircle className="mr-2 h-4 w-4" />
+              <Button type="submit" className="w-full sm:w-auto" disabled={isFillingData || isSubmitting}>
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                 Adicionar Cliente
               </Button>
-              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleImportContacts} disabled={isFillingData}>
+              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleImportContacts} disabled={isFillingData || isSubmitting}>
                 <Contact className="mr-2 h-4 w-4" />
                 Importar dos Contatos
               </Button>
-               <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleAiFill} disabled={isFillingData}>
+               <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleAiFill} disabled={isFillingData || isSubmitting}>
                 {isFillingData ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -263,12 +300,15 @@ export default function ClientesPage() {
             </div>
           </form>
 
-          {!isClient ? (
-            <div className="space-y-2">
+          {showSkeleton ? (
+            <div className="space-y-4">
               <Skeleton className="h-8 w-1/3" />
-              <Skeleton className="h-40 w-full" />
+              <div className="space-y-2">
+                 <Skeleton className="h-20 w-full" />
+                 <Skeleton className="h-20 w-full" />
+              </div>
             </div>
-          ) : clientes.length > 0 && (
+          ) : clientes.length > 0 ? (
             <div>
               <h2 className="text-xl font-semibold mb-4">Clientes Cadastrados</h2>
               
@@ -295,7 +335,7 @@ export default function ClientesPage() {
                           <Button variant="ghost" size="icon" onClick={() => handleEditClick(item)}>
                             <Pencil className="h-4 w-4 text-primary" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => removerCliente(item.id!)}>
+                          <Button variant="ghost" size="icon" onClick={() => handleRemoverCliente(item.id!)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </TableCell>
@@ -318,7 +358,7 @@ export default function ClientesPage() {
                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditClick(item)}>
                                   <Pencil className="h-4 w-4 text-primary" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removerCliente(item.id!)}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemoverCliente(item.id!)}>
                                   <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
                           </div>
@@ -331,8 +371,9 @@ export default function ClientesPage() {
                   </Card>
                 ))}
               </div>
-
             </div>
+          ) : (
+             <p className="text-center text-muted-foreground py-8">Nenhum cliente cadastrado ainda.</p>
           )}
         </CardContent>
       </Card>
@@ -346,7 +387,7 @@ export default function ClientesPage() {
             </DialogDescription>
           </DialogHeader>
           {editingClient && (
-            <form onSubmit={salvarEdicao} className="space-y-4 py-4">
+            <form onSubmit={handleSalvarEdicao} className="space-y-4 py-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-nome">Nome</Label>
@@ -371,9 +412,12 @@ export default function ClientesPage() {
               </div>
               <DialogFooter>
                 <DialogClose asChild>
-                  <Button type="button" variant="outline">Cancelar</Button>
+                  <Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button>
                 </DialogClose>
-                <Button type="submit">Salvar Alterações</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                   Salvar Alterações
+                </Button>
               </DialogFooter>
             </form>
           )}

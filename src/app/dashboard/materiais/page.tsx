@@ -1,52 +1,69 @@
 'use client';
 
 import React, { useState, FormEvent, useEffect } from 'react';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 import type { MaterialItem } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Wrench, PlusCircle, Pencil } from 'lucide-react';
+import { Trash2, Wrench, PlusCircle, Pencil, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
+import { addMaterial, deleteMaterial, getMateriais, updateMaterial } from '@/services/materiaisService';
 
-const initialNewItemState: Omit<MaterialItem, 'id'> = {
+
+const initialNewItemState: Omit<MaterialItem, 'id' | 'userId'> = {
   descricao: '',
   unidade: 'un',
   precoUnitario: null,
 };
 
 export default function MateriaisPage() {
-  const [materiais, setMateriais] = useLocalStorage<MaterialItem[]>('servicosListV1', []);
-  const [newItem, setNewItem] = useState<Omit<MaterialItem, 'id'>>(initialNewItemState);
+  const [user, loadingAuth] = useAuthState(auth);
+  const [materiais, setMateriais] = useState<MaterialItem[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [newItem, setNewItem] = useState(initialNewItemState);
   
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<MaterialItem | null>(null);
 
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
   const { toast } = useToast();
   
+  useEffect(() => {
+    if (user) {
+      const unsubscribe = getMateriais(user.uid, (data) => {
+        setMateriais(data);
+        setIsLoadingData(false);
+      });
+      return () => unsubscribe();
+    } else if (!loadingAuth) {
+      setIsLoadingData(false);
+    }
+  }, [user, loadingAuth]);
+
   const handleNewItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     if (name === 'precoUnitario') {
-      const numValue = value === '' ? null : parseFloat(value);
+      const numValue = value === '' ? null : parseFloat(value.replace(',', '.'));
       setNewItem(prev => ({ ...prev, [name]: numValue }));
     } else {
       setNewItem(prev => ({ ...prev, [name]: value }));
     }
   };
 
-  const adicionarMaterial = (e: FormEvent) => {
+  const handleAdicionarMaterial = async (e: FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      toast({ title: "Usuário não autenticado", variant: "destructive" });
+      return;
+    }
     if (!newItem.descricao || newItem.precoUnitario === null) {
         toast({
             title: "Campos Obrigatórios",
@@ -55,22 +72,32 @@ export default function MateriaisPage() {
         });
         return;
     }
-
-    setMateriais(prev => [...prev, { ...newItem, id: crypto.randomUUID() }]);
-    setNewItem(initialNewItemState);
-    toast({
-      title: "Sucesso!",
-      description: "Item/Serviço adicionado à lista.",
-    });
+    
+    setIsSubmitting(true);
+    try {
+      await addMaterial(user.uid, newItem);
+      setNewItem(initialNewItemState);
+      toast({
+        title: "Sucesso!",
+        description: "Item/Serviço adicionado.",
+      });
+    } catch (error) {
+       toast({ title: 'Erro ao adicionar item', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const removerMaterial = (id: string) => {
-    setMateriais(materiais.filter(item => item.id !== id));
-    toast({
-      title: "Item Removido",
-      description: "O item foi removido da sua lista.",
-      variant: "destructive"
-    });
+  const handleRemoverMaterial = async (id: string) => {
+    try {
+        await deleteMaterial(id);
+        toast({
+            title: "Item Removido",
+            variant: "destructive"
+        });
+    } catch(error) {
+        toast({ title: 'Erro ao remover item', variant: 'destructive' });
+    }
   };
   
   const handleEditClick = (material: MaterialItem) => {
@@ -82,16 +109,16 @@ export default function MateriaisPage() {
     if (!editingMaterial) return;
     const { name, value } = e.target;
      if (name === 'precoUnitario') {
-      const numValue = value === '' ? null : parseFloat(value);
+      const numValue = value === '' ? null : parseFloat(value.replace(',', '.'));
       setEditingMaterial(prev => prev ? { ...prev, [name]: numValue } : null);
     } else {
       setEditingMaterial(prev => prev ? { ...prev, [name]: value } : null);
     }
   };
   
-  const salvarEdicao = (e: FormEvent) => {
+  const handleSalvarEdicao = async (e: FormEvent) => {
     e.preventDefault();
-    if (!editingMaterial) return;
+    if (!editingMaterial || !editingMaterial.id) return;
 
     if(!editingMaterial.descricao || editingMaterial.precoUnitario === null) {
       toast({
@@ -101,16 +128,24 @@ export default function MateriaisPage() {
       });
       return;
     }
-
-    setMateriais(materiais.map(m => m.id === editingMaterial.id ? editingMaterial : m));
-    setIsEditModalOpen(false);
-    setEditingMaterial(null);
-    toast({
-      title: "Sucesso!",
-      description: "Item atualizado com sucesso.",
-    });
+    
+    setIsSubmitting(true);
+    try {
+        await updateMaterial(editingMaterial.id, editingMaterial);
+        setIsEditModalOpen(false);
+        setEditingMaterial(null);
+        toast({
+            title: "Sucesso!",
+            description: "Item atualizado com sucesso.",
+        });
+    } catch(error) {
+        toast({ title: 'Erro ao atualizar item', variant: 'destructive' });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
-
+  
+  const showSkeleton = loadingAuth || isLoadingData;
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
@@ -122,16 +157,16 @@ export default function MateriaisPage() {
           </CardTitle>
           <CardDescription>
             Adicione e gerencie os itens e serviços que serão usados nos orçamentos.
-            Estes dados ficarão salvos no seu navegador.
+            Estes dados ficarão salvos na nuvem.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={adicionarMaterial} className="space-y-6 border-b pb-6 mb-6">
+          <form onSubmit={handleAdicionarMaterial} className="space-y-6 border-b pb-6 mb-6">
             <h2 className="text-xl font-semibold">Adicionar Novo Item/Serviço</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
               <div className="md:col-span-2">
                 <Label htmlFor="descricao">Descrição do Item/Serviço</Label>
-                <Input id="descricao" name="descricao" value={newItem.descricao} onChange={handleNewItemChange} placeholder="Ex: Troca de tomada, Pintura de parede, Instalação de prateleira" required/>
+                <Input id="descricao" name="descricao" value={newItem.descricao} onChange={handleNewItemChange} placeholder="Ex: Troca de tomada, Pintura de parede" required/>
               </div>
               
               <div>
@@ -141,12 +176,12 @@ export default function MateriaisPage() {
 
               <div>
                 <Label htmlFor="precoUnitario">Preço (R$)</Label>
-                <Input id="precoUnitario" name="precoUnitario" type="number" step="0.01" value={newItem.precoUnitario ?? ''} onChange={handleNewItemChange} required/>
+                <Input id="precoUnitario" name="precoUnitario" type="text" inputMode='decimal' placeholder="12,50" value={newItem.precoUnitario === null ? '' : String(newItem.precoUnitario).replace('.',',')} onChange={handleNewItemChange} required/>
               </div>
               
               <div className="md:col-span-3">
-                <Button type="submit" className="w-full sm:w-auto">
-                  <PlusCircle className="mr-2 h-4 w-4" />
+                <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                   Adicionar Item
                 </Button>
               </div>
@@ -154,12 +189,15 @@ export default function MateriaisPage() {
             </div>
           </form>
 
-          {!isClient ? (
-            <div className="space-y-2">
+          {showSkeleton ? (
+            <div className="space-y-4">
               <Skeleton className="h-8 w-1/3" />
-              <Skeleton className="h-40 w-full" />
+              <div className="space-y-2">
+                 <Skeleton className="h-12 w-full" />
+                 <Skeleton className="h-12 w-full" />
+              </div>
             </div>
-          ) : materiais.length > 0 && (
+          ) : materiais.length > 0 ? (
             <div>
               <h2 className="text-xl font-semibold mb-4">Itens Cadastrados</h2>
               
@@ -184,7 +222,7 @@ export default function MateriaisPage() {
                           <Button variant="ghost" size="icon" onClick={() => handleEditClick(item)}>
                             <Pencil className="h-4 w-4 text-primary" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => removerMaterial(item.id)}>
+                          <Button variant="ghost" size="icon" onClick={() => handleRemoverMaterial(item.id)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </TableCell>
@@ -205,7 +243,7 @@ export default function MateriaisPage() {
                           </div>
                           <div className="flex gap-1 -mr-2 -mt-2">
                               <Button variant="ghost" size="icon" onClick={() => handleEditClick(item)}><Pencil className="h-4 w-4 text-primary" /></Button>
-                              <Button variant="ghost" size="icon" onClick={() => removerMaterial(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleRemoverMaterial(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                           </div>
                       </CardHeader>
                       <CardFooter className="p-4 pt-2 mt-2 bg-muted/50 flex justify-between items-center">
@@ -217,6 +255,8 @@ export default function MateriaisPage() {
               </div>
 
             </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-8">Nenhum item ou serviço cadastrado ainda.</p>
           )}
         </CardContent>
       </Card>
@@ -230,7 +270,7 @@ export default function MateriaisPage() {
             </DialogDescription>
           </DialogHeader>
           {editingMaterial && (
-            <form onSubmit={salvarEdicao} className="space-y-4 py-4">
+            <form onSubmit={handleSalvarEdicao} className="space-y-4 py-4">
                <div>
                   <Label htmlFor="edit-descricao">Descrição do Item/Serviço</Label>
                   <Input id="edit-descricao" name="descricao" value={editingMaterial.descricao} onChange={handleEditFormChange} required/>
@@ -241,13 +281,16 @@ export default function MateriaisPage() {
                 </div>
                 <div>
                   <Label htmlFor="edit-precoUnitario">Preço (R$)</Label>
-                  <Input id="edit-precoUnitario" name="precoUnitario" type="number" step="0.01" value={editingMaterial.precoUnitario ?? ''} onChange={handleEditFormChange} required/>
+                  <Input id="edit-precoUnitario" name="precoUnitario" type="text" inputMode='decimal' value={editingMaterial.precoUnitario === null ? '' : String(editingMaterial.precoUnitario).replace('.',',')} onChange={handleEditFormChange} required/>
                 </div>
               <DialogFooter>
                 <DialogClose asChild>
-                  <Button type="button" variant="outline">Cancelar</Button>
+                  <Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button>
                 </DialogClose>
-                <Button type="submit">Salvar Alterações</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                   Salvar Alterações
+                </Button>
               </DialogFooter>
             </form>
           )}

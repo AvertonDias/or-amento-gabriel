@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, FormEvent, useRef } from 'react';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 import type { MaterialItem, OrcamentoItem, EmpresaData, ClienteData, Orcamento } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableTotalFooter } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, AlertTriangle, FileText, Eraser, Pencil, MessageCircle, History, CheckCircle2, XCircle, Search } from 'lucide-react';
+import { PlusCircle, Trash2, AlertTriangle, FileText, Eraser, Pencil, MessageCircle, History, CheckCircle2, XCircle, Search, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -20,6 +19,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
+import { getMateriais } from '@/services/materiaisService';
+import { getClientes } from '@/services/clientesService';
+import { getEmpresaData } from '@/services/empresaService';
+import { addOrcamento, deleteOrcamento, getOrcamentos, updateOrcamentoStatus, getNextOrcamentoNumber } from '@/services/orcamentosService';
 
 // Componente para o layout do PDF
 const BudgetPDFLayout = ({ orcamento, empresa }: {
@@ -94,11 +99,21 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
 
 
 export default function OrcamentoPage() {
-  const [materiais] = useLocalStorage<MaterialItem[]>('servicosListV1', []);
-  const [clientes, setClientes] = useLocalStorage<ClienteData[]>('clientesList', []);
-  const [empresa] = useLocalStorage<EmpresaData>('dadosEmpresa', { nome: '', endereco: '', telefone: '', cnpj: '', logo: '' });
-  const [orcamentoItens, setOrcamentoItens] = useLocalStorage<OrcamentoItem[]>('orcamentoItensV6', []);
-  const [orcamentosSalvos, setOrcamentosSalvos] = useLocalStorage<Orcamento[]>('orcamentosSalvosV3', []);
+  const [user, loadingAuth] = useAuthState(auth);
+  
+  const [materiais, setMateriais] = useState<MaterialItem[]>([]);
+  const [clientes, setClientes] = useState<ClienteData[]>([]);
+  const [empresa, setEmpresa] = useState<EmpresaData | null>(null);
+  const [orcamentosSalvos, setOrcamentosSalvos] = useState<Orcamento[]>([]);
+  
+  const [orcamentoItens, setOrcamentoItens] = useState<OrcamentoItem[]>([]);
+  
+  const [isLoading, setIsLoading] = useState({
+      materiais: true,
+      clientes: true,
+      empresa: true,
+      orcamentos: true
+  });
 
   const { toast } = useToast();
   const pdfRef = useRef<HTMLDivElement>(null);
@@ -109,21 +124,48 @@ export default function OrcamentoPage() {
     margemLucro: '0',
   });
   
-  const [isClient, setIsClient] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
   const [editingItem, setEditingItem] = useState<OrcamentoItem | null>(null);
-  const [clienteData, setClienteData] = useState<ClienteData>({ id: undefined, nome: '', endereco: '', telefone: '', email: '', cpfCnpj: ''});
+  const [clienteData, setClienteData] = useState<Omit<ClienteData, 'userId'>>({ id: undefined, nome: '', endereco: '', telefone: '', email: '', cpfCnpj: ''});
   const [validadeDias, setValidadeDias] = useState('7');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [pdfBudget, setPdfBudget] = useState<Orcamento | null>(null);
 
-
   useEffect(() => {
-    setIsClient(true);
-  }, []);
+    if (user) {
+        const unsubMateriais = getMateriais(user.uid, (data) => {
+            setMateriais(data);
+            setIsLoading(prev => ({...prev, materiais: false}));
+        });
+        const unsubClientes = getClientes(user.uid, (data) => {
+            setClientes(data);
+            setIsLoading(prev => ({...prev, clientes: false}));
+        });
+        const unsubOrcamentos = getOrcamentos(user.uid, (data) => {
+            setOrcamentosSalvos(data);
+            setIsLoading(prev => ({...prev, orcamentos: false}));
+        });
+        
+        const fetchEmpresa = async () => {
+            const data = await getEmpresaData(user.uid);
+            setEmpresa(data);
+            setIsLoading(prev => ({...prev, empresa: false}));
+        }
+        fetchEmpresa();
+
+        return () => {
+            unsubMateriais();
+            unsubClientes();
+            unsubOrcamentos();
+        }
+    } else if(!loadingAuth) {
+        setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
+    }
+  }, [user, loadingAuth]);
 
   const filteredOrcamentos = useMemo(() => {
     if (!searchTerm) {
@@ -161,8 +203,8 @@ export default function OrcamentoPage() {
     }
 
     const { precoUnitario, id: materialId, descricao, unidade } = selectedMaterial;
-    const numMargemLucro = parseFloat(novoItem.margemLucro) || 0;
-    const numQuantidade = parseFloat(novoItem.quantidade);
+    const numMargemLucro = parseFloat(novoItem.margemLucro.replace(',', '.')) || 0;
+    const numQuantidade = parseFloat(novoItem.quantidade.replace(',', '.'));
     
     if (isNaN(numQuantidade) || numQuantidade <= 0 || precoUnitario === null) {
       toast({ title: 'Valores inválidos', description: 'Preencha a Quantidade e verifique os dados do item.', variant: 'destructive' });
@@ -200,7 +242,7 @@ export default function OrcamentoPage() {
   };
 
   const handleMargemLucroChange = (id: string, value: string) => {
-    const newMargin = parseFloat(value);
+    const newMargin = parseFloat(value.replace(',', '.'));
     if (isNaN(newMargin)) return;
 
     setOrcamentoItens(prev =>
@@ -220,59 +262,59 @@ export default function OrcamentoPage() {
     setIsSaveModalOpen(true);
   }
 
-  const handleConfirmSave = () => {
-    if (!clienteData.nome) {
-      toast({ title: "Nome do cliente é obrigatório.", variant: "destructive" });
-      return;
-    }
+  const handleConfirmSave = async () => {
+    if (!user) { toast({ title: "Usuário não autenticado", variant: "destructive" }); return; }
+    if (!clienteData.nome) { toast({ title: "Nome do cliente é obrigatório.", variant: "destructive" }); return; }
     
-    const currentYear = new Date().getFullYear();
-    const budgetsThisYear = orcamentosSalvos.filter(o => o.numeroOrcamento && o.numeroOrcamento.startsWith(String(currentYear)));
-    const lastNumber = budgetsThisYear.reduce((max, o) => {
-        try {
-            const numPart = parseInt(o.numeroOrcamento.split('-')[1], 10);
-            return numPart > max ? numPart : max;
-        } catch {
-            return max;
-        }
-    }, 0);
-    const newNumber = lastNumber + 1;
-    const numeroOrcamento = `${currentYear}-${String(newNumber).padStart(3, '0')}`;
+    setIsSubmitting(true);
+    try {
+        const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
+        
+        const newBudget: Omit<Orcamento, 'id'> = {
+            userId: user.uid,
+            numeroOrcamento,
+            cliente: { ...clienteData, userId: user.uid },
+            itens: orcamentoItens,
+            totalVenda: totalVenda,
+            dataCriacao: new Date().toISOString(),
+            status: 'Pendente',
+            validadeDias: validadeDias
+        };
 
-    const newBudget: Orcamento = {
-      id: crypto.randomUUID(),
-      numeroOrcamento,
-      cliente: clienteData,
-      itens: orcamentoItens,
-      totalVenda: totalVenda,
-      dataCriacao: new Date().toISOString(),
-      status: 'Pendente',
-      validadeDias: validadeDias
-    };
-    setOrcamentosSalvos(prev => [newBudget, ...prev]);
-    limparValores();
-    setIsSaveModalOpen(false);
-    toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
+        await addOrcamento(newBudget);
+        limparValores();
+        setIsSaveModalOpen(false);
+        toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
+    } catch(error) {
+        toast({ title: "Erro ao salvar orçamento", variant: "destructive" });
+        console.error("Erro ao salvar:", error);
+    } finally {
+        setIsSubmitting(false);
+    }
   }
   
-  const handleUpdateStatus = (budgetId: string, status: 'Aceito' | 'Recusado') => {
-    setOrcamentosSalvos(prev => prev.map(b => b.id === budgetId ? { ...b, status } : b));
-    toast({ title: `Orçamento ${status.toLowerCase()}!` });
+  const handleUpdateStatus = async (budgetId: string, status: 'Aceito' | 'Recusado') => {
+    try {
+        await updateOrcamentoStatus(budgetId, status);
+        toast({ title: `Orçamento ${status.toLowerCase()}!` });
 
-    if (status === 'Aceito') {
-      const acceptedBudget = orcamentosSalvos.find(b => b.id === budgetId);
-      if (acceptedBudget) {
-        handleSendAcceptanceWhatsApp(acceptedBudget);
-      }
+        if (status === 'Aceito') {
+            const acceptedBudget = orcamentosSalvos.find(b => b.id === budgetId);
+            if (acceptedBudget) {
+                handleSendAcceptanceWhatsApp(acceptedBudget);
+            }
+        }
+    } catch(error) {
+        toast({ title: 'Erro ao atualizar status', variant: 'destructive' });
     }
   }
 
   const handleSendAcceptanceWhatsApp = (orcamento: Orcamento) => {
-     const companyPhone = empresa?.telefone?.replace(/\D/g, '');
-    if (!companyPhone) {
+     if (!empresa?.telefone) {
       toast({ title: "Telefone da empresa não configurado.", description: "Vá para 'Dados da Empresa' para adicionar.", variant: "destructive" });
       return;
     }
+    const companyPhone = empresa.telefone.replace(/\D/g, '');
 
     let mensagem = `✅ *Orçamento Aceito!*\n\n`;
     mensagem += `*Nº do Orçamento:* ${orcamento.numeroOrcamento}\n`;
@@ -303,7 +345,9 @@ export default function OrcamentoPage() {
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
-    const ratio = canvas.width / canvas.height;
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+    const ratio = canvasWidth / canvasHeight;
     const width = pdfWidth;
     const height = width / ratio;
     
@@ -351,24 +395,36 @@ export default function OrcamentoPage() {
   const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingItem) return;
     const { name, value } = e.target;
-    const numValue = (name === 'quantidade' || name === 'margemLucro') ? parseFloat(value) : value;
+    let numValue: string | number = value;
+
+    if (name === 'quantidade' || name === 'margemLucro') {
+        numValue = value; // Keep as string for input
+    }
     setEditingItem(prev => prev ? { ...prev, [name]: numValue } : null);
   };
 
-  const salvarEdicao = (e: FormEvent) => {
+  const handleSalvarEdicao = (e: FormEvent) => {
     e.preventDefault();
     if (!editingItem) return;
 
     const { precoUnitario } = editingItem;
+    const numQuantidade = parseFloat(String(editingItem.quantidade).replace(',', '.'));
+    const numMargemLucro = parseFloat(String(editingItem.margemLucro).replace(',', '.')) || 0;
 
-    if (precoUnitario === null || editingItem.quantidade <= 0) {
+    if (precoUnitario === null || isNaN(numQuantidade) || numQuantidade <= 0) {
         toast({ title: 'Valores inválidos', variant: 'destructive' }); return;
     }
     
-    const custoFinal = precoUnitario * editingItem.quantidade;
-    const precoVendaCalculado = custoFinal * (1 + (editingItem.margemLucro || 0) / 100);
+    const custoFinal = precoUnitario * numQuantidade;
+    const precoVendaCalculado = custoFinal * (1 + numMargemLucro / 100);
 
-    const itemAtualizado: OrcamentoItem = { ...editingItem, total: custoFinal, precoVenda: precoVendaCalculado };
+    const itemAtualizado: OrcamentoItem = { 
+        ...editingItem,
+        quantidade: numQuantidade,
+        margemLucro: numMargemLucro,
+        total: custoFinal, 
+        precoVenda: precoVendaCalculado 
+    };
     
     setOrcamentoItens(prev => prev.map(item => item.id === itemAtualizado.id ? itemAtualizado : item));
     setIsEditModalOpen(false);
@@ -384,28 +440,43 @@ export default function OrcamentoPage() {
         default: return 'secondary';
     }
   }
-
-  const showPrerequisitesAlert = !isClient || materiais.length === 0 || !empresa.nome;
-
-  const removerOrcamento = (id: string) => {
-    setOrcamentosSalvos(prev => prev.filter(o => o.id !== id));
-    toast({
-      title: 'Orçamento Excluído',
-      description: 'O orçamento foi removido do seu histórico.',
-      variant: 'destructive',
-    });
+  
+  const handleRemoverOrcamento = async (id: string) => {
+    try {
+        await deleteOrcamento(id);
+        toast({
+            title: 'Orçamento Excluído',
+            variant: 'destructive',
+        });
+    } catch(error) {
+        toast({ title: 'Erro ao excluir orçamento', variant: 'destructive'});
+    }
   };
 
-  const carregarOrcamentoParaEdicao = (orcamento: Orcamento) => {
-    setOrcamentoItens(orcamento.itens);
-    setClienteData(orcamento.cliente);
-    setOrcamentosSalvos(prev => prev.filter(o => o.id !== orcamento.id));
-    toast({
-      title: 'Orçamento Carregado para Edição',
-      description: 'Os dados do cliente também foram carregados. Faça suas alterações e salve novamente.',
-    });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const carregarOrcamentoParaEdicao = async (orcamento: Orcamento) => {
+    try {
+        // Remove do histórico para que possa ser salvo novamente
+        await deleteOrcamento(orcamento.id);
+        
+        // Carrega os dados para a área de criação
+        setOrcamentoItens(orcamento.itens);
+        setClienteData(orcamento.cliente);
+        setValidadeDias(orcamento.validadeDias);
+        
+        toast({
+            title: 'Orçamento Carregado para Edição',
+            description: 'Faça suas alterações e salve novamente. O orçamento original foi removido do histórico.',
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    } catch (error) {
+        toast({ title: 'Erro ao carregar orçamento para edição.', variant: 'destructive'});
+        // Se der erro ao apagar, não carrega os dados para evitar duplicidade
+    }
   };
+  
+  const anyLoading = loadingAuth || Object.values(isLoading).some(Boolean);
+  const showPrerequisitesAlert = !anyLoading && (materiais.length === 0 || !empresa?.nome);
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
@@ -413,12 +484,12 @@ export default function OrcamentoPage() {
         <CardHeader>
           <CardTitle>Criar Novo Orçamento</CardTitle>
            <div className="flex flex-wrap gap-2 pt-4">
-              <Button onClick={handleSaveBudgetClick} className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={orcamentoItens.length === 0 || showPrerequisitesAlert}><FileText className="mr-2"/> Salvar Orçamento</Button>
-              <Button onClick={limparValores} variant="destructive" disabled={orcamentoItens.length === 0 || showPrerequisitesAlert}><Eraser className="mr-2"/> Limpar Itens</Button>
+              <Button onClick={handleSaveBudgetClick} className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={orcamentoItens.length === 0 || showPrerequisitesAlert || anyLoading}><FileText className="mr-2"/> Salvar Orçamento</Button>
+              <Button onClick={limparValores} variant="destructive" disabled={orcamentoItens.length === 0 || showPrerequisitesAlert || anyLoading}><Eraser className="mr-2"/> Limpar Itens</Button>
            </div>
         </CardHeader>
         <CardContent>
-          {!isClient ? (
+          {anyLoading ? (
              <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-40 w-full" /></div>
           ) : showPrerequisitesAlert ? (
             <div className="space-y-4">
@@ -432,7 +503,7 @@ export default function OrcamentoPage() {
                   </AlertDescription>
                 </Alert>
               )}
-              {!empresa.nome && (
+              {!empresa?.nome && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle>Dados da Empresa Incompletos</AlertTitle>
@@ -458,8 +529,8 @@ export default function OrcamentoPage() {
                 
                 {selectedMaterial && (
                   <>
-                    <div><Label htmlFor="quantidade">Quantidade ({selectedMaterial.unidade})</Label><Input id="quantidade" type="number" step="0.01" placeholder="Ex: 1.5" value={novoItem.quantidade} onChange={e => handleNovoItemChange('quantidade', e.target.value)} /></div>
-                    <div><Label htmlFor="margem-lucro">Acréscimo (%)</Label><Input id="margem-lucro" type="number" placeholder="Ex: 10" value={novoItem.margemLucro} onChange={e => handleNovoItemChange('margemLucro', e.target.value)} /></div>
+                    <div><Label htmlFor="quantidade">Quantidade ({selectedMaterial.unidade})</Label><Input id="quantidade" type="text" inputMode='decimal' step="0.01" placeholder="Ex: 1,5" value={novoItem.quantidade} onChange={e => handleNovoItemChange('quantidade', e.target.value)} /></div>
+                    <div><Label htmlFor="margem-lucro">Acréscimo (%)</Label><Input id="margem-lucro" type="text" inputMode='decimal' placeholder="Ex: 10" value={novoItem.margemLucro} onChange={e => handleNovoItemChange('margemLucro', e.target.value)} /></div>
                     <div className="lg:col-span-1"><Button onClick={addLinha} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Adicionar</Button></div>
                   </>
                 )}
@@ -489,7 +560,7 @@ export default function OrcamentoPage() {
                                     <TableCell className="text-right">{formatCurrency(item.precoUnitario)}</TableCell>
                                     <TableCell className="text-right font-medium">{formatCurrency(item.total)}</TableCell>
                                     <TableCell className="text-right">
-                                        <Input type="number" step="1" value={item.margemLucro} onChange={(e) => handleMargemLucroChange(item.id, e.target.value)} className="text-right min-w-[80px]" />
+                                        <Input type="text" inputMode='decimal' value={String(item.margemLucro).replace('.',',')} onChange={(e) => handleMargemLucroChange(item.id, e.target.value)} className="text-right min-w-[80px]" />
                                     </TableCell>
                                     <TableCell className="text-right font-bold text-primary">{formatCurrency(item.precoVenda)}</TableCell>
                                     <TableCell className="flex justify-center gap-1">
@@ -529,7 +600,7 @@ export default function OrcamentoPage() {
                                     <div><p className="text-muted-foreground">Custo Total</p><p>{formatCurrency(item.total)}</p></div>
                                     <div>
                                         <Label htmlFor={`margem-lucro-mobile-${item.id}`} className="text-muted-foreground">Acréscimo (%)</Label>
-                                        <Input id={`margem-lucro-mobile-${item.id}`} type="number" step="1" value={item.margemLucro} onChange={(e) => handleMargemLucroChange(item.id, e.target.value)} className="h-9"/>
+                                        <Input id={`margem-lucro-mobile-${item.id}`} type="text" inputMode='decimal' value={String(item.margemLucro).replace('.',',')} onChange={(e) => handleMargemLucroChange(item.id, e.target.value)} className="h-9"/>
                                     </div>
                                 </CardContent>
                                 <CardFooter className="p-4 pt-2 bg-muted/50 flex justify-between items-center">
@@ -559,7 +630,7 @@ export default function OrcamentoPage() {
         </CardContent>
       </Card>
       
-      {isClient && orcamentosSalvos.length > 0 && (
+      {!anyLoading && orcamentosSalvos.length > 0 && (
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><History className="h-6 w-6"/> Histórico de Orçamentos</CardTitle>
@@ -638,7 +709,7 @@ export default function OrcamentoPage() {
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => removerOrcamento(orcamento.id)}>Sim, Excluir</AlertDialogAction>
+                                    <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleRemoverOrcamento(orcamento.id)}>Sim, Excluir</AlertDialogAction>
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
@@ -750,7 +821,8 @@ export default function OrcamentoPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleConfirmSave} type="button" className="w-full" disabled={!clienteData.nome}>
+            <Button onClick={handleConfirmSave} type="button" className="w-full" disabled={!clienteData.nome || isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <History className="mr-2 h-4 w-4" /> Confirmar e Salvar no Histórico
             </Button>
           </DialogFooter>
@@ -761,9 +833,9 @@ export default function OrcamentoPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Editar Item do Orçamento</DialogTitle></DialogHeader>
           {editingItem && (
-            <form onSubmit={salvarEdicao} className="space-y-4 py-4">
-              <div><Label htmlFor="edit-quantidade">Quantidade ({editingItem.unidade})</Label><Input id="edit-quantidade" name="quantidade" type="number" step="0.01" value={editingItem.quantidade} onChange={handleEditFormChange}/></div>
-              <div><Label htmlFor="edit-margemLucro">Acréscimo (%)</Label><Input id="edit-margemLucro" name="margemLucro" type="number" step="1" value={editingItem.margemLucro} onChange={handleEditFormChange}/></div>
+            <form onSubmit={handleSalvarEdicao} className="space-y-4 py-4">
+              <div><Label htmlFor="edit-quantidade">Quantidade ({editingItem.unidade})</Label><Input id="edit-quantidade" name="quantidade" type="text" inputMode='decimal' step="0.01" value={String(editingItem.quantidade).replace('.',',')} onChange={handleEditFormChange}/></div>
+              <div><Label htmlFor="edit-margemLucro">Acréscimo (%)</Label><Input id="edit-margemLucro" name="margemLucro" type="text" inputMode='decimal' step="1" value={String(editingItem.margemLucro).replace('.',',')} onChange={handleEditFormChange}/></div>
               <DialogFooter>
                 <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
                 <Button type="submit">Salvar Alterações</Button>
@@ -775,7 +847,7 @@ export default function OrcamentoPage() {
 
       <div className="absolute -z-10 -left-[9999px] top-0">
           <div ref={pdfRef} className="w-[595px]">
-              {isClient && <BudgetPDFLayout orcamento={pdfBudget} empresa={empresa} />}
+              {<BudgetPDFLayout orcamento={pdfBudget} empresa={empresa} />}
           </div>
       </div>
     </div>
