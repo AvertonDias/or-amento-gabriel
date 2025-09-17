@@ -1,26 +1,34 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // As regras 'get' e 'list' são para leitura, 'write' cobre create, update, delete.
-    // 'list' é necessário para queries em coleções.
-    
+    // Regra para a coleção 'clientes'
     match /clientes/{clientId} {
-      allow get, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow list, create: if request.auth != null && request.auth.uid == request.query.userId;
+      // Permite criar um documento se o userId corresponder ao uid do usuário.
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      // Permite ler, atualizar e apagar um documento existente se o userId corresponder.
+      allow get, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      // Permite que um usuário liste (consulte) apenas os clientes que pertencem a ele.
+      // A consulta no frontend DEVE incluir `where('userId', '==', request.auth.uid)`.
+      allow list: if request.auth != null && request.auth.uid == request.query.where.userId;
     }
 
+    // Regra para a coleção 'materiais'
     match /materiais/{materialId} {
-      allow get, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow list, create: if request.auth != null && request.auth.uid == request.query.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow get, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow list: if request.auth != null && request.auth.uid == request.query.where.userId;
     }
 
+    // Regra para a coleção 'orcamentos'
     match /orcamentos/{orcamentoId} {
-      allow get, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow list, create: if request.auth != null && request.auth.uid == request.query.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow get, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow list: if request.auth != null && request.auth.uid == request.query.where.userId;
     }
 
+    // Regra para a coleção 'empresa', onde o ID do documento é o UID do usuário
     match /empresa/{userId} {
+      // Permite ler e escrever no documento da própria empresa.
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
