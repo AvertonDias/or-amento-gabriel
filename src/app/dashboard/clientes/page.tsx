@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Users, PlusCircle, Pencil } from 'lucide-react';
+import { Trash2, Users, PlusCircle, Pencil, Contact } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
@@ -116,6 +116,48 @@ export default function ClientesPage() {
     });
   };
 
+  const handleImportContacts = async () => {
+    if ('contacts' in navigator && 'select' in (navigator as any).contacts) {
+      try {
+        const props = ['name', 'email', 'tel', 'address'];
+        const opts = { multiple: false };
+        const contacts = await (navigator as any).contacts.select(props, opts);
+
+        if (contacts.length > 0) {
+          const contact = contacts[0];
+          const address = contact.address?.[0];
+          const formattedAddress = address 
+            ? `${address.addressLine1 || ''} ${address.addressLine2 || ''}, ${address.city || ''} - ${address.region || ''}`.trim().replace(/, $/, '')
+            : '';
+
+          setNewClient({
+            nome: contact.name?.[0] || '',
+            email: contact.email?.[0] || '',
+            telefone: contact.tel?.[0] ? maskTelefone(contact.tel[0]) : '',
+            endereco: formattedAddress,
+            cpfCnpj: '', // CPF/CNPJ não está disponível na API de contatos
+          });
+          toast({
+            title: 'Contato Importado!',
+            description: 'Os dados do contato foram preenchidos. Revise e salve o novo cliente.',
+          });
+        }
+      } catch (error) {
+        toast({
+          title: 'Importação Cancelada',
+          description: 'Não foi possível importar o contato. A permissão pode ter sido negada ou a operação cancelada.',
+          variant: 'destructive',
+        });
+      }
+    } else {
+      toast({
+        title: 'Recurso não suportado',
+        description: 'Seu navegador não suporta a API de Contatos para importação.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
       <Card>
@@ -157,6 +199,10 @@ export default function ClientesPage() {
               <Button type="submit" className="w-full sm:w-auto">
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Adicionar Cliente
+              </Button>
+              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleImportContacts}>
+                <Contact className="mr-2 h-4 w-4" />
+                Importar dos Contatos
               </Button>
             </div>
           </form>
@@ -280,3 +326,5 @@ export default function ClientesPage() {
     </div>
   );
 }
+
+    
