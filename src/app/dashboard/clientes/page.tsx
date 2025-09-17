@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, FormEvent, useEffect } from 'react';
+import React, { useState, FormEvent, useEffect, useCallback } from 'react';
 import type { ClienteData } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Users, PlusCircle, Pencil, Contact } from 'lucide-react';
+import { Trash2, Users, PlusCircle, Pencil, Contact, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
@@ -40,26 +40,29 @@ export default function ClientesPage() {
 
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (loadingAuth) {
-      setIsLoadingData(true);
-      return;
+  const fetchClientes = useCallback(async () => {
+    if (!user) return;
+    setIsLoadingData(true);
+    try {
+      const data = await getClientes(user.uid);
+      setClientes(data);
+    } catch (error) {
+      console.error("Erro ao buscar clientes:", error);
+      toast({ title: 'Erro ao carregar clientes', variant: 'destructive' });
+    } finally {
+      setIsLoadingData(false);
     }
-    if (!user) {
+  }, [user, toast]);
+
+  useEffect(() => {
+    if (user) {
+      fetchClientes();
+    } else if (!loadingAuth) {
+      // User is not logged in and auth check is complete
       setClientes([]);
       setIsLoadingData(false);
-      return;
     }
-
-    const unsubscribe = getClientes(user.uid, (data) => {
-      setClientes(data);
-      setIsLoadingData(false);
-    });
-
-    // Return a cleanup function
-    return () => unsubscribe();
-  }, [user, loadingAuth]);
-
+  }, [user, loadingAuth, fetchClientes]);
 
   const handleNewClientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -135,6 +138,7 @@ export default function ClientesPage() {
     try {
       await addCliente(user.uid, newClient);
       setNewClient(initialNewClientState);
+      await fetchClientes(); // Refresh list
       toast({
         title: 'Sucesso!',
         description: 'Cliente adicionado.',
@@ -149,6 +153,7 @@ export default function ClientesPage() {
   const handleRemoverCliente = async (id: string) => {
     try {
         await deleteCliente(id);
+        await fetchClientes(); // Refresh list
         toast({
             title: 'Cliente Removido',
             variant: 'destructive',
@@ -193,6 +198,7 @@ export default function ClientesPage() {
         await updateCliente(editingClient.id, editingClient);
         setIsEditModalOpen(false);
         setEditingClient(null);
+        await fetchClientes(); // Refresh list
         toast({
             title: 'Sucesso!',
             description: 'Cliente atualizado com sucesso.',
@@ -310,7 +316,10 @@ export default function ClientesPage() {
 
           {showSkeleton ? (
             <div className="space-y-4">
-              <Skeleton className="h-8 w-1/3" />
+               <div className="flex items-center justify-between">
+                <Skeleton className="h-8 w-1/3" />
+                <Skeleton className="h-8 w-24" />
+              </div>
               <div className="space-y-2">
                  <Skeleton className="h-20 w-full" />
                  <Skeleton className="h-20 w-full" />
@@ -318,8 +327,14 @@ export default function ClientesPage() {
             </div>
           ) : clientes.length > 0 ? (
             <div>
-              <h2 className="text-xl font-semibold mb-4">Clientes Cadastrados</h2>
-              
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Clientes Cadastrados</h2>
+                <Button variant="ghost" size="sm" onClick={fetchClientes} disabled={isLoadingData}>
+                  <RefreshCw className={`h-4 w-4 ${isLoadingData ? 'animate-spin' : ''}`} />
+                  <span className="ml-2">Atualizar</span>
+                </Button>
+              </div>
+
               {/* Desktop Table */}
               <div className="hidden md:block overflow-x-auto">
                 <Table>

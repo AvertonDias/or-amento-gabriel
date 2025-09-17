@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, onSnapshot, orderBy, getDocs, limit } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import type { Orcamento } from '@/lib/types';
 
 const ORCAMENTOS_COLLECTION = 'orcamentos';
@@ -23,22 +23,15 @@ export const deleteOrcamento = async (orcamentoId: string) => {
   await deleteDoc(orcamentoDoc);
 };
 
-// Get all orcamentos for a user with real-time updates
-export const getOrcamentos = (userId: string, callback: (data: Orcamento[]) => void) => {
+// Get all orcamentos for a user
+export const getOrcamentos = async (userId: string): Promise<Orcamento[]> => {
   const q = query(collection(db, ORCAMENTOS_COLLECTION), where('userId', '==', userId), orderBy('dataCriacao', 'desc'));
-  
-  const unsubscribe = onSnapshot(q, (querySnapshot) => {
-    const orcamentos: Orcamento[] = [];
-    querySnapshot.forEach((doc) => {
-      orcamentos.push({ id: doc.id, ...doc.data() } as Orcamento);
-    });
-    callback(orcamentos);
-  }, (error) => {
-    console.error("Error fetching orcamentos:", error);
-    // You might want to handle errors here, e.g., show a toast
+  const querySnapshot = await getDocs(q);
+  const orcamentos: Orcamento[] = [];
+  querySnapshot.forEach((doc) => {
+    orcamentos.push({ id: doc.id, ...doc.data() } as Orcamento);
   });
-
-  return unsubscribe;
+  return orcamentos;
 };
 
 // Get the next sequential orcamento number for the current year

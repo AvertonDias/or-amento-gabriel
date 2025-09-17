@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, FormEvent, useEffect } from 'react';
+import React, { useState, FormEvent, useEffect, useCallback } from 'react';
 import type { MaterialItem } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Wrench, PlusCircle, Pencil, Loader2 } from 'lucide-react';
+import { Trash2, Wrench, PlusCircle, Pencil, Loader2, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
@@ -36,24 +36,28 @@ export default function MateriaisPage() {
 
   const { toast } = useToast();
   
-  useEffect(() => {
-    if (loadingAuth) {
-      setIsLoadingData(true);
-      return;
+  const fetchMateriais = useCallback(async () => {
+    if (!user) return;
+    setIsLoadingData(true);
+    try {
+      const data = await getMateriais(user.uid);
+      setMateriais(data);
+    } catch (error) {
+      console.error("Erro ao buscar materiais:", error);
+      toast({ title: 'Erro ao carregar materiais', variant: 'destructive' });
+    } finally {
+      setIsLoadingData(false);
     }
-    if (!user) {
+  }, [user, toast]);
+
+  useEffect(() => {
+    if (user) {
+      fetchMateriais();
+    } else if (!loadingAuth) {
       setMateriais([]);
       setIsLoadingData(false);
-      return;
     }
-
-    const unsubscribe = getMateriais(user.uid, (data) => {
-      setMateriais(data);
-      setIsLoadingData(false);
-    });
-    
-    return () => unsubscribe();
-  }, [user, loadingAuth]);
+  }, [user, loadingAuth, fetchMateriais]);
 
   const handleNewItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -84,6 +88,7 @@ export default function MateriaisPage() {
     try {
       await addMaterial(user.uid, newItem);
       setNewItem(initialNewItemState);
+      await fetchMateriais(); // Refresh list
       toast({
         title: "Sucesso!",
         description: "Item/Serviço adicionado.",
@@ -98,6 +103,7 @@ export default function MateriaisPage() {
   const handleRemoverMaterial = async (id: string) => {
     try {
         await deleteMaterial(id);
+        await fetchMateriais(); // Refresh list
         toast({
             title: "Item Removido",
             variant: "destructive"
@@ -141,6 +147,7 @@ export default function MateriaisPage() {
         await updateMaterial(editingMaterial.id, editingMaterial);
         setIsEditModalOpen(false);
         setEditingMaterial(null);
+        await fetchMateriais(); // Refresh list
         toast({
             title: "Sucesso!",
             description: "Item atualizado com sucesso.",
@@ -198,7 +205,10 @@ export default function MateriaisPage() {
 
           {showSkeleton ? (
             <div className="space-y-4">
-              <Skeleton className="h-8 w-1/3" />
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-8 w-1/3" />
+                <Skeleton className="h-8 w-24" />
+              </div>
               <div className="space-y-2">
                  <Skeleton className="h-12 w-full" />
                  <Skeleton className="h-12 w-full" />
@@ -206,7 +216,13 @@ export default function MateriaisPage() {
             </div>
           ) : materiais.length > 0 ? (
             <div>
-              <h2 className="text-xl font-semibold mb-4">Itens Cadastrados</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Itens Cadastrados</h2>
+                <Button variant="ghost" size="sm" onClick={fetchMateriais} disabled={isLoadingData}>
+                  <RefreshCw className={`h-4 w-4 ${isLoadingData ? 'animate-spin' : ''}`} />
+                  <span className="ml-2">Atualizar</span>
+                </Button>
+              </div>
               
               {/* Desktop Table */}
               <div className="hidden md:block overflow-x-auto">

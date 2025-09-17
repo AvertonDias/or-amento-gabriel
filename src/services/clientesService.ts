@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, onSnapshot, getDocs, orderBy } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
 import type { ClienteData } from '@/lib/types';
 
 const CLIENTES_COLLECTION = 'clientes';
@@ -26,20 +26,13 @@ export const deleteCliente = async (clienteId: string) => {
   await deleteDoc(clienteDoc);
 };
 
-// Get all clients for a user with real-time updates
-export const getClientes = (userId: string, callback: (data: ClienteData[]) => void) => {
+// Get all clients for a user
+export const getClientes = async (userId: string): Promise<ClienteData[]> => {
   const q = query(collection(db, CLIENTES_COLLECTION), where('userId', '==', userId), orderBy('nome', 'asc'));
-  
-  const unsubscribe = onSnapshot(q, (querySnapshot) => {
-    const clientes: ClienteData[] = [];
-    querySnapshot.forEach((doc) => {
-      clientes.push({ id: doc.id, ...doc.data() } as ClienteData);
-    });
-    callback(clientes);
-  }, (error) => {
-    console.error("Erro ao buscar clientes: ", error);
-    callback([]);
+  const querySnapshot = await getDocs(q);
+  const clientes: ClienteData[] = [];
+  querySnapshot.forEach((doc) => {
+    clientes.push({ id: doc.id, ...doc.data() } as ClienteData);
   });
-
-  return unsubscribe; // Return the unsubscribe function to be called on cleanup
+  return clientes;
 };

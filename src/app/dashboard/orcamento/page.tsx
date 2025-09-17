@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, FormEvent, useRef } from 'react';
+import React, { useState, useMemo, useEffect, FormEvent, useRef, useCallback } from 'react';
 import type { MaterialItem, OrcamentoItem, EmpresaData, ClienteData, Orcamento } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableTotalFooter } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, AlertTriangle, FileText, Eraser, Pencil, MessageCircle, History, CheckCircle2, XCircle, Search, Loader2 } from 'lucide-react';
+import { PlusCircle, Trash2, AlertTriangle, FileText, Eraser, Pencil, MessageCircle, History, CheckCircle2, XCircle, Search, Loader2, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -114,6 +114,7 @@ export default function OrcamentoPage() {
       empresa: true,
       orcamentos: true
   });
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { toast } = useToast();
   const pdfRef = useRef<HTMLDivElement>(null);
@@ -135,44 +136,45 @@ export default function OrcamentoPage() {
 
   const [pdfBudget, setPdfBudget] = useState<Orcamento | null>(null);
 
-  useEffect(() => {
-    if (loadingAuth) {
-      setIsLoading({ materiais: true, clientes: true, empresa: true, orcamentos: true });
-      return;
+  const fetchAllData = useCallback(async (isRefresh = false) => {
+    if (!user) return;
+    
+    if(isRefresh) setIsRefreshing(true);
+
+    setIsLoading(prev => ({...prev, materiais: true, clientes: true, empresa: true, orcamentos: true}));
+
+    try {
+        const [materiaisData, clientesData, empresaData, orcamentosData] = await Promise.all([
+            getMateriais(user.uid),
+            getClientes(user.uid),
+            getEmpresaData(user.uid),
+            getOrcamentos(user.uid)
+        ]);
+        setMateriais(materiaisData);
+        setClientes(clientesData);
+        setEmpresa(empresaData);
+        setOrcamentosSalvos(orcamentosData);
+    } catch (error) {
+        console.error("Erro ao buscar dados:", error);
+        toast({ title: 'Erro ao carregar dados do servidor', variant: 'destructive' });
+    } finally {
+        setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
+        if(isRefresh) setIsRefreshing(false);
     }
-    if (!user) {
+  }, [user, toast]);
+  
+  useEffect(() => {
+    if (user) {
+      fetchAllData();
+    } else if (!loadingAuth) {
+      // Clear data if user logs out
       setMateriais([]);
       setClientes([]);
       setOrcamentosSalvos([]);
       setEmpresa(null);
       setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
-      return;
     }
-
-    const unsubscribes: (() => void)[] = [];
-
-    unsubscribes.push(getMateriais(user.uid, (data) => {
-        setMateriais(data);
-        setIsLoading(prev => ({...prev, materiais: false}));
-    }));
-
-    unsubscribes.push(getClientes(user.uid, (data) => {
-        setClientes(data);
-        setIsLoading(prev => ({...prev, clientes: false}));
-    }));
-    
-    unsubscribes.push(getOrcamentos(user.uid, (data) => {
-        setOrcamentosSalvos(data);
-        setIsLoading(prev => ({...prev, orcamentos: false}));
-    }));
-    
-    getEmpresaData(user.uid).then(data => {
-        setEmpresa(data);
-        setIsLoading(prev => ({...prev, empresa: false}));
-    });
-
-    return () => unsubscribes.forEach(unsub => unsub());
-  }, [user, loadingAuth]);
+  }, [user, loadingAuth, fetchAllData]);
 
 
   const filteredOrcamentos = useMemo(() => {
@@ -292,6 +294,7 @@ export default function OrcamentoPage() {
         await addOrcamento(newBudget);
         limparValores();
         setIsSaveModalOpen(false);
+        await fetchAllData(true); // Refresh all data, including orcamentos
         toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
     } catch(error) {
         toast({ title: "Erro ao salvar orçamento", variant: "destructive" });
@@ -304,6 +307,7 @@ export default function OrcamentoPage() {
   const handleUpdateStatus = async (budgetId: string, status: 'Aceito' | 'Recusado') => {
     try {
         await updateOrcamentoStatus(budgetId, status);
+        await fetchAllData(true); // Refresh all data
         toast({ title: `Orçamento ${status.toLowerCase()}!` });
 
         if (status === 'Aceito') {
@@ -452,6 +456,7 @@ export default function OrcamentoPage() {
   const handleRemoverOrcamento = async (id: string) => {
     try {
         await deleteOrcamento(id);
+        await fetchAllData(true); // Refresh
         toast({
             title: 'Orçamento Excluído',
             variant: 'destructive',
@@ -470,6 +475,8 @@ export default function OrcamentoPage() {
         setOrcamentoItens(orcamento.itens);
         setClienteData(orcamento.cliente);
         setValidadeDias(orcamento.validadeDias);
+        
+        await fetchAllData(true); // Refresh
         
         toast({
             title: 'Orçamento Carregado para Edição',
@@ -638,19 +645,24 @@ export default function OrcamentoPage() {
         </CardContent>
       </Card>
       
-      {!anyLoading && orcamentosSalvos.length > 0 && (
+      {!anyLoading && (orcamentosSalvos.length > 0 || searchTerm) && (
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><History className="h-6 w-6"/> Histórico de Orçamentos</CardTitle>
                 <CardDescription>Gerencie os orçamentos salvos, aprove, recuse e envie para seus clientes.</CardDescription>
-                <div className="relative pt-4">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    placeholder="Pesquisar por cliente ou nº do orçamento..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10"
-                  />
+                <div className="flex items-center gap-2 pt-4">
+                  <div className="relative flex-grow">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      placeholder="Pesquisar por cliente ou nº do orçamento..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10"
+                    />
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => fetchAllData(true)} disabled={isRefreshing}>
+                    <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  </Button>
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
