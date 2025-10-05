@@ -1,3 +1,4 @@
+
 export interface EmpresaData {
   id?: string; // Firestore document ID
   userId: string;
@@ -22,9 +23,11 @@ export interface ClienteData {
 export interface MaterialItem {
   id: string; // Firestore document ID
   userId: string;
-  descricao: string; // O nome/descrição específica do item. Ex: "Troca de tomada", "Pintura (m²)"
+  descricao: string; // O nome/descrição específica do item. Ex: "Troca de tomada", "Pintura de parede"
   unidade: string;     // Unidade de medida (un, h, m, m², serv, etc.)
   precoUnitario: number | null; // R$ por unidade
+  tipo: 'item' | 'servico'; // Distingue entre item físico e serviço
+  quantidade?: number | null; // Quantidade em estoque, aplicável apenas para 'item'
 }
 
 export interface OrcamentoItem {

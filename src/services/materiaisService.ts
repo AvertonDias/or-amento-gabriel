@@ -1,3 +1,4 @@
+
 import { db } from '@/lib/firebase';
 import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
 import type { MaterialItem } from '@/lib/types';
@@ -13,7 +14,7 @@ export const addMaterial = async (userId: string, material: Omit<MaterialItem, '
 };
 
 // Update an existing material
-export const updateMaterial = async (materialId: string, material: Partial<MaterialItem>) => {
+export const updateMaterial = async (materialId: string, material: Partial<Omit<MaterialItem, 'id' | 'userId'>>) => {
   const materialDoc = doc(db, MATERIAIS_COLLECTION, materialId);
   await updateDoc(materialDoc, material);
 };
