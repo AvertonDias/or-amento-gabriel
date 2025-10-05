@@ -44,6 +44,8 @@ export default function EmpresaPage() {
       setEmpresa(data || { ...initialEmpresaState, userId: user.uid });
     } catch(error) {
        toast({ title: "Erro ao buscar dados", description: "Não foi possível carregar os dados da empresa.", variant: "destructive"})
+       // Se der erro, ainda inicializamos o formulário para o usuário poder tentar salvar
+       setEmpresa({ ...initialEmpresaState, userId: user.uid });
     } finally {
       setIsLoadingData(false);
     }
@@ -131,7 +133,12 @@ export default function EmpresaPage() {
     
     setIsSaving(true);
     try {
-      const savedData = await saveEmpresaData(user.uid, empresa, logoFile);
+      const dataToSave = { ...empresa };
+      if (!dataToSave.userId) {
+          dataToSave.userId = user.uid;
+      }
+      
+      const savedData = await saveEmpresaData(user.uid, dataToSave, logoFile);
       // Atualiza o estado local com a URL do logo retornada pelo serviço
       setEmpresa(savedData);
       setLogoFile(null); // Limpa o arquivo após o upload
@@ -284,3 +291,5 @@ export default function EmpresaPage() {
     </div>
   );
 }
+
+    

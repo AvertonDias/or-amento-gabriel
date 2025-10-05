@@ -10,7 +10,7 @@ import { revalidatePath } from 'next/cache';
 const EMPRESA_COLLECTION = 'empresa';
 
 // Esta é uma Server Action. Ela será executada no servidor.
-export const saveEmpresaData = async (userId: string, data: Omit<EmpresaData, 'id'>, logoFile: File | null): Promise<EmpresaData> => {
+export const saveEmpresaData = async (userId: string, data: EmpresaData, logoFile: File | null): Promise<EmpresaData> => {
   console.log("Executando saveEmpresaData no servidor...");
   if (!userId) {
     throw new Error('User ID é obrigatório para salvar os dados da empresa.');
@@ -29,9 +29,7 @@ export const saveEmpresaData = async (userId: string, data: Omit<EmpresaData, 'i
       console.log("Upload do logo concluído. URL:", downloadURL);
     } catch(error) {
       console.error("Erro durante o upload do logo para o Firebase Storage:", error);
-      // Este erro de CORS é esperado no ambiente atual.
-      // A solução definitiva seria usar o Firebase Admin SDK em uma API Route.
-      throw new Error("Falha no upload do logo. Problema de CORS. (Esta é uma limitação conhecida no ambiente de desenvolvimento atual).");
+      throw new Error("Falha no upload do logo. Pode ser um problema de permissão ou CORS.");
     }
   } else if (data.logo === '') {
      const logoRef = ref(storage, `logos/${userId}`);
@@ -47,6 +45,8 @@ export const saveEmpresaData = async (userId: string, data: Omit<EmpresaData, 'i
 
   const empresaDocRef = doc(db, EMPRESA_COLLECTION, userId);
   try {
+    // Garantir que o userId está no objeto a ser salvo, pois a regra de segurança pode precisar
+    dataToSave.userId = userId;
     await setDoc(empresaDocRef, dataToSave, { merge: true });
     console.log("Dados da empresa salvos no Firestore.");
   } catch (error) {
@@ -57,7 +57,8 @@ export const saveEmpresaData = async (userId: string, data: Omit<EmpresaData, 'i
   revalidatePath('/dashboard/empresa');
   
   // Retorna os dados completos, incluindo a URL do logo se foi atualizado
-  const finalData = (await getDoc(empresaDocRef)).data() as EmpresaData;
+  const finalDataSnapshot = await getDoc(empresaDocRef);
+  const finalData = finalDataSnapshot.data() as EmpresaData;
   return { id: userId, ...finalData };
 };
 
@@ -67,14 +68,15 @@ export const getEmpresaData = async (userId: string): Promise<EmpresaData | null
         console.warn("getEmpresaData chamado sem userId");
         return null;
     }
-    const q = query(collection(db, EMPRESA_COLLECTION), where("userId", "==", userId));
-    const querySnapshot = await getDocs(q);
+    const empresaDocRef = doc(db, EMPRESA_COLLECTION, userId);
+    const docSnap = await getDoc(empresaDocRef);
 
-    if (querySnapshot.empty) {
+    if (!docSnap.exists()) {
         console.log(`Nenhum dado de empresa encontrado para o userId: ${userId}`);
         return null;
     }
     
-    const doc = querySnapshot.docs[0];
-    return { id: doc.id, ...doc.data() } as EmpresaData;
+    return { id: docSnap.id, ...docSnap.data() } as EmpresaData;
 };
+
+    
