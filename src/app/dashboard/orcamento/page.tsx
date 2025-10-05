@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, FormEvent, useRef, useCallback } from 'react';
@@ -118,17 +119,18 @@ export default function OrcamentoPage() {
 
   const { toast } = useToast();
   const pdfRef = useRef<HTMLDivElement>(null);
-
-  const [novoItem, setNovoItem] = useState({
-    materialId: '',
-    quantidade: '',
-    margemLucro: '0',
-  });
   
+  const [novoItem, setNovoItem] = useState({ materialId: '', quantidade: '', margemLucro: '0' });
+  const [quantidadeStr, setQuantidadeStr] = useState('');
+  const [margemLucroStr, setMargemLucroStr] = useState('0');
+
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
   const [editingItem, setEditingItem] = useState<OrcamentoItem | null>(null);
+  const [editingQuantidadeStr, setEditingQuantidadeStr] = useState('');
+  const [editingMargemLucroStr, setEditingMargemLucroStr] = useState('0');
+
   const [clienteData, setClienteData] = useState<Omit<ClienteData, 'userId'>>({ id: undefined, nome: '', endereco: '', telefone: '', email: '', cpfCnpj: ''});
   const [validadeDias, setValidadeDias] = useState('7');
   const [searchTerm, setSearchTerm] = useState('');
@@ -195,6 +197,11 @@ export default function OrcamentoPage() {
   const totalVenda = useMemo(() => orcamentoItens.reduce((sum, item) => sum + item.precoVenda, 0), [orcamentoItens]);
 
   const handleNovoItemChange = (field: keyof typeof novoItem, value: string) => {
+    if (field === 'quantidade') {
+        setQuantidadeStr(value);
+    } else if (field === 'margemLucro') {
+        setMargemLucroStr(value);
+    }
     setNovoItem(prev => ({ ...prev, [field]: value }));
   };
   
@@ -213,8 +220,9 @@ export default function OrcamentoPage() {
     }
 
     const { precoUnitario, id: materialId, descricao, unidade } = selectedMaterial;
+    
     const numMargemLucro = parseFloat(novoItem.margemLucro.replace(',', '.')) || 0;
-    const numQuantidade = parseFloat(novoItem.quantidade.replace(',', '.'));
+    const numQuantidade = parseFloat(novoItem.quantidade.replace(/[^0-9,]/g, '').replace(',', '.'));
     
     if (isNaN(numQuantidade) || numQuantidade <= 0 || precoUnitario === null) {
       toast({ title: 'Valores inválidos', description: 'Preencha a Quantidade e verifique os dados do item.', variant: 'destructive' });
@@ -237,7 +245,8 @@ export default function OrcamentoPage() {
     };
 
     setOrcamentoItens(prev => [...prev, novoOrcamentoItem]);
-    setNovoItem({ materialId: '', quantidade: '', margemLucro: novoItem.margemLucro });
+    setNovoItem(prev => ({ ...prev, materialId: '', quantidade: '' }));
+    setQuantidadeStr('');
     toast({ title: 'Sucesso', description: 'Item adicionado ao orçamento.' });
   };
 
@@ -252,12 +261,10 @@ export default function OrcamentoPage() {
   };
 
   const handleMargemLucroChange = (id: string, value: string) => {
-    const newMargin = parseFloat(value.replace(',', '.'));
-    if (isNaN(newMargin)) return;
-
     setOrcamentoItens(prev =>
       prev.map(item => {
         if (item.id === id) {
+          const newMargin = parseFloat(value.replace(/[^0-9,]/g, '').replace(',', '.')) || 0;
           const newPrecoVenda = item.total * (1 + newMargin / 100);
           return { ...item, margemLucro: newMargin, precoVenda: newPrecoVenda };
         }
@@ -401,33 +408,34 @@ export default function OrcamentoPage() {
 
   const handleEditClick = (item: OrcamentoItem) => {
     setEditingItem({ ...item });
+    setEditingQuantidadeStr(String(item.quantidade).replace('.', ','));
+    setEditingMargemLucroStr(String(item.margemLucro).replace('.', ','));
     setIsEditModalOpen(true);
   };
   
   const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingItem) return;
     const { name, value } = e.target;
-    let numValue: string | number = value;
-
-    if (name === 'quantidade' || name === 'margemLucro') {
-        numValue = value; // Keep as string for input
+    
+    if (name === 'quantidade') {
+        setEditingQuantidadeStr(value);
+    } else if (name === 'margemLucro') {
+        setEditingMargemLucroStr(value);
     }
-    setEditingItem(prev => prev ? { ...prev, [name]: numValue } : null);
   };
 
   const handleSalvarEdicao = (e: FormEvent) => {
     e.preventDefault();
     if (!editingItem) return;
 
-    const { precoUnitario } = editingItem;
-    const numQuantidade = parseFloat(String(editingItem.quantidade).replace(',', '.'));
-    const numMargemLucro = parseFloat(String(editingItem.margemLucro).replace(',', '.')) || 0;
+    const numQuantidade = parseFloat(editingQuantidadeStr.replace(/[^0-9,]/g, '').replace(',', '.'));
+    const numMargemLucro = parseFloat(editingMargemLucroStr.replace(/[^0-9,]/g, '').replace(',', '.')) || 0;
 
-    if (precoUnitario === null || isNaN(numQuantidade) || numQuantidade <= 0) {
-        toast({ title: 'Valores inválidos', variant: 'destructive' }); return;
+    if (isNaN(numQuantidade) || numQuantidade <= 0) {
+        toast({ title: 'Quantidade inválida', variant: 'destructive' }); return;
     }
     
-    const custoFinal = precoUnitario * numQuantidade;
+    const custoFinal = editingItem.precoUnitario * numQuantidade;
     const precoVendaCalculado = custoFinal * (1 + numMargemLucro / 100);
 
     const itemAtualizado: OrcamentoItem = { 
@@ -475,6 +483,7 @@ export default function OrcamentoPage() {
         setOrcamentoItens(orcamento.itens);
         setClienteData(orcamento.cliente);
         setValidadeDias(orcamento.validadeDias);
+        setMargemLucroStr(orcamento.itens[0]?.margemLucro.toString() || '0');
         
         await fetchAllData(true); // Refresh
         
@@ -544,8 +553,8 @@ export default function OrcamentoPage() {
                 
                 {selectedMaterial && (
                   <>
-                    <div><Label htmlFor="quantidade">Quantidade ({selectedMaterial.unidade})</Label><Input id="quantidade" type="text" inputMode='decimal' step="0.01" placeholder="Ex: 1,5" value={novoItem.quantidade} onChange={e => handleNovoItemChange('quantidade', e.target.value)} /></div>
-                    <div><Label htmlFor="margem-lucro">Acréscimo (%)</Label><Input id="margem-lucro" type="text" inputMode='decimal' placeholder="Ex: 10" value={novoItem.margemLucro} onChange={e => handleNovoItemChange('margemLucro', e.target.value)} /></div>
+                    <div><Label htmlFor="quantidade">Quantidade ({selectedMaterial.unidade})</Label><Input id="quantidade" type="text" inputMode='decimal' placeholder="Ex: 1,5" value={quantidadeStr} onChange={e => handleNovoItemChange('quantidade', e.target.value)} /></div>
+                    <div><Label htmlFor="margem-lucro">Acréscimo (%)</Label><Input id="margem-lucro" type="text" inputMode='decimal' placeholder="Ex: 10" value={margemLucroStr} onChange={e => handleNovoItemChange('margemLucro', e.target.value)} /></div>
                     <div className="lg:col-span-1"><Button onClick={addLinha} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Adicionar</Button></div>
                   </>
                 )}
@@ -854,8 +863,8 @@ export default function OrcamentoPage() {
           <DialogHeader><DialogTitle>Editar Item do Orçamento</DialogTitle></DialogHeader>
           {editingItem && (
             <form onSubmit={handleSalvarEdicao} className="space-y-4 py-4">
-              <div><Label htmlFor="edit-quantidade">Quantidade ({editingItem.unidade})</Label><Input id="edit-quantidade" name="quantidade" type="text" inputMode='decimal' step="0.01" value={String(editingItem.quantidade).replace('.',',')} onChange={handleEditFormChange}/></div>
-              <div><Label htmlFor="edit-margemLucro">Acréscimo (%)</Label><Input id="edit-margemLucro" name="margemLucro" type="text" inputMode='decimal' step="1" value={String(editingItem.margemLucro).replace('.',',')} onChange={handleEditFormChange}/></div>
+              <div><Label htmlFor="edit-quantidade">Quantidade ({editingItem.unidade})</Label><Input id="edit-quantidade" name="quantidade" type="text" inputMode='decimal' value={editingQuantidadeStr} onChange={handleEditFormChange}/></div>
+              <div><Label htmlFor="edit-margemLucro">Acréscimo (%)</Label><Input id="edit-margemLucro" name="margemLucro" type="text" inputMode='decimal' value={editingMargemLucroStr} onChange={handleEditFormChange}/></div>
               <DialogFooter>
                 <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
                 <Button type="submit">Salvar Alterações</Button>

@@ -49,6 +49,12 @@ export default function MateriaisPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<MaterialItem | null>(null);
 
+  // States for string representation of number inputs
+  const [precoUnitarioStr, setPrecoUnitarioStr] = useState('');
+  const [quantidadeStr, setQuantidadeStr] = useState('');
+  const [editingPrecoUnitarioStr, setEditingPrecoUnitarioStr] = useState('');
+  const [editingQuantidadeStr, setEditingQuantidadeStr] = useState('');
+
   const { toast } = useToast();
   
   const fetchMateriais = useCallback(async () => {
@@ -77,16 +83,27 @@ export default function MateriaisPage() {
   const handleTabChange = (value: string) => {
     const tab = value as 'item' | 'servico';
     setActiveTab(tab);
-    setNewItem({ ...initialNewItemState, tipo: tab, unidade: tab === 'servico' ? 'serv' : 'un' });
+    const newUnidade = tab === 'servico' ? 'serv' : 'un';
+    setNewItem({ ...initialNewItemState, tipo: tab, unidade: newUnidade });
+    setPrecoUnitarioStr('');
+    setQuantidadeStr('');
   };
 
   const handleNewItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    if (name === 'precoUnitario' || name === 'quantidade') {
-      const numValue = value === '' ? null : parseFloat(value.replace(',', '.'));
-      setNewItem(prev => ({ ...prev, [name]: numValue }));
-    } else {
-      setNewItem(prev => ({ ...prev, [name]: value }));
+    setNewItem(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleNewItemNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const sanitizedValue = value.replace(/[^0-9,]/g, '').replace(',', '.');
+    
+    if (name === 'precoUnitario') {
+      setPrecoUnitarioStr(value);
+      setNewItem(prev => ({...prev, precoUnitario: value === '' ? null : parseFloat(sanitizedValue) }));
+    } else if (name === 'quantidade') {
+      setQuantidadeStr(value);
+      setNewItem(prev => ({...prev, quantidade: value === '' ? null : parseFloat(sanitizedValue) }));
     }
   };
 
@@ -100,7 +117,7 @@ export default function MateriaisPage() {
       toast({ title: "Usuário não autenticado", variant: "destructive" });
       return;
     }
-    if (!newItem.descricao || newItem.precoUnitario === null) {
+    if (!newItem.descricao || newItem.precoUnitario === null || isNaN(newItem.precoUnitario)) {
         toast({
             title: "Campos Obrigatórios",
             description: "Por favor, preencha a Descrição e o Preço.",
@@ -111,14 +128,22 @@ export default function MateriaisPage() {
     
     setIsSubmitting(true);
     try {
-      const payload = { ...newItem };
+      const payload: Omit<MaterialItem, 'id' | 'userId'> = {
+        descricao: newItem.descricao,
+        unidade: newItem.unidade,
+        precoUnitario: newItem.precoUnitario,
+        tipo: newItem.tipo,
+        quantidade: newItem.quantidade,
+      };
+
       if (payload.tipo === 'servico') {
-        // Quantidade não se aplica a serviços
         delete payload.quantidade;
       }
 
       await addMaterial(user.uid, payload);
       setNewItem({ ...initialNewItemState, tipo: activeTab, unidade: activeTab === 'servico' ? 'serv' : 'un' });
+      setPrecoUnitarioStr('');
+      setQuantidadeStr('');
       await fetchMateriais(); // Refresh list
       toast({
         title: "Sucesso!",
@@ -146,17 +171,28 @@ export default function MateriaisPage() {
   
   const handleEditClick = (material: MaterialItem) => {
     setEditingMaterial({ ...material });
+    setEditingPrecoUnitarioStr(material.precoUnitario !== null ? String(material.precoUnitario).replace('.', ',') : '');
+    setEditingQuantidadeStr(material.quantidade !== null && material.quantidade !== undefined ? String(material.quantidade).replace('.', ',') : '');
     setIsEditModalOpen(true);
   };
 
   const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingMaterial) return;
     const { name, value } = e.target;
-     if (name === 'precoUnitario' || name === 'quantidade') {
-      const numValue = value === '' ? null : parseFloat(value.replace(',', '.'));
-      setEditingMaterial(prev => prev ? { ...prev, [name]: numValue } : null);
-    } else {
-      setEditingMaterial(prev => prev ? { ...prev, [name]: value } : null);
+    setEditingMaterial(prev => prev ? { ...prev, [name]: value } : null);
+  };
+
+  const handleEditNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!editingMaterial) return;
+    const { name, value } = e.target;
+    const sanitizedValue = value.replace(/[^0-9,]/g, '').replace(',', '.');
+
+    if (name === 'precoUnitario') {
+      setEditingPrecoUnitarioStr(value);
+      setEditingMaterial(prev => prev ? { ...prev, precoUnitario: value === '' ? null : parseFloat(sanitizedValue) } : null);
+    } else if (name === 'quantidade') {
+      setEditingQuantidadeStr(value);
+      setEditingMaterial(prev => prev ? { ...prev, quantidade: value === '' ? null : parseFloat(sanitizedValue) } : null);
     }
   };
 
@@ -169,7 +205,7 @@ export default function MateriaisPage() {
     e.preventDefault();
     if (!editingMaterial || !editingMaterial.id) return;
 
-    if(!editingMaterial.descricao || editingMaterial.precoUnitario === null) {
+    if(!editingMaterial.descricao || editingMaterial.precoUnitario === null || isNaN(editingMaterial.precoUnitario)) {
       toast({
           title: "Campos Obrigatórios",
           description: "Por favor, preencha Descrição e Preço.",
@@ -238,11 +274,11 @@ export default function MateriaisPage() {
                     </div>
                     <div>
                       <Label htmlFor="precoUnitario-item">Preço (R$)</Label>
-                      <Input id="precoUnitario-item" name="precoUnitario" type="text" inputMode='decimal' placeholder="12,50" value={newItem.precoUnitario === null ? '' : String(newItem.precoUnitario).replace('.',',')} onChange={handleNewItemChange} required/>
+                      <Input id="precoUnitario-item" name="precoUnitario" type="text" inputMode='decimal' placeholder="12,50" value={precoUnitarioStr} onChange={handleNewItemNumberChange} required/>
                     </div>
                     <div>
                       <Label htmlFor="quantidade-item">Quantidade em Estoque</Label>
-                      <Input id="quantidade-item" name="quantidade" type="text" inputMode='decimal' placeholder="Ex: 10" value={newItem.quantidade === null ? '' : String(newItem.quantidade).replace('.',',')} onChange={handleNewItemChange} />
+                      <Input id="quantidade-item" name="quantidade" type="text" inputMode='decimal' placeholder="Ex: 10" value={quantidadeStr} onChange={handleNewItemNumberChange} />
                     </div>
                     <div className="lg:col-span-4">
                       <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
@@ -270,7 +306,7 @@ export default function MateriaisPage() {
                     </div>
                     <div>
                         <Label htmlFor="precoUnitario-servico">Preço (R$)</Label>
-                        <Input id="precoUnitario-servico" name="precoUnitario" type="text" inputMode='decimal' placeholder="150,00" value={newItem.precoUnitario === null ? '' : String(newItem.precoUnitario).replace('.',',')} onChange={handleNewItemChange} required/>
+                        <Input id="precoUnitario-servico" name="precoUnitario" type="text" inputMode='decimal' placeholder="150,00" value={precoUnitarioStr} onChange={handleNewItemNumberChange} required/>
                     </div>
                     <div className="lg:col-span-4">
                       <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
@@ -388,12 +424,12 @@ export default function MateriaisPage() {
                 {editingMaterial.tipo === 'item' && (
                   <div>
                     <Label htmlFor="edit-quantidade">Quantidade em Estoque</Label>
-                    <Input id="edit-quantidade" name="quantidade" type="text" inputMode='decimal' value={editingMaterial.quantidade === null || editingMaterial.quantidade === undefined ? '' : String(editingMaterial.quantidade).replace('.',',')} onChange={handleEditFormChange} />
+                    <Input id="edit-quantidade" name="quantidade" type="text" inputMode='decimal' value={editingQuantidadeStr} onChange={handleEditNumberChange} />
                   </div>
                 )}
                 <div>
                   <Label htmlFor="edit-precoUnitario">Preço (R$)</Label>
-                  <Input id="edit-precoUnitario" name="precoUnitario" type="text" inputMode='decimal' value={editingMaterial.precoUnitario === null ? '' : String(editingMaterial.precoUnitario).replace('.',',')} onChange={handleEditFormChange} required/>
+                  <Input id="edit-precoUnitario" name="precoUnitario" type="text" inputMode='decimal' value={editingPrecoUnitarioStr} onChange={handleEditNumberChange} required/>
                 </div>
               <DialogFooter>
                 <DialogClose asChild>
