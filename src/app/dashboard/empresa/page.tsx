@@ -182,7 +182,7 @@ export default function EmpresaPage() {
               <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
               <Skeleton className="h-10 w-32" />
             </div>
-          ) : empresa && (
+          ) : empresa ? (
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <Label>Logo da Empresa</Label>
@@ -285,11 +285,11 @@ export default function EmpresaPage() {
                     </Button>
                 </div>
             </form>
+          ) : (
+            <p className="py-4 text-center text-muted-foreground">Não foi possível carregar os dados da empresa. Tente recarregar a página.</p>
           )}
         </CardContent>
       </Card>
     </div>
   );
 }
-
-    

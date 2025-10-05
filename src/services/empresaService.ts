@@ -24,7 +24,7 @@ export const saveEmpresaData = async (userId: string, data: EmpresaData, logoFil
       dataToSave.logo = downloadURL;
     } catch(error) {
       console.error("Erro durante o upload do logo para o Firebase Storage:", error);
-      throw new Error("Falha no upload do logo. Verifique as regras de segurança do seu Storage.");
+      throw new Error("Falha no upload do logo. Verifique as regras de CORS do seu Storage.");
     }
   } else if (data.logo === '') {
      // If logo was removed (set to empty string), delete it from storage
@@ -79,5 +79,3 @@ export const getEmpresaData = async (userId: string): Promise<EmpresaData | null
       return null;
     }
 };
-
-    
