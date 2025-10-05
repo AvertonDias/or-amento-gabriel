@@ -1,62 +1,56 @@
 
-'use server';
-
 import { db, storage } from '@/lib/firebase';
-import { collection, doc, setDoc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import type { EmpresaData } from '@/lib/types';
-import { revalidatePath } from 'next/cache';
 
 const EMPRESA_COLLECTION = 'empresa';
 
-// Esta é uma Server Action. Ela será executada no servidor.
+// Client-side function
 export const saveEmpresaData = async (userId: string, data: EmpresaData, logoFile: File | null): Promise<EmpresaData> => {
-  console.log("Executando saveEmpresaData no servidor...");
   if (!userId) {
     throw new Error('User ID é obrigatório para salvar os dados da empresa.');
   }
 
   const dataToSave: Partial<EmpresaData> = { ...data };
+   delete dataToSave.id; // Ensure we don't save the ID inside the document
 
-  // Lógica de upload do logo para o Firebase Storage
+  // Handle logo upload to Firebase Storage
   if (logoFile) {
     const logoRef = ref(storage, `logos/${userId}`);
     try {
-      console.log(`Iniciando upload do logo para: logos/${userId}`);
       const snapshot = await uploadBytes(logoRef, logoFile);
       const downloadURL = await getDownloadURL(snapshot.ref);
       dataToSave.logo = downloadURL;
-      console.log("Upload do logo concluído. URL:", downloadURL);
     } catch(error) {
       console.error("Erro durante o upload do logo para o Firebase Storage:", error);
-      throw new Error("Falha no upload do logo. Pode ser um problema de permissão ou CORS.");
+      throw new Error("Falha no upload do logo. Verifique as regras de segurança do seu Storage.");
     }
   } else if (data.logo === '') {
+     // If logo was removed (set to empty string), delete it from storage
      const logoRef = ref(storage, `logos/${userId}`);
      try {
         await deleteObject(logoRef);
-        console.log("Logo antigo removido.");
+        dataToSave.logo = ''; // Confirm it's an empty string
      } catch (error: any) {
         if (error.code !== 'storage/object-not-found') {
-            console.warn("Não foi possível remover o logo antigo:", error);
+            console.warn("Não foi possível remover o logo antigo (pode não existir):", error);
         }
+        dataToSave.logo = '';
      }
   }
 
   const empresaDocRef = doc(db, EMPRESA_COLLECTION, userId);
   try {
-    // Garantir que o userId está no objeto a ser salvo, pois a regra de segurança pode precisar
+    // Ensure userId is in the object to be saved for security rules
     dataToSave.userId = userId;
     await setDoc(empresaDocRef, dataToSave, { merge: true });
-    console.log("Dados da empresa salvos no Firestore.");
   } catch (error) {
     console.error("Erro ao salvar dados no Firestore:", error);
     throw new Error("Falha ao salvar os dados da empresa no banco de dados.");
   }
   
-  revalidatePath('/dashboard/empresa');
-  
-  // Retorna os dados completos, incluindo a URL do logo se foi atualizado
+  // Return the complete data, including the new logo URL if it was updated
   const finalDataSnapshot = await getDoc(empresaDocRef);
   const finalData = finalDataSnapshot.data() as EmpresaData;
   return { id: userId, ...finalData };
@@ -69,14 +63,19 @@ export const getEmpresaData = async (userId: string): Promise<EmpresaData | null
         return null;
     }
     const empresaDocRef = doc(db, EMPRESA_COLLECTION, userId);
-    const docSnap = await getDoc(empresaDocRef);
+    try {
+      const docSnap = await getDoc(empresaDocRef);
 
-    if (!docSnap.exists()) {
-        console.log(`Nenhum dado de empresa encontrado para o userId: ${userId}`);
-        return null;
+      if (!docSnap.exists()) {
+          console.log(`Nenhum dado de empresa encontrado para o userId: ${userId}`);
+          return null;
+      }
+      
+      return { id: docSnap.id, ...docSnap.data() } as EmpresaData;
+
+    } catch (error) {
+      console.error("Erro ao buscar dados da empresa:", error);
+      // Retornar null em caso de erro de permissão ou outros problemas
+      return null;
     }
-    
-    return { id: docSnap.id, ...docSnap.data() } as EmpresaData;
 };
-
-    
