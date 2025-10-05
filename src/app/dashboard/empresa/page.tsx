@@ -1,20 +1,21 @@
 'use client';
 
-import React, { FormEvent, useState, useEffect, useRef, useCallback } from 'react';
+import React, { FormEvent, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import type { EmpresaData } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Building, Save, Upload, Trash2 } from 'lucide-react';
+import { Building, Save, Upload, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
-import { maskCnpj, maskTelefone } from '@/lib/utils';
+import { maskCpfCnpj, maskTelefone, validateCpfCnpj } from '@/lib/utils';
 import { auth } from '@/lib/firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { getEmpresaData, saveEmpresaData } from '@/services/empresaService';
 import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const initialEmpresaState: Omit<EmpresaData, 'id' | 'userId'> = {
   nome: '',
@@ -53,12 +54,18 @@ export default function EmpresaPage() {
     }
   }, [user, fetchEmpresaData]);
 
+  const cpfCnpjStatus = useMemo(() => {
+    if (!empresa?.cnpj) return 'incomplete';
+    return validateCpfCnpj(empresa.cnpj);
+  }, [empresa?.cnpj]);
+
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!empresa) return;
     const { name, value } = e.target;
     let maskedValue = value;
     if (name === 'cnpj') {
-      maskedValue = maskCnpj(value);
+      maskedValue = maskCpfCnpj(value);
     } else if (name === 'telefone') {
       maskedValue = maskTelefone(value);
     }
@@ -116,6 +123,10 @@ export default function EmpresaPage() {
       toast({ title: "Campos obrigatórios", description: "Nome da empresa e endereço são obrigatórios.", variant: 'destructive' });
       return;
     }
+    if (empresa.cnpj && cpfCnpjStatus === 'invalid') {
+      toast({ title: "Documento inválido", description: "O CPF/CNPJ inserido não é válido.", variant: "destructive" });
+      return;
+    }
     
     setIsSaving(true);
     try {
@@ -140,6 +151,7 @@ export default function EmpresaPage() {
   };
 
   const showSkeleton = loadingAuth || isLoadingData;
+  const isCpfCnpjInvalid = empresa?.cnpj ? cpfCnpjStatus === 'invalid' : false;
 
   return (
     <div className="container mx-auto p-4 md:p-6">
@@ -225,16 +237,37 @@ export default function EmpresaPage() {
                         />
                     </div>
                     <div>
-                        <Label htmlFor="cnpj">CNPJ / CPF</Label>
-                        <Input
-                        id="cnpj"
-                        name="cnpj"
-                        value={empresa.cnpj}
-                        onChange={handleChange}
-                        placeholder="XX.XXX.XXX/XXXX-XX"
-                        />
+                      <Label htmlFor="cnpj">CNPJ / CPF</Label>
+                        <div className="relative">
+                           <Input
+                              id="cnpj"
+                              name="cnpj"
+                              value={empresa.cnpj}
+                              onChange={handleChange}
+                              placeholder="XX.XXX.XXX/XXXX-XX"
+                              className={cn(
+                                'pr-10',
+                                cpfCnpjStatus === 'valid' && 'border-green-500 focus-visible:ring-green-500',
+                                cpfCnpjStatus === 'invalid' && 'border-destructive focus-visible:ring-destructive'
+                              )}
+                            />
+                            {empresa.cnpj && (
+                                <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                                  {cpfCnpjStatus === 'valid' && <CheckCircle className="h-5 w-5 text-green-500" />}
+                                  {cpfCnpjStatus === 'invalid' && <XCircle className="h-5 w-5 text-destructive" />}
+                                </div>
+                            )}
+                        </div>
+                         {empresa.cnpj && (
+                           <p className={cn(
+                              "text-xs mt-1",
+                              cpfCnpjStatus === 'invalid' ? 'text-destructive' : 'text-muted-foreground'
+                           )}>
+                            {cpfCnpjStatus === 'invalid' ? 'Documento inválido.' : cpfCnpjStatus === 'incomplete' ? 'Documento incompleto.' : 'Documento válido.'}
+                           </p>
+                        )}
                     </div>
-                    <Button type="submit" className="w-full sm:w-auto" disabled={isSaving}>
+                    <Button type="submit" className="w-full sm:w-auto" disabled={isSaving || isCpfCnpjInvalid}>
                         {isSaving ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
