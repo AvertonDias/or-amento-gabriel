@@ -36,10 +36,15 @@ export default function EmpresaPage() {
   const fetchEmpresaData = useCallback(async () => {
     if (!user) return;
     setIsLoadingData(true);
-    const data = await getEmpresaData(user.uid);
-    setEmpresa(data || { ...initialEmpresaState, userId: user.uid });
-    setIsLoadingData(false);
-  }, [user]);
+    try {
+      const data = await getEmpresaData(user.uid);
+      setEmpresa(data || { ...initialEmpresaState, userId: user.uid });
+    } catch(error) {
+       toast({ title: "Erro ao buscar dados", description: "Não foi possível carregar os dados da empresa.", variant: "destructive"})
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, [user, toast]);
 
   useEffect(() => {
     if (user) {
@@ -63,10 +68,10 @@ export default function EmpresaPage() {
     if (!empresa) return;
     const file = e.target.files?.[0];
     if (file) {
-      if(file.size > 2 * 1024 * 1024) { // Limite de 2MB
+      if(file.size > 5 * 1024 * 1024) { // Limite de 5MB
         toast({
           title: 'Arquivo muito grande',
-          description: 'Por favor, selecione uma imagem com menos de 2MB.',
+          description: 'Por favor, selecione uma imagem com menos de 5MB.',
           variant: 'destructive',
         });
         return;
@@ -109,15 +114,17 @@ export default function EmpresaPage() {
     
     setIsSaving(true);
     try {
-      await saveEmpresaData({ ...empresa, userId: user.uid });
+      const savedData = await saveEmpresaData(user.uid, empresa);
+      // Atualiza o estado local com a URL do logo retornada pelo serviço, se houver
+      setEmpresa(savedData);
       toast({
         title: 'Sucesso!',
         description: 'Os dados da empresa foram salvos com sucesso.',
       });
-    } catch(error) {
+    } catch(error: any) {
        toast({
         title: 'Erro ao Salvar',
-        description: 'Não foi possível salvar os dados. Tente novamente.',
+        description: error.message || 'Não foi possível salvar os dados. Tente novamente.',
         variant: 'destructive',
       });
       console.error("Erro ao salvar dados da empresa:", error);
@@ -175,7 +182,7 @@ export default function EmpresaPage() {
                        )}
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">Recomendado: PNG ou JPG com no máximo 2MB.</p>
+                  <p className="text-xs text-muted-foreground mt-2">Recomendado: PNG ou JPG com no máximo 5MB.</p>
                 </div>
                 
                 <div className='border-t pt-6 space-y-6'>
