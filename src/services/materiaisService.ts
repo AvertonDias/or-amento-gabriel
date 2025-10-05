@@ -1,5 +1,3 @@
-'use server';
-
 import { db } from '@/lib/firebase';
 import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
 import type { MaterialItem } from '@/lib/types';

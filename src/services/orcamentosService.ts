@@ -1,5 +1,3 @@
-'use server';
-
 import { db } from '@/lib/firebase';
 import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy, limit, getCountFromServer } from 'firebase/firestore';
 import type { Orcamento } from '@/lib/types';

@@ -1,5 +1,3 @@
-'use server';
-
 import { db } from '@/lib/firebase';
 import { collection, doc, setDoc, getDocs, query, where, limit, getDoc } from 'firebase/firestore';
 import type { EmpresaData } from '@/lib/types';
