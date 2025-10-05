@@ -1,20 +1,22 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // As coleções 'materiais', 'clientes' e 'orcamentos' são consultadas em listas.
-    // A regra de leitura usa `existsAfter` para verificar o 'userId' na query (via `where`).
-    // A regra de escrita verifica se o 'userId' no documento a ser criado/atualizado corresponde ao UID do usuário.
-    match /{collection}/{docId}
-      where collection in ['materiais', 'clientes', 'orcamentos'] {
-        allow read: if request.auth != null && existsAfter(/databases/$(database)/documents/$(collection)/$(docId)) && getAfter(/databases/$(database)/documents/$(collection)/$(docId)).data.userId == request.auth.uid;
-        allow write: if request.auth != null && request.resource.data.userId == request.auth.uid;
-    }
-
-    // A coleção 'empresa' usa o UID do usuário como ID do documento.
-    // A verificação é feita diretamente no 'userId' do 'match'.
+    // Empresa: Usuário só pode acessar o documento com seu próprio ID
     match /empresa/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Clientes, Materiais, Orçamentos: Usuário só pode acessar documentos que pertencem a ele
+    match /clientes/{docId} {
+      allow read, write: if request.auth != null && (request.auth.uid == resource.data.userId || request.auth.uid == request.resource.data.userId);
+    }
+    
+    match /materiais/{docId} {
+      allow read, write: if request.auth != null && (request.auth.uid == resource.data.userId || request.auth.uid == request.resource.data.userId);
+    }
+
+    match /orcamentos/{docId} {
+      allow read, write: if request.auth != null && (request.auth.uid == resource.data.userId || request.auth.uid == request.resource.data.userId);
     }
   }
 }
