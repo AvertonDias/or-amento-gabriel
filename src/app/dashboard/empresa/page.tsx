@@ -27,6 +27,7 @@ const initialEmpresaState: Omit<EmpresaData, 'id' | 'userId'> = {
 export default function EmpresaPage() {
   const [user, loadingAuth] = useAuthState(auth);
   const [empresa, setEmpresa] = useState<EmpresaData | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -76,9 +77,12 @@ export default function EmpresaPage() {
         });
         return;
       }
+      setLogoFile(file); // Salva o objeto File
+      
       const reader = new FileReader();
       reader.onloadend = () => {
-        setEmpresa(prev => (prev ? { ...prev, logo: reader.result as string } : null));
+        // Apenas para preview local
+        setEmpresa(prev => (prev ? { ...prev, logo: reader.result as string } : null)); 
         toast({
           title: 'Logo pronto para salvar!',
           description: 'A nova imagem do logo foi carregada. Clique em "Salvar Dados" para confirmar.',
@@ -90,6 +94,7 @@ export default function EmpresaPage() {
 
   const removeLogo = () => {
      if (!empresa) return;
+    setLogoFile(null);
     setEmpresa(prev => (prev ? { ...prev, logo: '' } : null));
     if(fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -114,9 +119,10 @@ export default function EmpresaPage() {
     
     setIsSaving(true);
     try {
-      const savedData = await saveEmpresaData(user.uid, empresa);
-      // Atualiza o estado local com a URL do logo retornada pelo serviço, se houver
+      const savedData = await saveEmpresaData(user.uid, empresa, logoFile);
+      // Atualiza o estado local com a URL do logo retornada pelo serviço
       setEmpresa(savedData);
+      setLogoFile(null); // Limpa o arquivo após o upload
       toast({
         title: 'Sucesso!',
         description: 'Os dados da empresa foram salvos com sucesso.',
