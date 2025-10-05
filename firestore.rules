@@ -2,12 +2,17 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Regra unificada para coleções com dados do usuário
-    match /{collection}/{docId} {
-      allow read, write: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    // As coleções 'materiais', 'clientes' e 'orcamentos' são consultadas em listas.
+    // A regra de leitura usa `existsAfter` para verificar o 'userId' na query (via `where`).
+    // A regra de escrita verifica se o 'userId' no documento a ser criado/atualizado corresponde ao UID do usuário.
+    match /{collection}/{docId}
+      where collection in ['materiais', 'clientes', 'orcamentos'] {
+        allow read: if request.auth != null && existsAfter(/databases/$(database)/documents/$(collection)/$(docId)) && getAfter(/databases/$(database)/documents/$(collection)/$(docId)).data.userId == request.auth.uid;
+        allow write: if request.auth != null && request.resource.data.userId == request.auth.uid;
     }
-    
-    // Regra específica para a coleção 'empresa', onde o ID do documento é o UID do usuário
+
+    // A coleção 'empresa' usa o UID do usuário como ID do documento.
+    // A verificação é feita diretamente no 'userId' do 'match'.
     match /empresa/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
