@@ -2,18 +2,32 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Regra específica para a coleção 'empresa'
-    // Nesta coleção, o ID DO DOCUMENTO DEVE ser o UID do usuário.
-    match /empresa/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Regra para coleção 'materiais'
+    // Permite que um usuário autenticado leia e escreva (crie, atualize, delete)
+    // documentos se o 'userId' no documento for igual ao UID do usuário.
+    match /materiais/{materialId} {
+      allow read, write: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
 
-    // Esta regra é genérica para coleções onde cada documento tem um campo 'userId'
-    // (Ex: materiais, clientes, orçamentos)
-    // IMPORTANTE: Esta regra deve vir DEPOIS das regras mais específicas.
-    match /{collectionName}/{documentId} {
-      allow read, create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    // Regra para coleção 'clientes'
+    // Permite que um usuário autenticado leia e escreva
+    // se o 'userId' no documento for igual ao UID do usuário.
+    match /clientes/{clientId} {
+      allow read, write: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // Regra para coleção 'orcamentos'
+    // Permite que um usuário autenticado leia e escreva
+    // se o 'userId' no documento for igual ao UID do usuário.
+    match /orcamentos/{orcamentoId} {
+      allow read, write: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // Regra para coleção 'empresa'
+    // Permite que um usuário leia ou escreva em um documento da coleção 'empresa'
+    // se o ID do documento for igual ao UID do usuário autenticado.
+    match /empresa/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
