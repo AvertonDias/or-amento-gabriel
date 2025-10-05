@@ -149,7 +149,7 @@ export default function EmpresaPage() {
     } catch(error: any) {
        toast({
         title: 'Erro ao Salvar',
-        description: error.message || 'Não foi possível salvar os dados. Tente novamente.',
+        description: error.message || 'Não foi possível salvar os dados. Verifique a configuração de CORS do seu Firebase Storage ou tente novamente.',
         variant: 'destructive',
       });
       console.error("Erro ao salvar dados da empresa:", error);
