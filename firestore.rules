@@ -2,29 +2,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Regra específica para a coleção 'clientes'
-    // Cada documento DEVE ter um campo 'userId' com o UID do proprietário.
-    match /clientes/{clientId} {
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    // Permite que um usuário leia/escreva em um documento se o UID dele corresponder ao campo 'userId' no documento.
+    // Isso se aplica a 'materiais', 'clientes', e 'orcamentos'.
+    match /{collection}/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
 
-    // Regra específica para a coleção 'materiais'
-    // Cada documento DEVE ter um campo 'userId' com o UID do proprietário.
-    match /materiais/{materialId} {
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-    }
-
-    // Regra específica para a coleção 'orcamentos'
-    // Cada documento DEVE ter um campo 'userId' com o UID do proprietário.
-    match /orcamentos/{orcamentoId} {
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-    }
-
-    // Regra específica para a coleção 'empresa'
-    // Nesta coleção, o ID DO DOCUMENTO DEVE ser o UID do usuário.
+    // A coleção 'empresa' é um caso especial onde o ID do documento é o UID do usuário.
     match /empresa/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
