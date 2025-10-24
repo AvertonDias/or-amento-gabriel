@@ -1,4 +1,3 @@
-
 'use client';
 
 import { FormEvent, useState } from "react";
@@ -12,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
-import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -73,7 +71,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="flex justify-center items-center flex-col gap-2 mb-4">
-            <Image
+            <img
               src="/apple-touch-icon.png"
               alt="Logo do Site"
               width={80}
@@ -144,5 +142,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

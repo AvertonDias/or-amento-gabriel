@@ -1,4 +1,3 @@
-
 'use client';
 
 import { FormEvent, useState } from "react";
@@ -12,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
-import Image from "next/image";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -89,7 +87,7 @@ export default function RegisterPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="flex justify-center items-center flex-col gap-2 mb-4">
-            <Image
+            <img
               src="/apple-touch-icon.png"
               alt="Logo do Site"
               width={80}
@@ -136,8 +134,7 @@ export default function RegisterPage() {
                   aria-label={showPassword ? "Esconder senha" : "Mostrar senha"}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
+                </button>              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm-password">Confirmar Senha</Label>
@@ -177,5 +174,3 @@ export default function RegisterPage() {
     </div>
   );
 }
-
-    

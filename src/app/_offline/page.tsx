@@ -1,13 +1,11 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import Image from 'next/image';
 
 export default function OfflinePage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md text-center">
         <CardHeader className="items-center">
-           <Image
+           <img
             src="/apple-touch-icon.png"
             alt="Logo da Empresa"
             width={80}
@@ -28,5 +26,3 @@ export default function OfflinePage() {
     </main>
   );
 }
-
-    

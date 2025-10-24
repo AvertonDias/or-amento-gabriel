@@ -1,9 +1,7 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -158,7 +156,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                     isSidebarCollapsed ? "justify-center" : "px-4 lg:px-6"
                 )}>
                     <Link href="/dashboard/orcamento" className="flex items-center gap-2 font-semibold">
-                        <Image
+                        <img
                             src="/apple-touch-icon.png"
                             alt="Logo"
                             width={32}
@@ -225,7 +223,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               <SheetContent side="left" className="flex flex-col p-4">
                 <div className="flex h-14 items-center border-b px-2 mb-4">
                   <Link href="/dashboard/orcamento" className="flex items-center gap-2 font-semibold" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Image
+                      <img
                           src="/apple-touch-icon.png"
                           alt="Logo"
                           width={32}
@@ -264,5 +262,3 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     </TooltipProvider>
   );
 }
-
-    
