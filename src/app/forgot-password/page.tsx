@@ -13,6 +13,7 @@ import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
+import logo from "@/components/ui/logo";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -68,7 +69,7 @@ export default function ForgotPasswordPage() {
         <CardHeader className="text-center">
           <div className="flex justify-center items-center mb-4">
             <Image
-              src="/apple-touch-icon.png"
+              src={logo}
               alt="Logo do Site"
               width={80}
               height={80}
