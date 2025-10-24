@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -158,7 +159,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 )}>
                     <Link href="/dashboard/orcamento" className="flex items-center gap-2 font-semibold">
                         <Image
-                            src="/apple-touch-icon.jpg"
+                            src="/apple-touch-icon.png"
                             alt="Logo"
                             width={32}
                             height={32}
@@ -225,7 +226,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 <div className="flex h-14 items-center border-b px-2 mb-4">
                   <Link href="/dashboard/orcamento" className="flex items-center gap-2 font-semibold" onClick={() => setIsMobileMenuOpen(false)}>
                       <Image
-                          src="/apple-touch-icon.jpg"
+                          src="/apple-touch-icon.png"
                           alt="Logo"
                           width={32}
                           height={32}

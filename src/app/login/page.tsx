@@ -74,7 +74,7 @@ export default function LoginPage() {
         <CardHeader className="text-center">
           <div className="flex justify-center items-center flex-col gap-2 mb-4">
             <Image
-              src="/apple-touch-icon.jpg"
+              src="/apple-touch-icon.png"
               alt="Logo do Site"
               width={80}
               height={80}

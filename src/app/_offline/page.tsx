@@ -7,7 +7,7 @@ export default function OfflinePage() {
       <Card className="w-full max-w-md text-center">
         <CardHeader className="items-center">
            <Image
-            src="/apple-touch-icon.jpg" // Usando o ícone já existente no projeto
+            src="/apple-touch-icon.png" // Usando o ícone já existente no projeto
             alt="Logo da Empresa"
             width={80}
             height={80}
