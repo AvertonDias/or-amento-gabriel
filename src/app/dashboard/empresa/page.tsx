@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { FormEvent, useState, useEffect, useCallback, useMemo } from 'react';
@@ -7,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Building, Save, CheckCircle, XCircle } from 'lucide-react';
+import { Building, Save, CheckCircle, XCircle, Upload, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { maskCpfCnpj, maskTelefone, validateCpfCnpj } from '@/lib/utils';
@@ -16,6 +15,7 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { getEmpresaData, saveEmpresaData } from '@/services/empresaService';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 const initialEmpresaState: Omit<EmpresaData, 'id' | 'userId'> = {
   nome: '',
@@ -71,6 +71,35 @@ export default function EmpresaPage() {
     }
     setEmpresa(prev => (prev ? { ...prev, [name]: maskedValue } : null));
   };
+  
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const maxSize = 2 * 1024 * 1024; // 2MB
+
+      if (file.size > maxSize) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "O logo deve ter no máximo 2MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        const base64 = loadEvent.target?.result as string;
+        setEmpresa(prev => (prev ? { ...prev, logo: base64 } : null));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeLogo = () => {
+    setEmpresa(prev => (prev ? { ...prev, logo: '' } : null));
+    toast({ title: "Logo removido" });
+  };
+
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -94,7 +123,6 @@ export default function EmpresaPage() {
           dataToSave.userId = user.uid;
       }
       
-      // A função de serviço agora só lida com dados do Firestore
       const savedData = await saveEmpresaData(user.uid, dataToSave);
       setEmpresa(savedData);
       toast({
@@ -125,7 +153,7 @@ export default function EmpresaPage() {
             Dados da Empresa
           </CardTitle>
           <CardDescription>
-            Insira as informações da sua empresa. Estes dados serão usados nos orçamentos e salvos na nuvem.
+            Insira as informações e o logo da sua empresa. Estes dados serão usados nos orçamentos e salvos na nuvem.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -139,6 +167,32 @@ export default function EmpresaPage() {
             </div>
           ) : empresa ? (
             <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <Label>Logo da Empresa</Label>
+                   <div className="mt-2 flex items-center gap-4">
+                    {empresa.logo ? (
+                      <div className="relative">
+                        <Image src={empresa.logo} alt="Logo" width={80} height={80} className="rounded-lg object-contain border bg-muted" />
+                        <Button type="button" size="icon" variant="destructive" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={removeLogo}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center">
+                        <Building className="h-10 w-10 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <Label htmlFor="logo-upload" className={cn(buttonVariants({ variant: 'outline' }), "cursor-pointer")}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Carregar Imagem
+                      </Label>
+                      <Input id="logo-upload" type="file" className="sr-only" accept="image/png, image/jpeg, image/webp" onChange={handleLogoChange}/>
+                      <p className="text-xs text-muted-foreground mt-2">PNG, JPG ou WEBP (Max 2MB).</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                     <Label htmlFor="nome">Nome da Empresa / Seu Nome</Label>
                     <Input

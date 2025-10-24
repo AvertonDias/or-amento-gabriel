@@ -1,4 +1,3 @@
-
 import { db } from '@/lib/firebase';
 import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
 import type { EmpresaData } from '@/lib/types';
@@ -11,24 +10,27 @@ export const saveEmpresaData = async (userId: string, data: Omit<EmpresaData, 'i
     throw new Error('User ID é obrigatório para salvar os dados da empresa.');
   }
 
-  const dataToSave: Partial<EmpresaData> = { ...data };
-  // Assegura que o logo não seja modificado, já que o upload foi removido
-  delete dataToSave.logo; 
-
   const empresaDocRef = doc(db, EMPRESA_COLLECTION, userId);
+  
+  // Ensure userId is in the object to be saved for security rules
+  const dataToSave: EmpresaData = {
+      ...data,
+      userId: userId,
+  };
+
   try {
-    // Ensure userId is in the object to be saved for security rules
-    dataToSave.userId = userId;
+    // A função setDoc com merge:true atualiza os campos ou cria o documento se ele não existir.
     await setDoc(empresaDocRef, dataToSave, { merge: true });
+    
+    // Retorna os dados completos após salvar
+    const finalDataSnapshot = await getDoc(empresaDocRef);
+    const finalData = finalDataSnapshot.data() as EmpresaData;
+    return { id: userId, ...finalData };
+
   } catch (error) {
     console.error("Erro ao salvar dados no Firestore:", error);
     throw new Error("Falha ao salvar os dados da empresa no banco de dados.");
   }
-  
-  // Return the complete data after saving
-  const finalDataSnapshot = await getDoc(empresaDocRef);
-  const finalData = finalDataSnapshot.data() as EmpresaData;
-  return { id: userId, ...finalData };
 };
 
 
