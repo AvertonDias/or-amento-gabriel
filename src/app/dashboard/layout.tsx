@@ -25,7 +25,6 @@ import {
   User
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import logoPath from '@/components/ui/logo';
 
 const navItems = [
   { href: '/dashboard/orcamento', label: 'Novo Orçamento', icon: Home },
@@ -160,7 +159,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 )}>
                     <Link href="/dashboard/orcamento" className="flex items-center gap-2 font-semibold">
                         <Image
-                            src={logoPath}
+                            src="/apple-touch-icon.png"
                             alt="Logo"
                             width={32}
                             height={32}
@@ -227,7 +226,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 <div className="flex h-14 items-center border-b px-2 mb-4">
                   <Link href="/dashboard/orcamento" className="flex items-center gap-2 font-semibold" onClick={() => setIsMobileMenuOpen(false)}>
                       <Image
-                          src={logoPath}
+                          src="/apple-touch-icon.png"
                           alt="Logo"
                           width={32}
                           height={32}
@@ -265,3 +264,5 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     </TooltipProvider>
   );
 }
+
+    

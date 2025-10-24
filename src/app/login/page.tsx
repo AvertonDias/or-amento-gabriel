@@ -13,7 +13,6 @@ import { Loader2, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
-import logoPath from "@/components/ui/logo";
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -75,7 +74,7 @@ export default function LoginPage() {
         <CardHeader className="text-center">
           <div className="flex justify-center items-center flex-col gap-2 mb-4">
             <Image
-              src={logoPath}
+              src="/apple-touch-icon.png"
               alt="Logo do Site"
               width={80}
               height={80}
@@ -145,3 +144,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

@@ -13,7 +13,6 @@ import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
-import logoPath from '@/components/ui/logo';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -69,7 +68,7 @@ export default function ForgotPasswordPage() {
         <CardHeader className="text-center">
           <div className="flex justify-center items-center mb-4">
             <Image
-              src={logoPath}
+              src="/apple-touch-icon.png"
               alt="Logo do Site"
               width={80}
               height={80}
@@ -89,7 +88,7 @@ export default function ForgotPasswordPage() {
                 id="email" 
                 type="email" 
                 placeholder="seuemail@exemplo.com" 
-                required 
+                required _
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
@@ -111,3 +110,5 @@ export default function ForgotPasswordPage() {
     </div>
   );
 }
+
+    
