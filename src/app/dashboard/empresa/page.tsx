@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { FormEvent, useState, useEffect, useCallback, useMemo } from 'react';
@@ -6,7 +5,7 @@ import type { EmpresaData } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Building, Save, CheckCircle, XCircle, Upload, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -184,7 +183,7 @@ export default function EmpresaPage() {
                       </div>
                     )}
                     <div className="flex-1">
-                      <Label htmlFor="logo-upload" className={cn(buttonVariants({ variant: 'outline' }), "cursor-pointer")}>
+                      <Label htmlFor="logo-upload" className={cn("cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2")}>
                         <Upload className="mr-2 h-4 w-4" />
                         Carregar Imagem
                       </Label>
@@ -274,3 +273,5 @@ export default function EmpresaPage() {
     </div>
   );
 }
+
+    
