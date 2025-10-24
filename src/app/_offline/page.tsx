@@ -1,6 +1,7 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
-import logo from '@/components/ui/logo';
+import logoPath from '@/components/ui/logo';
 
 export default function OfflinePage() {
   return (
@@ -8,7 +9,7 @@ export default function OfflinePage() {
       <Card className="w-full max-w-md text-center">
         <CardHeader className="items-center">
            <Image
-            src={logo}
+            src={logoPath}
             alt="Logo da Empresa"
             width={80}
             height={80}

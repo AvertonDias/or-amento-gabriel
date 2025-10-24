@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, FormEvent, useEffect, useCallback } from 'react';
@@ -44,9 +45,9 @@ export default function ClientesPage() {
     try {
       const data = await getClientes(user.uid);
       setClientes(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao buscar clientes:", error);
-      toast({ title: 'Erro ao carregar clientes', description: 'Verifique suas permissões do Firestore.', variant: 'destructive' });
+      toast({ title: 'Erro ao carregar clientes', description: error.message, variant: 'destructive' });
     } finally {
       setIsLoadingData(false);
     }
@@ -358,7 +359,7 @@ export default function ClientesPage() {
               </div>
             </div>
           ) : (
-             <p className="text-center text-muted-foreground py-8">Nenhum cliente cadastrado ainda.</p>
+             <p className="text-center text-muted-foreground py-8">Nenhum cliente cadastrado ainda. Se você já cadastrou, pode ser necessário criar um índice no Firestore. Verifique o console para erros.</p>
           )}
         </CardContent>
       </Card>
