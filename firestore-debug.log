@@ -1,4 +1,4 @@
-Oct 05, 2025 6:46:31 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketServer start
+Oct 24, 2025 9:57:47 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketServer start
 INFO: Started WebSocket server on ws://127.0.0.1:9150
 API endpoint: http://127.0.0.1:8080
 If you are using a library that supports the FIRESTORE_EMULATOR_HOST environment variable, run:
@@ -12,13 +12,11 @@ If you are running a Firestore in Datastore Mode project, run:
 Note: Support for Datastore Mode is in preview. If you encounter any bugs please file at https://github.com/firebase/firebase-tools/issues.
 Dev App Server is now running.
 
-Oct 05, 2025 6:46:37 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+Oct 24, 2025 9:57:53 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFO: Detected non-HTTP/2 connection.
-Oct 05, 2025 6:46:37 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketChannelHandler initChannel
+Oct 24, 2025 9:57:53 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketChannelHandler initChannel
 INFO: Connected to new websocket client
-Oct 05, 2025 6:46:38 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketChannelHandler initChannel
-INFO: Connected to new websocket client
-Oct 05, 2025 6:46:38 PM io.grpc.netty.NettyServerTransport notifyTerminated
+Oct 24, 2025 9:57:54 PM io.grpc.netty.NettyServerTransport notifyTerminated
 INFO: Transport failed
 io.netty.handler.codec.http2.Http2Exception: Unexpected HTTP/1.x request: GET / 
 	at io.netty.handler.codec.http2.Http2Exception.connectionError(Http2Exception.java:107)
@@ -45,9 +43,9 @@ io.netty.handler.codec.http2.Http2Exception: Unexpected HTTP/1.x request: GET /
 	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
 	at java.base/java.lang.Thread.run(Thread.java:1583)
 
-Oct 05, 2025 6:46:38 PM io.grpc.netty.NettyServerTransport notifyTerminated
+Oct 24, 2025 9:57:54 PM io.grpc.netty.NettyServerTransport notifyTerminated
 INFO: Transport failed
-io.netty.handler.codec.http2.Http2Exception: HTTP/2 client preface string missing or corrupt. Hex dump for received bytes: 16030105a8010005a40303f5ad3bb082d85233500b9a5dbe
+io.netty.handler.codec.http2.Http2Exception: HTTP/2 client preface string missing or corrupt. Hex dump for received bytes: 16030105a8010005a40303a361a7aa5f1899fa98bce620eb
 	at io.netty.handler.codec.http2.Http2Exception.connectionError(Http2Exception.java:107)
 	at io.netty.handler.codec.http2.Http2ConnectionHandler$PrefaceDecoder.readClientPrefaceString(Http2ConnectionHandler.java:319)
 	at io.netty.handler.codec.http2.Http2ConnectionHandler$PrefaceDecoder.decode(Http2ConnectionHandler.java:245)
@@ -72,19 +70,5 @@ io.netty.handler.codec.http2.Http2Exception: HTTP/2 client preface string missin
 	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
 	at java.base/java.lang.Thread.run(Thread.java:1583)
 
-Oct 05, 2025 6:54:50 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
-INFO: Detected non-HTTP/2 connection.
-Oct 05, 2025 6:54:51 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
-INFO: Detected HTTP/2 connection.
-Oct 05, 2025 6:56:55 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
-INFO: Detected non-HTTP/2 connection.
-Oct 05, 2025 6:58:13 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
-INFO: Detected non-HTTP/2 connection.
-Oct 05, 2025 6:59:03 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
-INFO: Detected non-HTTP/2 connection.
-Oct 05, 2025 7:16:11 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
-INFO: Detected non-HTTP/2 connection.
-Oct 05, 2025 7:18:13 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
-INFO: Detected non-HTTP/2 connection.
-Oct 05, 2025 7:21:01 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
-INFO: Detected non-HTTP/2 connection.
+Oct 24, 2025 9:57:54 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketChannelHandler initChannel
+INFO: Connected to new websocket client

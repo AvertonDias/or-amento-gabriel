@@ -1,44 +1,19 @@
 
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import type { EmpresaData } from '@/lib/types';
 
 const EMPRESA_COLLECTION = 'empresa';
 
-// Client-side function
-export const saveEmpresaData = async (userId: string, data: EmpresaData, logoFile: File | null): Promise<EmpresaData> => {
+// Client-side function to save data to Firestore
+export const saveEmpresaData = async (userId: string, data: Omit<EmpresaData, 'id'>): Promise<EmpresaData> => {
   if (!userId) {
     throw new Error('User ID é obrigatório para salvar os dados da empresa.');
   }
 
   const dataToSave: Partial<EmpresaData> = { ...data };
-   delete dataToSave.id; // Ensure we don't save the ID inside the document
-
-  // Handle logo upload to Firebase Storage
-  if (logoFile) {
-    const logoRef = ref(storage, `logos/${userId}`);
-    try {
-      const snapshot = await uploadBytes(logoRef, logoFile);
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      dataToSave.logo = downloadURL;
-    } catch(error) {
-      console.error("Erro durante o upload do logo para o Firebase Storage:", error);
-      throw new Error("Falha no upload do logo. Verifique as regras de CORS do seu Storage.");
-    }
-  } else if (data.logo === '') {
-     // If logo was removed (set to empty string), delete it from storage
-     const logoRef = ref(storage, `logos/${userId}`);
-     try {
-        await deleteObject(logoRef);
-        dataToSave.logo = ''; // Confirm it's an empty string
-     } catch (error: any) {
-        if (error.code !== 'storage/object-not-found') {
-            console.warn("Não foi possível remover o logo antigo (pode não existir):", error);
-        }
-        dataToSave.logo = '';
-     }
-  }
+  // Assegura que o logo não seja modificado, já que o upload foi removido
+  delete dataToSave.logo; 
 
   const empresaDocRef = doc(db, EMPRESA_COLLECTION, userId);
   try {
@@ -50,7 +25,7 @@ export const saveEmpresaData = async (userId: string, data: EmpresaData, logoFil
     throw new Error("Falha ao salvar os dados da empresa no banco de dados.");
   }
   
-  // Return the complete data, including the new logo URL if it was updated
+  // Return the complete data after saving
   const finalDataSnapshot = await getDoc(empresaDocRef);
   const finalData = finalDataSnapshot.data() as EmpresaData;
   return { id: userId, ...finalData };
