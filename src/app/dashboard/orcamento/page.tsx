@@ -197,13 +197,13 @@ export default function OrcamentoPage() {
   const totalVenda = useMemo(() => orcamentoItens.reduce((sum, item) => sum + item.precoVenda, 0), [orcamentoItens]);
 
   const handleNovoItemChange = (field: keyof typeof novoItem, value: string) => {
-    if (field === 'quantidade' || field === 'margemLucro') {
+    if (field === 'quantidade') {
         const sanitizedValue = value.replace(/[^0-9,]/g, '');
-        if (field === 'quantidade') {
-            setQuantidadeStr(sanitizedValue);
-        } else {
-            setMargemLucroStr(sanitizedValue);
-        }
+        setQuantidadeStr(sanitizedValue);
+        setNovoItem(prev => ({ ...prev, [field]: sanitizedValue.replace(',', '.') }));
+    } else if (field === 'margemLucro') {
+        const sanitizedValue = value.replace(/[^0-9,]/g, '');
+        setMargemLucroStr(sanitizedValue);
         setNovoItem(prev => ({ ...prev, [field]: sanitizedValue.replace(',', '.') }));
     } else {
         setNovoItem(prev => ({ ...prev, [field]: value }));
@@ -423,13 +423,12 @@ export default function OrcamentoPage() {
     if (!editingItem) return;
     const { name, value } = e.target;
     
-    if (name === 'quantidade' || name === 'margemLucro') {
+    if (name === 'quantidade') {
         const sanitizedValue = value.replace(/[^0-9,]/g, '');
-        if (name === 'quantidade') {
-            setEditingQuantidadeStr(sanitizedValue);
-        } else {
-            setEditingMargemLucroStr(sanitizedValue);
-        }
+        setEditingQuantidadeStr(sanitizedValue);
+    } else if (name === 'margemLucro') {
+        const sanitizedValue = value.replace(/[^0-9,]/g, '');
+        setEditingMargemLucroStr(sanitizedValue);
     }
   };
 
@@ -896,5 +895,3 @@ export default function OrcamentoPage() {
     </div>
   );
 }
-
-    
