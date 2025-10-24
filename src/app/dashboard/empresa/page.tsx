@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { FormEvent, useState, useEffect, useCallback, useMemo } from 'react';
@@ -5,7 +6,7 @@ import type { EmpresaData } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Building, Save, CheckCircle, XCircle, Upload, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
