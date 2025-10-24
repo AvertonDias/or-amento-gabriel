@@ -805,7 +805,7 @@ export default function OrcamentoPage() {
       {/* DIALOGS */}
       <Dialog open={isSaveModalOpen} onOpenChange={setIsSaveModalOpen}>
         <DialogContent className="sm:max-w-xl">
-          <DialogHeader className="text-center">
+          <DialogHeader>
             <DialogTitle>Salvar Orçamento</DialogTitle>
             <DialogDescription>
               Selecione um cliente existente ou preencha os dados para salvar o orçamento no histórico.
@@ -870,7 +870,7 @@ export default function OrcamentoPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Item do Orçamento</DialogTitle>
-             <DialogDescription>
+            <DialogDescription>
               Ajuste a quantidade e o acréscimo do item selecionado.
             </DialogDescription>
           </DialogHeader>
