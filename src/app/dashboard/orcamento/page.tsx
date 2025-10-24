@@ -197,12 +197,17 @@ export default function OrcamentoPage() {
   const totalVenda = useMemo(() => orcamentoItens.reduce((sum, item) => sum + item.precoVenda, 0), [orcamentoItens]);
 
   const handleNovoItemChange = (field: keyof typeof novoItem, value: string) => {
+    const sanitizedValue = value.replace(/[^0-9,]/g, '');
+
     if (field === 'quantidade') {
-        setQuantidadeStr(value);
+        setQuantidadeStr(sanitizedValue);
+        setNovoItem(prev => ({ ...prev, quantidade: sanitizedValue.replace(',', '.') }));
     } else if (field === 'margemLucro') {
-        setMargemLucroStr(value);
+        setMargemLucroStr(sanitizedValue);
+        setNovoItem(prev => ({ ...prev, margemLucro: sanitizedValue.replace(',', '.') }));
+    } else {
+       setNovoItem(prev => ({ ...prev, [field]: value }));
     }
-    setNovoItem(prev => ({ ...prev, [field]: value }));
   };
   
   const handleClienteDataChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -261,10 +266,11 @@ export default function OrcamentoPage() {
   };
 
   const handleMargemLucroChange = (id: string, value: string) => {
+    const sanitizedValue = value.replace(/[^0-9,]/g, '');
     setOrcamentoItens(prev =>
       prev.map(item => {
         if (item.id === id) {
-          const newMargin = parseFloat(value.replace(/[^0-9,]/g, '').replace(',', '.')) || 0;
+          const newMargin = parseFloat(sanitizedValue.replace(',', '.')) || 0;
           const newPrecoVenda = item.total * (1 + newMargin / 100);
           return { ...item, margemLucro: newMargin, precoVenda: newPrecoVenda };
         }
@@ -416,11 +422,12 @@ export default function OrcamentoPage() {
   const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingItem) return;
     const { name, value } = e.target;
+    const sanitizedValue = value.replace(/[^0-9,]/g, '');
     
     if (name === 'quantidade') {
-        setEditingQuantidadeStr(value);
+        setEditingQuantidadeStr(sanitizedValue);
     } else if (name === 'margemLucro') {
-        setEditingMargemLucroStr(value);
+        setEditingMargemLucroStr(sanitizedValue);
     }
   };
 
@@ -860,7 +867,9 @@ export default function OrcamentoPage() {
 
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Editar Item do Orçamento</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Editar Item do Orçamento</DialogTitle>
+          </DialogHeader>
           {editingItem && (
             <form onSubmit={handleSalvarEdicao} className="space-y-4 py-4">
               <div><Label htmlFor="edit-quantidade">Quantidade ({editingItem.unidade})</Label><Input id="edit-quantidade" name="quantidade" type="text" inputMode='decimal' value={editingQuantidadeStr} onChange={handleEditFormChange}/></div>
@@ -882,3 +891,5 @@ export default function OrcamentoPage() {
     </div>
   );
 }
+
+    
