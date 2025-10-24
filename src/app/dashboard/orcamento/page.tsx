@@ -197,16 +197,16 @@ export default function OrcamentoPage() {
   const totalVenda = useMemo(() => orcamentoItens.reduce((sum, item) => sum + item.precoVenda, 0), [orcamentoItens]);
 
   const handleNovoItemChange = (field: keyof typeof novoItem, value: string) => {
-    const sanitizedValue = value.replace(/[^0-9,]/g, '');
-
-    if (field === 'quantidade') {
-        setQuantidadeStr(sanitizedValue);
-        setNovoItem(prev => ({ ...prev, quantidade: sanitizedValue.replace(',', '.') }));
-    } else if (field === 'margemLucro') {
-        setMargemLucroStr(sanitizedValue);
-        setNovoItem(prev => ({ ...prev, margemLucro: sanitizedValue.replace(',', '.') }));
+    if (field === 'quantidade' || field === 'margemLucro') {
+        const sanitizedValue = value.replace(/[^0-9,]/g, '');
+        if (field === 'quantidade') {
+            setQuantidadeStr(sanitizedValue);
+        } else {
+            setMargemLucroStr(sanitizedValue);
+        }
+        setNovoItem(prev => ({ ...prev, [field]: sanitizedValue.replace(',', '.') }));
     } else {
-       setNovoItem(prev => ({ ...prev, [field]: value }));
+        setNovoItem(prev => ({ ...prev, [field]: value }));
     }
   };
   
@@ -422,12 +422,14 @@ export default function OrcamentoPage() {
   const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingItem) return;
     const { name, value } = e.target;
-    const sanitizedValue = value.replace(/[^0-9,]/g, '');
     
-    if (name === 'quantidade') {
-        setEditingQuantidadeStr(sanitizedValue);
-    } else if (name === 'margemLucro') {
-        setEditingMargemLucroStr(sanitizedValue);
+    if (name === 'quantidade' || name === 'margemLucro') {
+        const sanitizedValue = value.replace(/[^0-9,]/g, '');
+        if (name === 'quantidade') {
+            setEditingQuantidadeStr(sanitizedValue);
+        } else {
+            setEditingMargemLucroStr(sanitizedValue);
+        }
     }
   };
 
@@ -869,6 +871,9 @@ export default function OrcamentoPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Item do Orçamento</DialogTitle>
+             <DialogDescription>
+              Ajuste a quantidade e o acréscimo do item selecionado.
+            </DialogDescription>
           </DialogHeader>
           {editingItem && (
             <form onSubmit={handleSalvarEdicao} className="space-y-4 py-4">
