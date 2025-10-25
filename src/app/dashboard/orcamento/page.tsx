@@ -40,32 +40,32 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
     const dataValidade = !isNaN(validadeDiasNum) ? addDays(dataCriacao, validadeDiasNum) : null;
 
     return (
-      <div className="p-8 font-sans text-black bg-white">
+      <div className="p-8 font-sans text-black bg-white text-xs">
         <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
           <div className="flex items-start gap-4">
             {empresa?.logo && (
-              <div className="flex-shrink-0 w-[80px] h-[80px]">
+              <div className="flex-shrink-0 w-[70px] h-[70px]">
                  {/* eslint-disable-next-line @next/next/no-img-element */}
                  <img src={empresa.logo} alt="Logo da Empresa" className="object-contain w-full h-full" />
               </div>
             )}
             <div>
-              <h1 className="text-2xl font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
-              <p className="text-sm">{empresa?.endereco}</p>
-              <p className="text-sm">{empresa?.telefone}</p>
-              <p className="text-sm">{empresa?.cnpj}</p>
+              <h1 className="text-xl font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
+              <p className="text-xs">{empresa?.endereco}</p>
+              <p className="text-xs">{empresa?.telefone}</p>
+              <p className="text-xs">{empresa?.cnpj}</p>
             </div>
           </div>
            <div className="text-right">
-            <h2 className="text-xl font-semibold">Orçamento #{orcamento.numeroOrcamento}</h2>
-            <p className="text-sm">Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
-            {dataValidade && <p className="text-sm mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
+            <h2 className="text-lg font-semibold">Orçamento #{orcamento.numeroOrcamento}</h2>
+            <p className="text-xs">Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
+            {dataValidade && <p className="text-xs mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
           </div>
         </header>
 
         <section className="mb-6">
-          <h3 className="font-semibold text-lg mb-2">Cliente:</h3>
-          <div className="text-sm space-y-1">
+          <h3 className="font-semibold text-base mb-2">Cliente:</h3>
+          <div className="text-xs space-y-1">
             <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
             {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
             {orcamento.cliente.endereco && <p><span className="font-medium">Endereço:</span> {orcamento.cliente.endereco}</p>}
@@ -74,32 +74,32 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
           </div>
         </section>
 
-        <Table className="text-sm text-black">
-          <TableHeader className="bg-gray-100">
-            <TableRow>
-              <TableHead className="text-black">Item / Descrição</TableHead>
-              <TableHead className="text-right text-black">Qtd.</TableHead>
-              <TableHead className="text-right text-black">Preço Unit.</TableHead>
-              <TableHead className="text-right text-black">Subtotal</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+        <table className="w-full text-xs text-black">
+          <thead className="bg-gray-100">
+            <tr className='border-b'>
+              <th className="p-2 text-left font-semibold text-black">Item / Descrição</th>
+              <th className="p-2 text-right font-semibold text-black">Qtd.</th>
+              <th className="p-2 text-right font-semibold text-black">Preço Unit.</th>
+              <th className="p-2 text-right font-semibold text-black">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
             {orcamento.itens.map(item => (
-              <TableRow key={item.id} className="even:bg-gray-50">
-                <TableCell>{item.materialNome}</TableCell>
-                <TableCell className="text-right">{formatNumber(item.quantidade, 2)} {item.unidade}</TableCell>
-                <TableCell className="text-right">{formatCurrency(item.precoUnitario)}</TableCell>
-                <TableCell className="text-right font-medium">{formatCurrency(item.precoVenda)}</TableCell>
-              </TableRow>
+              <tr key={item.id} className="even:bg-gray-50 border-b">
+                <td className="p-2">{item.materialNome}</td>
+                <td className="p-2 text-right">{formatNumber(item.quantidade, 2)} {item.unidade}</td>
+                <td className="p-2 text-right">{formatCurrency(item.precoUnitario)}</td>
+                <td className="p-2 text-right font-medium">{formatCurrency(item.precoVenda)}</td>
+              </tr>
             ))}
-          </TableBody>
-          <TableTotalFooter>
-            <TableRow className="bg-gray-200 font-bold text-base">
-              <TableCell colSpan={3} className="text-right text-black">TOTAL</TableCell>
-              <TableCell className="text-right text-black">{formatCurrency(orcamento.totalVenda)}</TableCell>
-            </TableRow>
-          </TableTotalFooter>
-        </Table>
+          </tbody>
+          <tfoot>
+            <tr className="bg-gray-200 font-bold text-base">
+              <td colSpan={3} className="p-2 text-right text-black">TOTAL</td>
+              <td className="p-2 text-right text-black">{formatCurrency(orcamento.totalVenda)}</td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
     )
 };
@@ -382,8 +382,13 @@ export default function OrcamentoPage() {
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
     const ratio = canvasWidth / canvasHeight;
-    const width = pdfWidth;
-    const height = width / ratio;
+    let width = pdfWidth;
+    let height = width / ratio;
+
+    if (height > pdfHeight) {
+      height = pdfHeight;
+      width = height * ratio;
+    }
     
     pdf.addImage(imgData, 'PNG', 0, 0, width, height);
     pdf.save(`orcamento-${orcamento.cliente.nome.toLowerCase().replace(/ /g, '_')}-${orcamento.numeroOrcamento}.pdf`);
@@ -898,8 +903,8 @@ export default function OrcamentoPage() {
         </DialogContent>
       </Dialog>
 
-      <div className="absolute -z-10 -left-[9999px] top-0">
-          <div ref={pdfRef} className="w-[595px] bg-white text-black">
+       <div className="absolute -z-10 top-0 -left-[9999px] w-[595pt] bg-white text-black">
+          <div ref={pdfRef}>
               {<BudgetPDFLayout orcamento={pdfBudget} empresa={empresa} />}
           </div>
       </div>
