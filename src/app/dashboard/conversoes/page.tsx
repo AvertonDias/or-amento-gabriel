@@ -6,9 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Ruler, Weight, BetweenHorizonalStart, Bot, ArrowRightLeft } from 'lucide-react';
-import { formatNumber } from '@/lib/utils';
+import { Ruler, Weight, BetweenHorizonalStart, Bot, ArrowRightLeft, DollarSign, PackagePlus, Loader2 } from 'lucide-react';
+import { formatNumber, formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
+import { addMaterial } from '@/services/materiaisService';
+import { useRouter } from 'next/navigation';
 
 const DENSIDADES: Record<string, number> = {
   aluminio: 2700,
@@ -26,11 +32,18 @@ const UNIT_LABELS: Record<string, Record<string, string>> = {
 }
 
 export default function ConversoesPage() {
+  const [user] = useAuthState(auth);
+  const router = useRouter();
+  const { toast } = useToast();
+
   // Estado para a calculadora de calhas
   const [peso, setPeso] = useState('');
   const [largura, setLargura] = useState('');
   const [espessura, setEspessura] = useState('');
   const [material, setMaterial] = useState('aluminio');
+  const [valorPago, setValorPago] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
 
   // Estado para o conversor de unidades
   const [convType, setConvType] = useState('length');
@@ -43,6 +56,7 @@ export default function ConversoesPage() {
     const P = parseFloat(peso.replace(',', '.'));
     const L_mm = parseFloat(largura.replace(',', '.'));
     const E_mm = parseFloat(espessura.replace(',', '.'));
+    const V = parseFloat(valorPago.replace(',', '.'));
     const D = DENSIDADES[material];
 
     if (isNaN(P) || isNaN(L_mm) || isNaN(E_mm) || !D || L_mm === 0 || E_mm === 0 || D === 0) {
@@ -50,8 +64,11 @@ export default function ConversoesPage() {
     }
     const L_m = L_mm / 1000;
     const E_m = E_mm / 1000;
-    return P / (L_m * E_m * D);
-  }, [peso, largura, espessura, material]);
+    const metros = P / (L_m * E_m * D);
+    const precoPorMetro = !isNaN(V) && metros > 0 ? V / metros : null;
+
+    return { metros, precoPorMetro };
+  }, [peso, largura, espessura, material, valorPago]);
   
   const resultadoUnidade = useMemo(() => {
     const value = parseFloat(unitValue.replace(',', '.'));
@@ -76,6 +93,51 @@ export default function ConversoesPage() {
     }
   }
 
+  const handleAdicionarAoEstoque = async () => {
+    if (!user || !resultadoCalha || !resultadoCalha.metros || resultadoCalha.precoPorMetro === null) {
+      toast({
+        title: "Dados incompletos",
+        description: "Preencha todos os campos, incluindo o valor pago, para adicionar ao estoque.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const materialDescricao = `Bobina ${material === 'aluminio' ? 'Alumínio' : 'Aço Galvanizado'} ${largura}mm ${espessura}mm`;
+
+      const novoItem = {
+        descricao: materialDescricao,
+        unidade: 'm',
+        precoUnitario: resultadoCalha.precoPorMetro,
+        quantidade: resultadoCalha.metros,
+        tipo: 'item' as const,
+      };
+
+      await addMaterial(user.uid, novoItem);
+      
+      toast({
+        title: "Sucesso!",
+        description: `${materialDescricao} foi adicionado ao seu estoque.`,
+      });
+      
+      // Reset form
+      setPeso('');
+      setLargura('');
+      setEspessura('');
+      setValorPago('');
+      
+      // Redirect to materials page
+      router.push('/dashboard/materiais');
+
+    } catch (error) {
+       toast({ title: 'Erro ao adicionar item', variant: 'destructive' });
+       console.error("Erro ao adicionar ao estoque:", error);
+    } finally {
+        setIsSubmitting(false);
+    }
+  }
+
   const currentUnitOptions = UNIT_LABELS[convType] || {};
 
   return (
@@ -87,22 +149,26 @@ export default function ConversoesPage() {
             Conversão de Bobina para Metros Lineares
           </CardTitle>
           <CardDescription>
-            Calcule o rendimento de uma bobina de calha a partir do peso e dimensões.
+            Calcule o rendimento e o custo por metro de uma bobina, e adicione ao seu estoque.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
             <div className="space-y-2">
               <Label htmlFor="peso" className="flex items-center gap-1"><Weight className="w-4 h-4"/> Peso da Bobina (kg)</Label>
               <Input id="peso" type="text" inputMode="decimal" value={peso} onChange={(e) => setPeso(e.target.value)} placeholder="Ex: 50" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="largura" className="flex items-center gap-1"><BetweenHorizonalStart className="w-4 h-4" /> Largura da Bobina (mm)</Label>
+              <Label htmlFor="largura" className="flex items-center gap-1"><BetweenHorizonalStart className="w-4 h-4" /> Largura (mm)</Label>
               <Input id="largura" type="text" inputMode="decimal" value={largura} onChange={(e) => setLargura(e.target.value)} placeholder="Ex: 300" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="espessura" className="flex items-center gap-1"><Ruler className="w-4 h-4" /> Espessura da Chapa (mm)</Label>
+              <Label htmlFor="espessura" className="flex items-center gap-1"><Ruler className="w-4 h-4" /> Espessura (mm)</Label>
               <Input id="espessura" type="text" inputMode="decimal" value={espessura} onChange={(e) => setEspessura(e.target.value)} placeholder="Ex: 0,50" />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="valor-pago" className="flex items-center gap-1"><DollarSign className="w-4 h-4"/> Valor Total Pago (R$)</Label>
+              <Input id="valor-pago" type="text" inputMode="decimal" value={valorPago} onChange={(e) => setValorPago(e.target.value)} placeholder="Ex: 650,00" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="material">Material</Label>
@@ -116,18 +182,25 @@ export default function ConversoesPage() {
             </div>
           </div>
         </CardContent>
-        {resultadoCalha !== null && (
-          <CardFooter>
+        {resultadoCalha?.metros !== null && resultadoCalha?.metros !== undefined && (
+          <CardFooter className="flex-col items-start gap-4">
             <Alert className="w-full bg-primary/10 border-primary/30">
                 <Bot className="h-5 w-5 text-primary" />
                 <AlertTitle className="text-primary font-bold">Resultado do Cálculo</AlertTitle>
-                <AlertDescription className="text-lg text-foreground">
-                    Essa bobina rende aproximadamente <strong className="text-2xl">{formatNumber(resultadoCalha, 2)}</strong> metros lineares.
+                <AlertDescription className="space-y-2 text-foreground">
+                    <p className="text-lg">Essa bobina rende aproximadamente <strong className="text-2xl">{formatNumber(resultadoCalha.metros, 2)}</strong> metros lineares.</p>
+                    {resultadoCalha.precoPorMetro !== null && (
+                      <p className="text-lg">Custo de <strong className="text-2xl">{formatCurrency(resultadoCalha.precoPorMetro)}</strong> por metro.</p>
+                    )}
                 </AlertDescription>
                  <p className="text-xs text-muted-foreground mt-2">
-                    Fórmula: Metros = Peso / (Largura × Espessura × Densidade). Recomendamos arredondar para baixo para compensar perdas de corte.
+                    Fórmula: Metros = Peso / (Largura × Espessura × Densidade).
                 </p>
             </Alert>
+            <Button onClick={handleAdicionarAoEstoque} disabled={isSubmitting || resultadoCalha.precoPorMetro === null}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <PackagePlus className="mr-2 h-4 w-4" />}
+              Adicionar ao Estoque de Itens
+            </Button>
           </CardFooter>
         )}
       </Card>
@@ -195,3 +268,5 @@ export default function ConversoesPage() {
     </div>
   );
 }
+
+    
