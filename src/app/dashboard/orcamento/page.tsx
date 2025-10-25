@@ -40,7 +40,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
     const dataValidade = !isNaN(validadeDiasNum) ? addDays(dataCriacao, validadeDiasNum) : null;
 
     return (
-      <div className="p-8 font-sans text-black bg-white text-xs">
+      <div className="p-8 font-sans bg-white text-black text-xs">
         <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
           <div className="flex items-start gap-4">
             {empresa?.logo && (
@@ -50,22 +50,22 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
               </div>
             )}
             <div>
-              <h1 className="text-xl font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
-              <p className="text-xs">{empresa?.endereco}</p>
-              <p className="text-xs">{empresa?.telefone}</p>
-              <p className="text-xs">{empresa?.cnpj}</p>
+              <h1 className="text-lg font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
+              <p className="text-[10px]">{empresa?.endereco}</p>
+              <p className="text-[10px]">{empresa?.telefone}</p>
+              <p className="text-[10px]">{empresa?.cnpj}</p>
             </div>
           </div>
            <div className="text-right">
-            <h2 className="text-lg font-semibold">Orçamento #{orcamento.numeroOrcamento}</h2>
-            <p className="text-xs">Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
-            {dataValidade && <p className="text-xs mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
+            <h2 className="text-base font-semibold">Orçamento #{orcamento.numeroOrcamento}</h2>
+            <p className="text-[10px]">Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
+            {dataValidade && <p className="text-[10px] mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
           </div>
         </header>
 
-        <section className="mb-6">
-          <h3 className="font-semibold text-base mb-2">Cliente:</h3>
-          <div className="text-xs space-y-1">
+        <section className="mb-4">
+          <h3 className="font-semibold text-sm mb-2">Cliente:</h3>
+          <div className="text-[10px] space-y-1">
             <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
             {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
             {orcamento.cliente.endereco && <p><span className="font-medium">Endereço:</span> {orcamento.cliente.endereco}</p>}
@@ -74,7 +74,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
           </div>
         </section>
 
-        <table className="w-full text-xs text-black">
+        <table className="w-full text-[10px] text-black">
           <thead className="bg-gray-100">
             <tr className='border-b'>
               <th className="p-2 text-left font-semibold text-black">Item / Descrição</th>
@@ -94,7 +94,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
             ))}
           </tbody>
           <tfoot>
-            <tr className="bg-gray-200 font-bold text-base">
+            <tr className="bg-gray-200 font-bold text-sm">
               <td colSpan={3} className="p-2 text-right text-black">TOTAL</td>
               <td className="p-2 text-right text-black">{formatCurrency(orcamento.totalVenda)}</td>
             </tr>
@@ -126,9 +126,9 @@ export default function OrcamentoPage() {
   const { toast } = useToast();
   const pdfRef = useRef<HTMLDivElement>(null);
   
-  const [novoItem, setNovoItem] = useState({ materialId: '', quantidade: '', margemLucro: '0' });
+  const [novoItem, setNovoItem] = useState({ materialId: '', quantidade: '', margemLucro: '' });
   const [quantidadeStr, setQuantidadeStr] = useState('');
-  const [margemLucroStr, setMargemLucroStr] = useState('0');
+  const [margemLucroStr, setMargemLucroStr] = useState('');
 
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -256,8 +256,9 @@ export default function OrcamentoPage() {
     };
 
     setOrcamentoItens(prev => [...prev, novoOrcamentoItem]);
-    setNovoItem(prev => ({ ...prev, materialId: '', quantidade: '' }));
+    setNovoItem({ materialId: '', quantidade: '', margemLucro: '' });
     setQuantidadeStr('');
+    setMargemLucroStr('');
     toast({ title: 'Sucesso', description: 'Item adicionado ao orçamento.' });
   };
 
@@ -926,3 +927,5 @@ export default function OrcamentoPage() {
     </div>
   );
 }
+
+    
