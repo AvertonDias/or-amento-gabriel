@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -147,75 +147,74 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <TooltipProvider>
-      <div className={cn(
-        "grid min-h-screen w-full",
-        isSidebarCollapsed ? "md:grid-cols-[60px_1fr]" : "md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]",
-        "transition-all duration-300 ease-in-out"
-      )}>
+      <div className="flex min-h-screen w-full">
         {/* Desktop Sidebar */}
-        <div className="hidden border-r bg-muted/40 md:flex md:flex-col justify-between">
+        <aside className={cn(
+          "hidden md:flex flex-col border-r bg-muted/40 transition-all duration-300 ease-in-out",
+          isSidebarCollapsed ? "w-[60px]" : "w-[220px] lg:w-[280px]"
+        )}>
+          <div className="flex h-full flex-col justify-between">
             <div className="flex flex-col">
-                <div className={cn(
-                    "flex h-14 items-center border-b lg:h-[60px]",
-                    isSidebarCollapsed ? "justify-center" : "px-4 lg:px-6"
-                )}>
-                    <Link href="/dashboard/orcamento" className="flex items-center gap-2 font-semibold">
-                        <img
-                            src="/apple-touch-icon.jpg"
-                            alt="Logo"
-                            width={32}
-                            height={32}
-                            className="rounded-md"
-                        />
-                        <span className={cn('transition-all overflow-hidden', isSidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100')}>Meu orçamento</span>
-                    </Link>
-                </div>
-                <div className="flex-1 py-4">
-                    <NavLinks isCollapsed={isSidebarCollapsed} />
-                </div>
+              <div className={cn(
+                  "flex h-14 items-center border-b lg:h-[60px]",
+                  isSidebarCollapsed ? "justify-center" : "px-4 lg:px-6"
+              )}>
+                <Link href="/dashboard/orcamento" className="flex items-center gap-2 font-semibold">
+                  <img
+                      src="/apple-touch-icon.jpg"
+                      alt="Logo"
+                      width={32}
+                      height={32}
+                      className="rounded-md"
+                  />
+                  <span className={cn('transition-all overflow-hidden', isSidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100')}>Meu orçamento</span>
+                </Link>
+              </div>
+              <div className="flex-1 py-4 overflow-y-auto">
+                <NavLinks isCollapsed={isSidebarCollapsed} />
+              </div>
             </div>
             <div className="mt-auto border-t p-2">
-                <div className="space-y-2">
-                    <Tooltip delayDuration={0}>
-                      <TooltipTrigger asChild>
-                          <Button onClick={handleLogout} variant="ghost" className={cn(
-                              'flex items-center gap-3 rounded-lg w-full text-muted-foreground transition-all hover:text-primary',
-                              isSidebarCollapsed ? 'h-9 w-9 justify-center px-0' : 'px-3 justify-start py-2'
-                          )}>
-                              <LogOut className="h-5 w-5" />
-                              <span className={cn( 'overflow-hidden transition-all', isSidebarCollapsed ? 'w-0' : 'w-auto' )}>
-                                  Sair
-                              </span>
-                              <span className="sr-only">Sair</span>
-                          </Button>
-                      </TooltipTrigger>
-                      {isSidebarCollapsed && (
-                          <TooltipContent side="right" align="center" sideOffset={5}>
-                              Sair
-                          </TooltipContent>
-                      )}
-                    </Tooltip>
-                </div>
-                 <div className={cn(
-                  "flex gap-2 mt-2",
-                  isSidebarCollapsed ? "flex-col" : "items-center"
-                 )}>
-                     <Button 
-                        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
-                        variant="outline" 
-                        size="icon" 
-                        className={cn(!isSidebarCollapsed && "flex-1")}
-                      >
-                        {isSidebarCollapsed ? <PanelRightOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
-                        <span className="sr-only">Recolher/Expandir menu</span>
+              <div className="space-y-2">
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <Button onClick={handleLogout} variant="ghost" className={cn(
+                        'flex items-center gap-3 rounded-lg w-full text-muted-foreground transition-all hover:text-primary',
+                        isSidebarCollapsed ? 'h-9 w-9 justify-center px-0' : 'px-3 justify-start py-2'
+                    )}>
+                      <LogOut className="h-5 w-5" />
+                      <span className={cn('overflow-hidden transition-all', isSidebarCollapsed ? 'w-0' : 'w-auto')}>
+                        Sair
+                      </span>
+                      <span className="sr-only">Sair</span>
                     </Button>
-                    <ThemeMenuButton />
-                </div>
+                  </TooltipTrigger>
+                  {isSidebarCollapsed && (
+                    <TooltipContent side="right" align="center" sideOffset={5}>
+                      Sair
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </div>
+              <div className={cn("flex gap-2 mt-2", isSidebarCollapsed ? "flex-col" : "items-center")}>
+                <Button
+                  onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                  variant="outline"
+                  size="icon"
+                  className={cn(!isSidebarCollapsed && "flex-1")}
+                >
+                  {isSidebarCollapsed ? <PanelRightOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+                  <span className="sr-only">Recolher/Expandir menu</span>
+                </Button>
+                <ThemeMenuButton />
+              </div>
             </div>
-        </div>
+          </div>
+        </aside>
 
-        {/* Mobile Header & Content */}
-        <div className="flex flex-col">
+        {/* Main Content Area */}
+        <div className="flex flex-col flex-1">
+          {/* Mobile Header */}
           <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6 md:hidden">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
@@ -227,39 +226,40 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               <SheetContent side="left" className="flex flex-col p-4">
                 <div className="flex h-14 items-center border-b px-2 mb-4">
                   <Link href="/dashboard/orcamento" className="flex items-center gap-2 font-semibold" onClick={() => setIsMobileMenuOpen(false)}>
-                      <img
-                          src="/apple-touch-icon.jpg"
-                          alt="Logo"
-                          width={32}
-                          height={32}
-                          className="rounded-md"
-                      />
+                    <img
+                        src="/apple-touch-icon.jpg"
+                        alt="Logo"
+                        width={32}
+                        height={32}
+                        className="rounded-md"
+                    />
                     <span className="">Meu orçamento</span>
                   </Link>
                 </div>
                 <MobileNavContent />
-                 <div className="mt-auto border-t -mx-4 pt-4 px-4">
-                    <Button
-                        onClick={async () => {
-                            await handleLogout();
-                            setIsMobileMenuOpen(false);
-                        }}
-                        variant="ghost"
-                        className="w-full justify-start gap-3"
-                    >
-                        <LogOut className="h-4 w-4" />
-                        Sair
-                    </Button>
+                <div className="mt-auto border-t -mx-4 pt-4 px-4">
+                  <Button
+                      onClick={async () => {
+                          await handleLogout();
+                          setIsMobileMenuOpen(false);
+                      }}
+                      variant="ghost"
+                      className="w-full justify-start gap-3"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sair
+                  </Button>
                 </div>
               </SheetContent>
             </Sheet>
             <div className="flex-1">
-                <h1 className="text-lg font-semibold">
+              <h1 className="text-lg font-semibold">
                 {navItems.find(item => item.href === pathname)?.label || 'Orçamento'}
-                </h1>
+              </h1>
             </div>
             <ThemeMenuButton />
           </header>
+          {/* Page Content with its own scroll */}
           <main className="flex-1 overflow-y-auto">{children}</main>
         </div>
       </div>
