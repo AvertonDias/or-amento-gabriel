@@ -48,22 +48,39 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
       throw new Error("User ID é nulo, impossível gerar número do orçamento.");
     }
     const currentYear = new Date().getFullYear();
-    
+
     try {
         const q = query(
             collection(db, ORCAMENTOS_COLLECTION),
             where('userId', '==', userId),
-            where('numeroOrcamento', '>=', `${currentYear}-000`),
-            where('numeroOrcamento', '<', `${currentYear + 1}-000`)
+            orderBy('numeroOrcamento', 'desc'),
+            limit(1)
         );
-        const snapshot = await getCountFromServer(q);
-        const count = snapshot.data().count;
-        const newNumber = count + 1;
-        console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Total de orçamentos para o usuário em ${currentYear}: ${count}. Novo número: ${newNumber}`);
+
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+            console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Nenhum orçamento anterior encontrado. Iniciando com 1.`);
+            return `${currentYear}-001`;
+        }
+        
+        const lastOrcamento = querySnapshot.docs[0].data() as Orcamento;
+        const lastNumberFull = lastOrcamento.numeroOrcamento;
+        const [lastYear, lastNumberStr] = lastNumberFull.split('-');
+        
+        let newNumber;
+        if (parseInt(lastYear, 10) === currentYear) {
+            newNumber = parseInt(lastNumberStr, 10) + 1;
+        } else {
+            newNumber = 1;
+        }
+
+        console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Último orçamento: ${lastNumberFull}. Novo número: ${newNumber}`);
         return `${currentYear}-${String(newNumber).padStart(3, '0')}`;
+
     } catch (e: any) {
-        console.error("[ORCAMENTO SERVICE - getNextOrcamentoNumber] Erro ao obter próximo número:", e.message, e.code);
-        // Fallback para um número inicial em caso de erro de permissão na contagem, por exemplo.
+        console.error("[ORCAMENTO SERVICE - getNextOrcamentoNumber] Erro ao obter próximo número:", e.message);
+        // Fallback robusto em caso de qualquer erro na consulta, inicia do 1
         return `${currentYear}-001`;
     }
 };

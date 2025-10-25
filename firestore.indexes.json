@@ -2,20 +2,6 @@
 {
   "indexes": [
     {
-      "collectionGroup": "orcamentos",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "numeroOrcamento",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "clientes",
       "queryScope": "COLLECTION",
       "fields": [
@@ -53,6 +39,20 @@
         },
         {
           "fieldPath": "dataCriacao",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "orcamentos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "numeroOrcamento",
           "order": "DESCENDING"
         }
       ]
