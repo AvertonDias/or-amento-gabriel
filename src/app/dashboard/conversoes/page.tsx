@@ -104,7 +104,7 @@ export default function ConversoesPage() {
     }
     setIsSubmitting(true);
     try {
-      const materialDescricao = `Bobina ${material === 'aluminio' ? 'Alumínio' : 'Aço Galvanizado'} ${largura}mm ${espessura}mm`;
+      const materialDescricao = `Calha ${material === 'aluminio' ? 'Alumínio' : 'Aço Galvanizado'} ${largura}mm ${espessura}mm`;
 
       const novoItem = {
         descricao: materialDescricao,
@@ -268,5 +268,7 @@ export default function ConversoesPage() {
     </div>
   );
 }
+
+    
 
     
