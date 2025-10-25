@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -150,7 +149,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <div className="flex min-h-screen w-full">
         {/* Desktop Sidebar */}
         <aside className={cn(
-          "hidden md:flex flex-col border-r bg-muted/40 transition-all duration-300 ease-in-out",
+          "hidden md:fixed md:inset-y-0 md:left-0 md:z-10 md:flex flex-col border-r bg-muted/40 transition-all duration-300 ease-in-out",
           isSidebarCollapsed ? "w-[60px]" : "w-[220px] lg:w-[280px]"
         )}>
           <div className="flex h-full flex-col justify-between">
@@ -213,7 +212,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         </aside>
 
         {/* Main Content Area */}
-        <div className="flex flex-col flex-1">
+        <div className={cn(
+          "flex flex-col flex-1 transition-all duration-300 ease-in-out",
+          isSidebarCollapsed ? "md:pl-[60px]" : "md:pl-[220px] lg:pl-[280px]"
+        )}>
           {/* Mobile Header */}
           <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6 md:hidden">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
@@ -259,7 +261,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             </div>
             <ThemeMenuButton />
           </header>
-          {/* Page Content with its own scroll */}
+          {/* Page Content */}
           <main className="flex-1 overflow-y-auto">{children}</main>
         </div>
       </div>
