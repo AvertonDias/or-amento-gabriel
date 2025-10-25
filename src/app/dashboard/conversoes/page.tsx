@@ -40,7 +40,7 @@ export default function ConversoesPage() {
   const [peso, setPeso] = useState('');
   const [largura, setLargura] = useState('');
   const [espessura, setEspessura] = useState('');
-  const [material, setMaterial] = useState('aluminio');
+  const [material, setMaterial] = useState('galvanizado');
   const [valorPago, setValorPago] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
