@@ -414,7 +414,12 @@ export default function OrcamentoPage() {
 
     mensagem += `\n*VALOR TOTAL: ${formatCurrency(orcamento.totalVenda)}*\n\n`;
     if (orcamento.validadeDias) {
-      mensagem += `_Proposta válida por ${orcamento.validadeDias} dias._\n\n`;
+      const dataCriacao = parseISO(orcamento.dataCriacao);
+      const validadeDiasNum = parseInt(orcamento.validadeDias, 10);
+      if (!isNaN(validadeDiasNum)) {
+        const dataValidade = addDays(dataCriacao, validadeDiasNum);
+        mensagem += `_Proposta válida até ${format(dataValidade, 'dd/MM/yyyy')}._\n\n`;
+      }
     }
     
     const urlWhatsApp = `https://wa.me/55${telefoneLimpo}?text=${encodeURIComponent(mensagem)}`;
