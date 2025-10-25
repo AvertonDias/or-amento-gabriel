@@ -31,6 +31,8 @@ const UNIT_LABELS: Record<string, Record<string, string>> = {
     mass: { kg: 'Quilograma (kg)', g: 'Grama (g)', mg: 'Miligrama (mg)' },
 }
 
+type PriceInputMode = 'kg' | 'total';
+
 export default function ConversoesPage() {
   const [user] = useAuthState(auth);
   const router = useRouter();
@@ -41,7 +43,8 @@ export default function ConversoesPage() {
   const [largura, setLargura] = useState('');
   const [espessura, setEspessura] = useState('');
   const [material, setMaterial] = useState('galvanizado');
-  const [valorPorKg, setValorPorKg] = useState('');
+  const [priceInputMode, setPriceInputMode] = useState<PriceInputMode>('kg');
+  const [valorInput, setValorInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
 
@@ -56,7 +59,7 @@ export default function ConversoesPage() {
     const P = parseFloat(peso.replace(',', '.'));
     const L_mm = parseFloat(largura.replace(',', '.'));
     const E_mm = parseFloat(espessura.replace(',', '.'));
-    const V_kg = parseFloat(valorPorKg.replace(/\D/g, '')) / 100;
+    const V = parseFloat(valorInput.replace(/\D/g, '')) / 100;
     const D = DENSIDADES[material];
 
     if (isNaN(P) || isNaN(L_mm) || isNaN(E_mm) || !D || L_mm === 0 || E_mm === 0 || D === 0) {
@@ -68,13 +71,21 @@ export default function ConversoesPage() {
     
     let precoPorMetro = null;
     let custoTotal = null;
-    if (!isNaN(V_kg) && V_kg > 0 && metros > 0) {
-        custoTotal = V_kg * P;
-        precoPorMetro = custoTotal / metros;
+
+    if (!isNaN(V) && V > 0 && P > 0) {
+      if (priceInputMode === 'kg') {
+        custoTotal = V * P;
+      } else { // priceInputMode === 'total'
+        custoTotal = V;
+      }
+      
+      if (metros > 0) {
+         precoPorMetro = custoTotal / metros;
+      }
     }
 
     return { metros, precoPorMetro, custoTotal };
-  }, [peso, largura, espessura, material, valorPorKg]);
+  }, [peso, largura, espessura, material, valorInput, priceInputMode]);
   
   const resultadoUnidade = useMemo(() => {
     const value = parseFloat(unitValue.replace(',', '.'));
@@ -99,15 +110,20 @@ export default function ConversoesPage() {
     }
   }
 
-  const handleValorPorKgChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValorPorKg(maskCurrency(e.target.value));
+  const handleValorInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValorInput(maskCurrency(e.target.value));
+  };
+
+  const handlePriceModeChange = (mode: PriceInputMode) => {
+    setPriceInputMode(mode);
+    setValorInput(''); // Reseta o campo de valor ao trocar o modo
   };
 
   const handleAdicionarAoEstoque = async () => {
     if (!user || !resultadoCalha || !resultadoCalha.metros || resultadoCalha.precoPorMetro === null) {
       toast({
         title: "Dados incompletos",
-        description: "Preencha todos os campos, incluindo o valor por kg, para adicionar ao estoque.",
+        description: "Preencha todos os campos, incluindo o valor, para adicionar ao estoque.",
         variant: "destructive"
       });
       return;
@@ -135,7 +151,7 @@ export default function ConversoesPage() {
       setPeso('');
       setLargura('');
       setEspessura('');
-      setValorPorKg('');
+      setValorInput('');
       
     } catch (error) {
        toast({ title: 'Erro ao adicionar item', variant: 'destructive' });
@@ -160,7 +176,7 @@ export default function ConversoesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
             <div className="space-y-2">
               <Label htmlFor="peso" className="flex items-center gap-1"><Weight className="w-4 h-4"/> Peso da Bobina (kg)</Label>
               <Input id="peso" type="text" inputMode="decimal" value={peso} onChange={(e) => setPeso(e.target.value)} placeholder="Ex: 50" />
@@ -174,8 +190,18 @@ export default function ConversoesPage() {
               <Input id="espessura" type="text" inputMode="decimal" value={espessura} onChange={(e) => setEspessura(e.target.value)} placeholder="Ex: 0,50" />
             </div>
              <div className="space-y-2">
-              <Label htmlFor="valor-por-kg" className="flex items-center gap-1"><DollarSign className="w-4 h-4"/> Valor por Kg (R$)</Label>
-              <Input id="valor-por-kg" type="text" inputMode="decimal" value={valorPorKg} onChange={handleValorPorKgChange} placeholder="R$ 13,00" />
+              <Label htmlFor="price-mode">Tipo de Valor</Label>
+              <Select value={priceInputMode} onValueChange={(v) => handlePriceModeChange(v as PriceInputMode)}>
+                <SelectTrigger id="price-mode"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="kg">Valor por Kg (R$)</SelectItem>
+                  <SelectItem value="total">Valor Total Pago (R$)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="valor-input" className="flex items-center gap-1"><DollarSign className="w-4 h-4"/> {priceInputMode === 'kg' ? 'Valor por Kg (R$)' : 'Valor Total Pago (R$)'}</Label>
+              <Input id="valor-input" type="text" inputMode="decimal" value={valorInput} onChange={handleValorInputChange} placeholder={priceInputMode === 'kg' ? "R$ 13,00" : "R$ 650,00"} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="material">Material</Label>
@@ -280,3 +306,4 @@ export default function ConversoesPage() {
 }
 
     
+
