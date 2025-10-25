@@ -385,10 +385,7 @@ export default function OrcamentoPage() {
     const width = pdfWidth;
     const height = width / ratio;
     
-    let yPos = 0;
-    if (height < pdfHeight) yPos = (pdfHeight - height) / 2;
-
-    pdf.addImage(imgData, 'PNG', 0, yPos, width, height);
+    pdf.addImage(imgData, 'PNG', 0, 0, width, height);
     pdf.save(`orcamento-${orcamento.cliente.nome.toLowerCase().replace(/ /g, '_')}-${orcamento.numeroOrcamento}.pdf`);
     setPdfBudget(null);
   };
