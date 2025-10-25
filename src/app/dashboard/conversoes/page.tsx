@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Ruler, Weight, BetweenHorizonalStart, Bot, ArrowRightLeft, DollarSign, PackagePlus, Loader2 } from 'lucide-react';
-import { formatNumber, formatCurrency } from '@/lib/utils';
+import { formatNumber, formatCurrency, maskCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -56,7 +56,7 @@ export default function ConversoesPage() {
     const P = parseFloat(peso.replace(',', '.'));
     const L_mm = parseFloat(largura.replace(',', '.'));
     const E_mm = parseFloat(espessura.replace(',', '.'));
-    const V = parseFloat(valorPago.replace(',', '.'));
+    const V = parseFloat(valorPago.replace(/\D/g, '')) / 100;
     const D = DENSIDADES[material];
 
     if (isNaN(P) || isNaN(L_mm) || isNaN(E_mm) || !D || L_mm === 0 || E_mm === 0 || D === 0) {
@@ -92,6 +92,10 @@ export default function ConversoesPage() {
         setToUnit('g');
     }
   }
+
+  const handleValorPagoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValorPago(maskCurrency(e.target.value));
+  };
 
   const handleAdicionarAoEstoque = async () => {
     if (!user || !resultadoCalha || !resultadoCalha.metros || resultadoCalha.precoPorMetro === null) {
@@ -168,7 +172,7 @@ export default function ConversoesPage() {
             </div>
              <div className="space-y-2">
               <Label htmlFor="valor-pago" className="flex items-center gap-1"><DollarSign className="w-4 h-4"/> Valor Total Pago (R$)</Label>
-              <Input id="valor-pago" type="text" inputMode="decimal" value={valorPago} onChange={(e) => setValorPago(e.target.value)} placeholder="Ex: 650,00" />
+              <Input id="valor-pago" type="text" inputMode="decimal" value={valorPago} onChange={handleValorPagoChange} placeholder="R$ 650,00" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="material">Material</Label>
@@ -268,7 +272,3 @@ export default function ConversoesPage() {
     </div>
   );
 }
-
-    
-
-    

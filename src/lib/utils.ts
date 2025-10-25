@@ -102,6 +102,16 @@ export const maskCnpj = (value: string): string => {
     .slice(0, 18)
 }
 
+export const maskCurrency = (value: string): string => {
+    if (!value) return "R$ 0,00";
+    let v = value.replace(/\D/g, '');
+    v = (parseInt(v, 10) / 100).toFixed(2) + '';
+    v = v.replace(".", ",");
+    v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+    return 'R$ ' + v;
+}
+
+
 // --- Funções de Validação de CPF e CNPJ ---
 
 function validateCPF(cpf: string): boolean {
