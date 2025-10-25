@@ -22,7 +22,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
-import { getMateriais } from '@/services/materiaisService';
+import { getMateriais, updateEstoque } from '@/services/materiaisService';
 import { getClientes } from '@/services/clientesService';
 import { getEmpresaData } from '@/services/empresaService';
 import { addOrcamento, deleteOrcamento, getOrcamentos, updateOrcamentoStatus, getNextOrcamentoNumber } from '@/services/orcamentosService';
@@ -324,16 +324,31 @@ export default function OrcamentoPage() {
   }
   
   const handleUpdateStatus = async (budgetId: string, status: 'Aceito' | 'Recusado') => {
+    if (!user) return;
     try {
         await updateOrcamentoStatus(budgetId, status);
+        
+        const acceptedBudget = orcamentosSalvos.find(b => b.id === budgetId);
+        
+        if (status === 'Aceito' && acceptedBudget) {
+            // Update stock
+            for (const item of acceptedBudget.itens) {
+                const materialOriginal = materiais.find(m => m.id === item.materialId);
+                if (materialOriginal && materialOriginal.tipo === 'item') {
+                    try {
+                        await updateEstoque(user.uid, item.materialId, item.quantidade);
+                    } catch (error: any) {
+                        toast({ title: 'Erro ao atualizar estoque', description: error.message, variant: 'destructive' });
+                    }
+                }
+            }
+        }
+        
         await fetchAllData(true); // Refresh all data
         toast({ title: `Orçamento ${status.toLowerCase()}!` });
 
-        if (status === 'Aceito') {
-            const acceptedBudget = orcamentosSalvos.find(b => b.id === budgetId);
-            if (acceptedBudget) {
-                handleSendAcceptanceWhatsApp(acceptedBudget);
-            }
+        if (status === 'Aceito' && acceptedBudget) {
+            handleSendAcceptanceWhatsApp(acceptedBudget);
         }
     } catch(error) {
         toast({ title: 'Erro ao atualizar status', variant: 'destructive' });
