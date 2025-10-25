@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "rm -rf .next && firebase deploy --only firestore:rules --non-interactive && next dev",
+    "dev": "rm -rf .next && firebase deploy --only firestore:rules --project gutters-budget-pro --non-interactive && next dev",
     "build": "next build",
-    "postbuild": "firebase deploy --only firestore:rules --non-interactive",
+    "postbuild": "firebase deploy --only firestore:rules --project gutters-budget-pro --non-interactive",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
