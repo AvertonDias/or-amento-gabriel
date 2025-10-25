@@ -364,7 +364,10 @@ export default function OrcamentoPage() {
     const pdfElement = pdfRef.current;
     if (!pdfElement) return;
 
-    const canvas = await html2canvas(pdfElement, { scale: 2 });
+    const canvas = await html2canvas(pdfElement, { 
+      scale: 2,
+      backgroundColor: '#ffffff' // Força o fundo branco
+    });
     const imgData = canvas.toDataURL('image/png');
 
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
@@ -888,7 +891,7 @@ export default function OrcamentoPage() {
       </Dialog>
 
       <div className="absolute -z-10 -left-[9999px] top-0">
-          <div ref={pdfRef} className="w-[595px]">
+          <div ref={pdfRef} className="w-[595px] bg-white text-black">
               {<BudgetPDFLayout orcamento={pdfBudget} empresa={empresa} />}
           </div>
       </div>
