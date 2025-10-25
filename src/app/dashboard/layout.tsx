@@ -25,7 +25,7 @@ import {
   Ruler
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { AppleIcon, GoogleIcon } from '@/components/ui/icons';
+
 
 const navItems = [
   { href: '/dashboard/orcamento', label: 'Novo Orçamento', icon: Home },
