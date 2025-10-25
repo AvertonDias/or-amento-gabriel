@@ -1,3 +1,4 @@
+
 {
   "name": "nextn",
   "version": "0.1.0",
@@ -5,7 +6,7 @@
   "scripts": {
     "dev": "rm -rf .next && firebase deploy --only firestore:rules --project gutters-budget-pro --non-interactive && next dev",
     "build": "next build",
-    "postbuild": "firebase deploy --only firestore:rules --project gutters-budget-pro --non-interactive",
+    "postbuild": "echo 'Firestore rules are not deployed automatically on Vercel.'",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
