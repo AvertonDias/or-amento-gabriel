@@ -131,9 +131,6 @@ export default function ConversoesPage() {
       setEspessura('');
       setValorPago('');
       
-      // Redirect to materials page
-      router.push('/dashboard/materiais');
-
     } catch (error) {
        toast({ title: 'Erro ao adicionar item', variant: 'destructive' });
        console.error("Erro ao adicionar ao estoque:", error);
@@ -272,3 +269,5 @@ export default function ConversoesPage() {
     </div>
   );
 }
+
+    
