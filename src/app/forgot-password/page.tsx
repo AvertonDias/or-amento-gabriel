@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
         <CardHeader className="text-center">
           <div className="flex justify-center items-center mb-4">
             <img
-              src="/apple-touch-icon.png"
+              src="/apple-touch-icon.jpg"
               alt="Logo do Site"
               width={80}
               height={80}

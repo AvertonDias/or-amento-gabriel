@@ -161,7 +161,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 )}>
                     <Link href="/dashboard/orcamento" className="flex items-center gap-2 font-semibold">
                         <img
-                            src="/apple-touch-icon.png"
+                            src="/apple-touch-icon.jpg"
                             alt="Logo"
                             width={32}
                             height={32}
@@ -228,7 +228,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 <div className="flex h-14 items-center border-b px-2 mb-4">
                   <Link href="/dashboard/orcamento" className="flex items-center gap-2 font-semibold" onClick={() => setIsMobileMenuOpen(false)}>
                       <img
-                          src="/apple-touch-icon.png"
+                          src="/apple-touch-icon.jpg"
                           alt="Logo"
                           width={32}
                           height={32}
