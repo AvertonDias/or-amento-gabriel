@@ -41,7 +41,7 @@ export default function ConversoesPage() {
   const [largura, setLargura] = useState('');
   const [espessura, setEspessura] = useState('');
   const [material, setMaterial] = useState('galvanizado');
-  const [valorPago, setValorPago] = useState('');
+  const [valorPorKg, setValorPorKg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
 
@@ -56,7 +56,7 @@ export default function ConversoesPage() {
     const P = parseFloat(peso.replace(',', '.'));
     const L_mm = parseFloat(largura.replace(',', '.'));
     const E_mm = parseFloat(espessura.replace(',', '.'));
-    const V = parseFloat(valorPago.replace(/\D/g, '')) / 100;
+    const V_kg = parseFloat(valorPorKg.replace(/\D/g, '')) / 100;
     const D = DENSIDADES[material];
 
     if (isNaN(P) || isNaN(L_mm) || isNaN(E_mm) || !D || L_mm === 0 || E_mm === 0 || D === 0) {
@@ -65,10 +65,16 @@ export default function ConversoesPage() {
     const L_m = L_mm / 1000;
     const E_m = E_mm / 1000;
     const metros = P / (L_m * E_m * D);
-    const precoPorMetro = !isNaN(V) && metros > 0 ? V / metros : null;
+    
+    let precoPorMetro = null;
+    let custoTotal = null;
+    if (!isNaN(V_kg) && V_kg > 0 && metros > 0) {
+        custoTotal = V_kg * P;
+        precoPorMetro = custoTotal / metros;
+    }
 
-    return { metros, precoPorMetro };
-  }, [peso, largura, espessura, material, valorPago]);
+    return { metros, precoPorMetro, custoTotal };
+  }, [peso, largura, espessura, material, valorPorKg]);
   
   const resultadoUnidade = useMemo(() => {
     const value = parseFloat(unitValue.replace(',', '.'));
@@ -93,15 +99,15 @@ export default function ConversoesPage() {
     }
   }
 
-  const handleValorPagoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValorPago(maskCurrency(e.target.value));
+  const handleValorPorKgChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValorPorKg(maskCurrency(e.target.value));
   };
 
   const handleAdicionarAoEstoque = async () => {
     if (!user || !resultadoCalha || !resultadoCalha.metros || resultadoCalha.precoPorMetro === null) {
       toast({
         title: "Dados incompletos",
-        description: "Preencha todos os campos, incluindo o valor pago, para adicionar ao estoque.",
+        description: "Preencha todos os campos, incluindo o valor por kg, para adicionar ao estoque.",
         variant: "destructive"
       });
       return;
@@ -129,7 +135,7 @@ export default function ConversoesPage() {
       setPeso('');
       setLargura('');
       setEspessura('');
-      setValorPago('');
+      setValorPorKg('');
       
     } catch (error) {
        toast({ title: 'Erro ao adicionar item', variant: 'destructive' });
@@ -168,8 +174,8 @@ export default function ConversoesPage() {
               <Input id="espessura" type="text" inputMode="decimal" value={espessura} onChange={(e) => setEspessura(e.target.value)} placeholder="Ex: 0,50" />
             </div>
              <div className="space-y-2">
-              <Label htmlFor="valor-pago" className="flex items-center gap-1"><DollarSign className="w-4 h-4"/> Valor Total Pago (R$)</Label>
-              <Input id="valor-pago" type="text" inputMode="decimal" value={valorPago} onChange={handleValorPagoChange} placeholder="R$ 650,00" />
+              <Label htmlFor="valor-por-kg" className="flex items-center gap-1"><DollarSign className="w-4 h-4"/> Valor por Kg (R$)</Label>
+              <Input id="valor-por-kg" type="text" inputMode="decimal" value={valorPorKg} onChange={handleValorPorKgChange} placeholder="R$ 13,00" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="material">Material</Label>
@@ -190,6 +196,9 @@ export default function ConversoesPage() {
                 <AlertTitle className="text-primary font-bold">Resultado do Cálculo</AlertTitle>
                 <AlertDescription className="space-y-2 text-foreground">
                     <p className="text-lg">Essa bobina rende aproximadamente <strong className="text-2xl">{formatNumber(resultadoCalha.metros, 2)}</strong> metros lineares.</p>
+                    {resultadoCalha.custoTotal !== null && (
+                        <p className="text-lg">Custo total da bobina: <strong className="text-xl">{formatCurrency(resultadoCalha.custoTotal)}</strong>.</p>
+                    )}
                     {resultadoCalha.precoPorMetro !== null && (
                       <p className="text-lg">Custo de <strong className="text-2xl">{formatCurrency(resultadoCalha.precoPorMetro)}</strong> por metro.</p>
                     )}
