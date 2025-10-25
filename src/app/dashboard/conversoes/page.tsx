@@ -114,7 +114,7 @@ export default function ConversoesPage() {
         descricao: materialDescricao,
         unidade: 'm',
         precoUnitario: resultadoCalha.precoPorMetro,
-        quantidade: resultadoCalha.metros,
+        quantidade: Math.floor(resultadoCalha.metros),
         tipo: 'item' as const,
       };
 
