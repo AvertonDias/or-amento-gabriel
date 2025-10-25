@@ -1,3 +1,4 @@
+
 'use client';
 
 import { FormEvent, useState } from "react";
@@ -86,7 +87,7 @@ export default function ForgotPasswordPage() {
                 id="email" 
                 type="email" 
                 placeholder="seuemail@exemplo.com" 
-                required _
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}

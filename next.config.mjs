@@ -1,7 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  // Adicione aqui quaisquer outras configurações que você tinha antes
+  // Adding a timestamp to force a rebuild
+  // Timestamp: 1729824276701
+  webpack: (config, { isServer }) => {
+    // Adicione quaisquer personalizações do webpack aqui, se necessário.
+    return config;
+  },
 };
 
 export default nextConfig;
