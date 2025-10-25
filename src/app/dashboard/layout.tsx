@@ -1,9 +1,10 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -20,14 +21,17 @@ import {
   Loader2,
   LogOut,
   Users,
-  User
+  User,
+  Ruler
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AppleIcon, GoogleIcon } from '@/components/ui/icons';
 
 const navItems = [
   { href: '/dashboard/orcamento', label: 'Novo Orçamento', icon: Home },
   { href: '/dashboard/clientes', label: 'Clientes', icon: Users },
   { href: '/dashboard/materiais', label: 'Itens e Serviços', icon: Wrench },
+  { href: '/dashboard/conversoes', label: 'Conversões', icon: Ruler },
   { href: '/dashboard/empresa', label: 'Dados da Empresa', icon: Building },
   { href: '/dashboard/minhas-informacoes', label: 'Minhas Informações', icon: User },
 ];
