@@ -26,6 +26,7 @@ import { getMateriais } from '@/services/materiaisService';
 import { getClientes } from '@/services/clientesService';
 import { getEmpresaData } from '@/services/empresaService';
 import { addOrcamento, deleteOrcamento, getOrcamentos, updateOrcamentoStatus, getNextOrcamentoNumber } from '@/services/orcamentosService';
+import { addDays, parseISO, format } from 'date-fns';
 
 // Componente para o layout do PDF
 const BudgetPDFLayout = ({ orcamento, empresa }: {
@@ -33,9 +34,14 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
   empresa: EmpresaData | null,
 }) => {
     if (!orcamento) return null;
+    
+    const dataCriacao = parseISO(orcamento.dataCriacao);
+    const validadeDiasNum = parseInt(orcamento.validadeDias, 10);
+    const dataValidade = !isNaN(validadeDiasNum) ? addDays(dataCriacao, validadeDiasNum) : null;
+
     return (
-      <div className="p-8 font-sans text-foreground bg-background">
-        <header className="flex justify-between items-start pb-4 border-b-2 border-border mb-4">
+      <div className="p-8 font-sans text-black bg-white">
+        <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
           <div className="flex items-start gap-4">
             {empresa?.logo && (
               <div className="flex-shrink-0 w-[80px] h-[80px]">
@@ -44,7 +50,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
               </div>
             )}
             <div>
-              <h1 className="text-2xl font-bold text-foreground">{empresa?.nome || 'Sua Empresa'}</h1>
+              <h1 className="text-2xl font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
               <p className="text-sm">{empresa?.endereco}</p>
               <p className="text-sm">{empresa?.telefone}</p>
               <p className="text-sm">{empresa?.cnpj}</p>
@@ -52,8 +58,8 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
           </div>
            <div className="text-right">
             <h2 className="text-xl font-semibold">Orçamento #{orcamento.numeroOrcamento}</h2>
-            <p className="text-sm">Data: {new Date(orcamento.dataCriacao).toLocaleDateString('pt-BR')}</p>
-            {orcamento.validadeDias && <p className="text-sm mt-1">Validade: {orcamento.validadeDias} dias</p>}
+            <p className="text-sm">Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
+            {dataValidade && <p className="text-sm mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
           </div>
         </header>
 
@@ -68,18 +74,18 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
           </div>
         </section>
 
-        <Table className="text-sm">
-          <TableHeader className="bg-muted/50">
+        <Table className="text-sm text-black">
+          <TableHeader className="bg-gray-100">
             <TableRow>
-              <TableHead>Item / Descrição</TableHead>
-              <TableHead className="text-right">Qtd.</TableHead>
-              <TableHead className="text-right">Preço Unit.</TableHead>
-              <TableHead className="text-right">Subtotal</TableHead>
+              <TableHead className="text-black">Item / Descrição</TableHead>
+              <TableHead className="text-right text-black">Qtd.</TableHead>
+              <TableHead className="text-right text-black">Preço Unit.</TableHead>
+              <TableHead className="text-right text-black">Subtotal</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {orcamento.itens.map(item => (
-              <TableRow key={item.id} className="even:bg-muted/20">
+              <TableRow key={item.id} className="even:bg-gray-50">
                 <TableCell>{item.materialNome}</TableCell>
                 <TableCell className="text-right">{formatNumber(item.quantidade, 2)} {item.unidade}</TableCell>
                 <TableCell className="text-right">{formatCurrency(item.precoUnitario)}</TableCell>
@@ -88,9 +94,9 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
             ))}
           </TableBody>
           <TableTotalFooter>
-            <TableRow className="bg-muted font-bold text-base">
-              <TableCell colSpan={3} className="text-right">TOTAL</TableCell>
-              <TableCell className="text-right">{formatCurrency(orcamento.totalVenda)}</TableCell>
+            <TableRow className="bg-gray-200 font-bold text-base">
+              <TableCell colSpan={3} className="text-right text-black">TOTAL</TableCell>
+              <TableCell className="text-right text-black">{formatCurrency(orcamento.totalVenda)}</TableCell>
             </TableRow>
           </TableTotalFooter>
         </Table>
