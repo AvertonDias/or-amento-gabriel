@@ -17,6 +17,13 @@ import { Loader2 } from 'lucide-react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { addCliente, deleteCliente, getClientes, updateCliente } from '@/services/clientesService';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+
 
 const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
   nome: '',
@@ -189,11 +196,10 @@ export default function ClientesPage() {
         const props = ['name', 'email', 'tel', 'address'];
         const opts = { multiple: false };
         const contacts = await (navigator as any).contacts.select(props, opts);
-
         if (contacts.length > 0) {
           const contact = contacts[0];
-          const address = contact.address?.[0];
-          const formattedAddress = address ? Object.values(address).filter(Boolean).join(', ') : '';
+           const address = contact.address?.[0];
+          const formattedAddress = address ? [address.streetAddress, address.addressLevel2, address.addressLevel1, address.postalCode, address.country].filter(Boolean).join(', ') : '';
 
           const partialClient = {
             nome: contact.name?.[0] || '',
@@ -202,7 +208,6 @@ export default function ClientesPage() {
             endereco: formattedAddress,
             cpfCnpj: '',
           };
-
           setNewClient(partialClient);
           toast({
             title: 'Contato Importado!',
@@ -210,7 +215,7 @@ export default function ClientesPage() {
           });
         }
       } catch (error) {
-        console.error("Erro ao importar contato:", error);
+        console.error('Erro ao importar contato:', error);
         toast({
           title: 'Importação Cancelada',
           description: 'Não foi possível importar o contato.',
@@ -242,41 +247,51 @@ export default function ClientesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleAdicionarCliente} className="space-y-6 border-b pb-6 mb-6">
-            <h2 className="text-xl font-semibold">Adicionar Novo Cliente</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="nome">Nome Completo / Razão Social</Label>
-                <Input id="nome" name="nome" value={newClient.nome} onChange={handleNewClientChange} placeholder="Ex: João da Silva" required />
-              </div>
-              <div>
-                <Label htmlFor="cpfCnpj">CPF / CNPJ</Label>
-                <Input id="cpfCnpj" name="cpfCnpj" value={newClient.cpfCnpj || ''} onChange={handleNewClientChange} placeholder="XXX.XXX.XXX-XX ou XX.XXX.XXX/XXXX-XX" />
-              </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="endereco">Endereço Completo</Label>
-                <Input id="endereco" name="endereco" value={newClient.endereco} onChange={handleNewClientChange} placeholder="Rua, Número, Bairro, Cidade - UF" />
-              </div>
-              <div>
-                <Label htmlFor="telefone">Telefone</Label>
-                <Input id="telefone" name="telefone" type="tel" value={newClient.telefone} onChange={handleNewClientChange} placeholder="(DD) XXXXX-XXXX" />
-              </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" value={newClient.email || ''} onChange={handleNewClientChange} placeholder="contato@email.com" />
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                Adicionar Cliente
-              </Button>
-              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleImportContacts} disabled={isSubmitting}>
-                <Contact className="mr-2 h-4 w-4" />
-                Importar dos Contatos
-              </Button>
-            </div>
-          </form>
+          <Accordion type="single" collapsible className="w-full mb-6 border-b">
+            <AccordionItem value="add-client-form" className="border-b-0">
+              <AccordionTrigger className="hover:no-underline py-4">
+                  <h2 className="text-xl font-semibold flex items-center gap-2 text-primary">
+                    <PlusCircle className="h-5 w-5" /> Adicionar Novo Cliente
+                  </h2>
+              </AccordionTrigger>
+              <AccordionContent>
+                <form onSubmit={handleAdicionarCliente} className="space-y-6 pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="nome">Nome Completo / Razão Social</Label>
+                      <Input id="nome" name="nome" value={newClient.nome} onChange={handleNewClientChange} placeholder="Ex: João da Silva" required />
+                    </div>
+                    <div>
+                      <Label htmlFor="cpfCnpj">CPF / CNPJ</Label>
+                      <Input id="cpfCnpj" name="cpfCnpj" value={newClient.cpfCnpj || ''} onChange={handleNewClientChange} placeholder="XXX.XXX.XXX-XX ou XX.XXX.XXX/XXXX-XX" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="endereco">Endereço Completo</Label>
+                      <Input id="endereco" name="endereco" value={newClient.endereco} onChange={handleNewClientChange} placeholder="Rua, Número, Bairro, Cidade - UF" />
+                    </div>
+                    <div>
+                      <Label htmlFor="telefone">Telefone</Label>
+                      <Input id="telefone" name="telefone" type="tel" value={newClient.telefone} onChange={handleNewClientChange} placeholder="(DD) XXXXX-XXXX" />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">Email</Label>
+                      <Input id="email" name="email" type="email" value={newClient.email || ''} onChange={handleNewClientChange} placeholder="contato@email.com" />
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
+                      {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                      Adicionar Cliente
+                    </Button>
+                    <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleImportContacts} disabled={isSubmitting}>
+                      <Contact className="mr-2 h-4 w-4" />
+                      Importar dos Contatos
+                    </Button>
+                  </div>
+                </form>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
 
           {showSkeleton ? (
             <div className="space-y-4">
