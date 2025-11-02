@@ -1,41 +1,37 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Desativa a geração automática da rota para o favicon.ico
-  // Isso evita o erro 'PageNotFoundError' durante o build quando o arquivo não existe.
-  experimental: {
-    missingSuspenseWithCSRBailout: false,
-  },
-  webpack: (config, { isServer }) => {
-    // Adiciona uma regra para lidar com arquivos .node
-    config.module.rules.push({
-      test: /\.node$/,
-      use: 'raw-loader',
-    });
 
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        "fs": false,
-      };
-    }
-    
-    return config;
-  },
-  // Remove a necessidade do favicon.ico para o build
-  // Esta parte foi removida porque a configuração padrão do Next.js 14+ não tem mais `generateEtags`.
-  // O erro é melhor tratado desativando a procura explícita ou garantindo que o arquivo exista.
-  // Neste caso, vamos optar por uma configuração mínima.
-  // A solução mais moderna para o `favicon.ico` é colocá-lo na pasta `app/`.
-  // Para este caso, vamos garantir que o build não falhe.
-};
+// Importa o plugin PWA usando a sintaxe de módulo ES
+import withPWA from '@ducanh2912/next-pwa';
 
-// Configuração PWA com @ducanh2912/next-pwa
-const withPWA = require('@ducanh2912/next-pwa')({
+// Configuração do PWA
+const pwaConfig = withPWA({
   dest: 'public',
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
 });
 
+// Configuração principal do Next.js
+const nextConfig = {
+  reactStrictMode: true,
+  // Adiciona a configuração para ignorar a geração da rota do favicon
+  // e evitar erros de compilação relacionados a ele.
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+  async redirects() {
+    return [
+      {
+        source: '/favicon.ico',
+        destination: '/apple-touch-icon.jpg', // ou o caminho para o seu ícone
+        permanent: true,
+      },
+    ];
+  },
+};
 
-export default withPWA(nextConfig);
+// Envolve a configuração do Next.js com a configuração do PWA
+const configWithPwa = pwaConfig(nextConfig);
+
+export default configWithPwa;
