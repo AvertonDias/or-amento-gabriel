@@ -25,6 +25,13 @@ import { getEmpresaData } from '@/services/empresaService';
 import { addOrcamento, deleteOrcamento, getOrcamentos, updateOrcamento, updateOrcamentoStatus, getNextOrcamentoNumber } from '@/services/orcamentosService';
 import { addDays, parseISO, format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
 
 // Componente para o layout do PDF do Cliente
 const BudgetPDFLayout = ({ orcamento, empresa }: {
@@ -38,7 +45,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
     const dataValidade = !isNaN(validadeDiasNum) ? addDays(dataCriacao, validadeDiasNum) : null;
 
     return (
-      <div className="p-8 font-sans bg-white text-black text-sm">
+      <div className="p-8 font-sans bg-white text-black text-base">
         <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
           <div className="flex items-start gap-4">
             {empresa?.logo && (
@@ -49,21 +56,21 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
             )}
             <div>
               <h1 className="text-xl font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
-              <p className="text-xs">{empresa?.endereco}</p>
-              <p className="text-xs">{empresa?.telefone}</p>
-              <p className="text-xs">{empresa?.cnpj}</p>
+              <p className="text-sm">{empresa?.endereco}</p>
+              <p className="text-sm">{empresa?.telefone}</p>
+              <p className="text-sm">{empresa?.cnpj}</p>
             </div>
           </div>
            <div className="text-right">
             <h2 className="text-lg font-semibold">Orçamento #{orcamento.numeroOrcamento}</h2>
-            <p className="text-xs">Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
-            {dataValidade && <p className="text-xs mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
+            <p className="text-sm">Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
+            {dataValidade && <p className="text-sm mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
           </div>
         </header>
 
         <section className="mb-4">
           <h3 className="font-semibold text-base mb-2">Cliente:</h3>
-          <div className="text-xs space-y-1">
+          <div className="text-sm space-y-1">
             <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
             {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
             {orcamento.cliente.endereco && <p><span className="font-medium">Endereço:</span> {orcamento.cliente.endereco}</p>}
@@ -72,7 +79,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
           </div>
         </section>
 
-        <table className="w-full text-xs text-black">
+        <table className="w-full text-sm text-black">
           <thead className="bg-gray-100">
             <tr className='border-b'>
               <th className="p-2 text-left font-semibold text-black">Item / Descrição</th>
@@ -116,7 +123,7 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
     const lucroTotal = orcamento.totalVenda - totalCusto;
 
     return (
-      <div className="p-8 font-sans bg-white text-black text-sm">
+      <div className="p-8 font-sans bg-white text-black text-base">
         <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
             <div className="flex items-start gap-4">
               {empresa?.logo && (
@@ -127,21 +134,21 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
               )}
               <div>
                 <h1 className="text-xl font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
-                <p className="text-xs">{empresa?.endereco}</p>
-                <p className="text-xs">{empresa?.telefone}</p>
-                <p className="text-xs">{empresa?.cnpj}</p>
+                <p className="text-sm">{empresa?.endereco}</p>
+                <p className="text-sm">{empresa?.telefone}</p>
+                <p className="text-sm">{empresa?.cnpj}</p>
               </div>
             </div>
             <div className="text-right">
               <h2 className="text-lg font-semibold">Orçamento Interno #{orcamento.numeroOrcamento}</h2>
-              <p className="text-xs">Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
-              {dataValidade && <p className="text-xs mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
+              <p className="text-sm">Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
+              {dataValidade && <p className="text-sm mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
             </div>
         </header>
 
         <section className="mb-4">
             <h3 className="font-semibold text-base mb-2">Cliente:</h3>
-            <div className="text-xs space-y-1">
+            <div className="text-sm space-y-1">
               <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
               {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
               {orcamento.cliente.endereco && <p><span className="font-medium">Endereço:</span> {orcamento.cliente.endereco}</p>}
@@ -150,7 +157,7 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
             </div>
         </section>
 
-        <table className="w-full text-xs text-black">
+        <table className="w-full text-sm text-black">
           <thead className="bg-gray-100">
             <tr className='border-b'>
               <th className="p-2 text-left font-semibold text-black">Item</th>
@@ -693,8 +700,19 @@ export default function OrcamentoPage() {
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
-                            <Button variant="secondary" size="sm" onClick={() => handleGerarPDF(orcamento)}><FileText className="mr-2"/>PDF Cliente</Button>
-                            <Button variant="secondary" size="sm" onClick={() => handleGerarPDFInterno(orcamento)}><FileText className="mr-2"/>PDF Interno</Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="secondary" size="sm"><FileText className="mr-2"/>Gerar PDF</Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>
+                                        Cliente
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>
+                                        Interno
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                             <Button variant="secondary" size="sm" onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}><MessageCircle className="mr-2"/>Enviar Proposta</Button>
                             {orcamento.status === 'Pendente' && (
                                 <>
@@ -913,6 +931,8 @@ export default function OrcamentoPage() {
 }
 
     
+    
+
     
 
     
