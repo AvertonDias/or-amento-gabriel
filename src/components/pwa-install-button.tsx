@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, X } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import {
   AlertDialog,
@@ -39,7 +39,6 @@ export function PwaInstallButton({ isCollapsed }: { isCollapsed?: boolean }) {
   useEffect(() => {
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
-      // Cast the event to our specific interface
       const promptEvent = event as BeforeInstallPromptEvent;
       setInstallPromptEvent(promptEvent);
       
@@ -85,13 +84,15 @@ export function PwaInstallButton({ isCollapsed }: { isCollapsed?: boolean }) {
     toast({ title: 'Lembrete de instalação dispensado.'});
   }
 
-  // Render the button only if the prompt event exists and it has not been dismissed.
-  if (!installPromptEvent && !showDialog) {
+  // Se o evento de instalação não existe, não há nada para renderizar.
+  // O modal será acionado pelo estado `showDialog`.
+  if (!installPromptEvent) {
     return null;
   }
 
   return (
      <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
+        {/* O gatilho (AlertDialogTrigger) pode permanecer no menu se desejado */}
         <AlertDialogTrigger asChild>
             <Tooltip delayDuration={0}>
                 <TooltipTrigger asChild>
@@ -137,4 +138,3 @@ export function PwaInstallButton({ isCollapsed }: { isCollapsed?: boolean }) {
     </AlertDialog>
   );
 }
-
