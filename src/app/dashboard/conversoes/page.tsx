@@ -37,6 +37,7 @@ type PriceInputMode = 'kg' | 'total';
 
 // Helper function to normalize strings for comparison
 const normalizeString = (str: string) => {
+  if (!str) return '';
   return str.trim().toLowerCase().replace(/,/g, '.').replace(/\s+/g, ' ');
 };
 
@@ -156,7 +157,10 @@ export default function ConversoesPage() {
   const performAdd = async () => {
     if (!user || !resultadoCalha || !resultadoCalha.metros || resultadoCalha.precoPorMetro === null) return;
      try {
-      const materialDescricao = `Calha ${material === 'aluminio' ? 'Alumínio' : 'Aço Galvanizado'} ${largura}mm ${espessura}mm`;
+      const numLargura = parseFloat(largura.replace(',', '.'));
+      const numEspessura = parseFloat(espessura.replace(',', '.'));
+      const materialDescricao = `Calha ${material === 'aluminio' ? 'Alumínio' : 'Aço Galvanizado'} ${formatNumber(numLargura,0)}mm ${formatNumber(numEspessura,2)}mm`;
+      
       const numQuantidadeMinima = parseFloat(quantidadeMinimaStr.replace(',', '.')) || null;
 
       const novoItem: Omit<MaterialItem, 'id' | 'userId'> = {
@@ -224,7 +228,15 @@ export default function ConversoesPage() {
       return;
     }
     
-    const materialDescricao = `Calha ${material === 'aluminio' ? 'Alumínio' : 'Aço Galvanizado'} ${largura.replace(',', '.')}mm ${espessura.replace(',', '.')}mm`;
+    const numLargura = parseFloat(largura.replace(',', '.'));
+    const numEspessura = parseFloat(espessura.replace(',', '.'));
+
+    if (isNaN(numLargura) || isNaN(numEspessura)) {
+        toast({ title: "Largura ou espessura inválida", variant: "destructive" });
+        return;
+    }
+    
+    const materialDescricao = `Calha ${material === 'aluminio' ? 'Alumínio' : 'Aço Galvanizado'} ${formatNumber(numLargura,0)}mm ${formatNumber(numEspessura,2)}mm`;
     const normalizedDescricao = normalizeString(materialDescricao);
 
     const existingItem = materiais.find(m => normalizeString(m.descricao) === normalizedDescricao && m.tipo === 'item');
