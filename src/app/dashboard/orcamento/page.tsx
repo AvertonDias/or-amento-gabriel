@@ -45,32 +45,32 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
     const dataValidade = !isNaN(validadeDiasNum) ? addDays(dataCriacao, validadeDiasNum) : null;
 
     return (
-      <div className="p-8 font-sans bg-white text-black text-sm">
+      <div className="p-8 font-sans bg-white text-black text-base">
         <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
           <div className="flex items-start gap-4">
             {empresa?.logo && (
-              <div className="flex-shrink-0 w-[70px] h-[70px]">
+              <div className="flex-shrink-0 w-[80px] h-[80px]">
                  {/* eslint-disable-next-line @next/next/no-img-element */}
                  <img src={empresa.logo} alt="Logo da Empresa" className="object-contain w-full h-full" />
               </div>
             )}
             <div>
-              <h1 className="text-lg font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
-              <p className="text-xs">{empresa?.endereco}</p>
-              <p className="text-xs">{empresa?.telefone}</p>
-              <p className="text-xs">{empresa?.cnpj}</p>
+              <h1 className="text-xl font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
+              <p>{empresa?.endereco}</p>
+              <p>{empresa?.telefone}</p>
+              <p>{empresa?.cnpj}</p>
             </div>
           </div>
            <div className="text-right">
-            <h2 className="text-base font-semibold">Orçamento #{orcamento.numeroOrcamento}</h2>
-            <p className="text-xs">Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
-            {dataValidade && <p className="text-xs mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
+            <h2 className="text-lg font-semibold">Orçamento #{orcamento.numeroOrcamento}</h2>
+            <p>Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
+            {dataValidade && <p className="mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
           </div>
         </header>
 
         <section className="mb-4">
-          <h3 className="font-semibold text-base mb-2">Cliente:</h3>
-          <div className="text-xs space-y-1">
+          <h3 className="font-semibold text-lg mb-2">Cliente:</h3>
+          <div className="space-y-1">
             <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
             {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
             {orcamento.cliente.endereco && <p><span className="font-medium">Endereço:</span> {orcamento.cliente.endereco}</p>}
@@ -79,7 +79,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
           </div>
         </section>
 
-        <table className="w-full text-xs text-black">
+        <table className="w-full text-black">
           <thead className="bg-gray-100">
             <tr className='border-b'>
               <th className="p-2 text-left font-semibold text-black">Item / Descrição</th>
@@ -99,7 +99,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
             ))}
           </tbody>
           <tfoot>
-            <tr className="bg-gray-200 font-bold text-base">
+            <tr className="bg-gray-200 font-bold text-lg">
               <td colSpan={3} className="p-2 text-right text-black">TOTAL</td>
               <td className="p-2 text-right text-black">{formatCurrency(orcamento.totalVenda)}</td>
             </tr>
@@ -123,32 +123,32 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
     const lucroTotal = orcamento.totalVenda - totalCusto;
 
     return (
-      <div className="p-8 font-sans bg-white text-black text-sm">
+      <div className="p-8 font-sans bg-white text-black text-base">
         <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
             <div className="flex items-start gap-4">
               {empresa?.logo && (
-                <div className="flex-shrink-0 w-[70px] h-[70px]">
+                <div className="flex-shrink-0 w-[80px] h-[80px]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={empresa.logo} alt="Logo da Empresa" className="object-contain w-full h-full" />
                 </div>
               )}
               <div>
-                <h1 className="text-lg font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
-                <p className="text-xs">{empresa?.endereco}</p>
-                <p className="text-xs">{empresa?.telefone}</p>
-                <p className="text-xs">{empresa?.cnpj}</p>
+                <h1 className="text-xl font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
+                <p>{empresa?.endereco}</p>
+                <p>{empresa?.telefone}</p>
+                <p>{empresa?.cnpj}</p>
               </div>
             </div>
             <div className="text-right">
-              <h2 className="text-base font-semibold">Orçamento Interno #{orcamento.numeroOrcamento}</h2>
-              <p className="text-xs">Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
-              {dataValidade && <p className="text-xs mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
+              <h2 className="text-lg font-semibold">Orçamento Interno #{orcamento.numeroOrcamento}</h2>
+              <p>Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
+              {dataValidade && <p className="mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
             </div>
         </header>
 
         <section className="mb-4">
-            <h3 className="font-semibold text-base mb-2">Cliente:</h3>
-            <div className="text-xs space-y-1">
+            <h3 className="font-semibold text-lg mb-2">Cliente:</h3>
+            <div className="space-y-1">
               <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
               {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
               {orcamento.cliente.endereco && <p><span className="font-medium">Endereço:</span> {orcamento.cliente.endereco}</p>}
@@ -157,7 +157,7 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
             </div>
         </section>
 
-        <table className="w-full text-xs text-black">
+        <table className="w-full text-black">
           <thead className="bg-gray-100">
             <tr className='border-b'>
               <th className="p-2 text-left font-semibold text-black">Item</th>
@@ -187,7 +187,7 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
               <td className="p-2 text-right"></td>
               <td className="p-2 text-right bg-green-100">{formatCurrency(orcamento.totalVenda)}</td>
             </tr>
-             <tr className="font-bold text-base">
+             <tr className="font-bold text-lg">
               <td colSpan={5} className="p-2 text-right bg-blue-100">LUCRO TOTAL</td>
               <td className="p-2 text-right bg-blue-100">{formatCurrency(lucroTotal)}</td>
             </tr>
@@ -376,13 +376,25 @@ export default function OrcamentoPage() {
       toast({ title: 'Seleção necessária', description: 'Por favor, selecione um item ou serviço.', variant: 'destructive' });
       return;
     }
-    const { precoUnitario, id: materialId, descricao, unidade } = selectedMaterial;
+    const { precoUnitario, id: materialId, descricao, unidade, tipo, quantidade: estoqueAtual, quantidadeMinima } = selectedMaterial;
     const numMargemLucro = parseFloat(novoItem.margemLucro.replace(',', '.')) || 0;
     const numQuantidade = parseFloat(novoItem.quantidade.replace(/[^0-9,]/g, '').replace(',', '.'));
     if (isNaN(numQuantidade) || numQuantidade <= 0 || precoUnitario === null) {
       toast({ title: 'Valores inválidos', description: 'Preencha a Quantidade e verifique os dados do item.', variant: 'destructive' });
       return;
     }
+
+    if (tipo === 'item' && estoqueAtual != null && quantidadeMinima != null) {
+      const novoEstoque = estoqueAtual - numQuantidade;
+      if (novoEstoque <= quantidadeMinima) {
+        toast({
+          title: "Aviso de Estoque Baixo",
+          description: `O item "${descricao}" atingiu o estoque mínimo. Restam: ${novoEstoque}`,
+          variant: "destructive"
+        });
+      }
+    }
+    
     const custoFinal = precoUnitario * numQuantidade;
     const precoVenda = custoFinal * (1 + numMargemLucro / 100);
     const novoOrcamentoItem: OrcamentoItem = { 
@@ -1004,10 +1016,3 @@ export default function OrcamentoPage() {
     </div>
   );
 }
-
-    
-    
-
-    
-
-    

@@ -28,6 +28,7 @@ export interface MaterialItem {
   precoUnitario: number | null; // R$ por unidade
   tipo: 'item' | 'servico'; // Distingue entre item físico e serviço
   quantidade?: number | null; // Quantidade em estoque, aplicável apenas para 'item'
+  quantidadeMinima?: number | null; // Quantidade mínima em estoque para alerta
 }
 
 export interface OrcamentoItem {

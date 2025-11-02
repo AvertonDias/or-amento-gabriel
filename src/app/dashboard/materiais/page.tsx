@@ -24,6 +24,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { cn } from '@/lib/utils';
 
 
 const initialNewItemState: Omit<MaterialItem, 'id' | 'userId'> = {
@@ -32,6 +33,7 @@ const initialNewItemState: Omit<MaterialItem, 'id' | 'userId'> = {
   precoUnitario: null,
   tipo: 'item',
   quantidade: null,
+  quantidadeMinima: null,
 };
 
 const unidadesDeMedida = [
@@ -59,8 +61,11 @@ export default function MateriaisPage() {
   // States for string representation of number inputs
   const [precoUnitarioStr, setPrecoUnitarioStr] = useState('');
   const [quantidadeStr, setQuantidadeStr] = useState('');
+  const [quantidadeMinimaStr, setQuantidadeMinimaStr] = useState('');
   const [editingPrecoUnitarioStr, setEditingPrecoUnitarioStr] = useState('');
   const [editingQuantidadeStr, setEditingQuantidadeStr] = useState('');
+  const [editingQuantidadeMinimaStr, setEditingQuantidadeMinimaStr] = useState('');
+
 
   const { toast } = useToast();
   
@@ -94,6 +99,7 @@ export default function MateriaisPage() {
     setNewItem({ ...initialNewItemState, tipo: tab, unidade: newUnidade });
     setPrecoUnitarioStr('');
     setQuantidadeStr('');
+    setQuantidadeMinimaStr('');
   };
 
   const handleNewItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,15 +109,19 @@ export default function MateriaisPage() {
 
   const handleNewItemNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    const sanitizedValue = value.replace(/[^0-9,.]/g, '').replace(',', '.');
+
     if (name === 'precoUnitario') {
       const maskedValue = maskCurrency(value);
       setPrecoUnitarioStr(maskedValue);
       const numericValue = parseFloat(maskedValue.replace(/[^0-9,]/g, '').replace(',', '.')) || null;
       setNewItem(prev => ({...prev, precoUnitario: numericValue }));
     } else if (name === 'quantidade') {
-      const sanitizedValue = value.replace(/[^0-9,.]/g, '').replace(',', '.');
       setQuantidadeStr(value.replace(/[^0-9,.]/g, ''));
       setNewItem(prev => ({...prev, quantidade: sanitizedValue === '' ? null : parseFloat(sanitizedValue) }));
+    } else if (name === 'quantidadeMinima') {
+      setQuantidadeMinimaStr(value.replace(/[^0-9,.]/g, ''));
+      setNewItem(prev => ({...prev, quantidadeMinima: sanitizedValue === '' ? null : parseFloat(sanitizedValue) }));
     }
   };
 
@@ -143,16 +153,19 @@ export default function MateriaisPage() {
         precoUnitario: newItem.precoUnitario,
         tipo: newItem.tipo,
         quantidade: newItem.quantidade,
+        quantidadeMinima: newItem.quantidadeMinima,
       };
 
       if (payload.tipo === 'servico') {
         delete payload.quantidade;
+        delete payload.quantidadeMinima;
       }
 
       await addMaterial(user.uid, payload);
       setNewItem({ ...initialNewItemState, tipo: activeTab, unidade: activeTab === 'servico' ? 'serv' : 'un' });
       setPrecoUnitarioStr('');
       setQuantidadeStr('');
+      setQuantidadeMinimaStr('');
       await fetchMateriais(); // Refresh list
       toast({
         title: "Sucesso!",
@@ -180,8 +193,9 @@ export default function MateriaisPage() {
   
   const handleEditClick = (material: MaterialItem) => {
     setEditingMaterial({ ...material });
-    setEditingPrecoUnitarioStr(formatCurrency(material.precoUnitario));
+    setEditingPrecoUnitarioStr(maskCurrency(String(material.precoUnitario)));
     setEditingQuantidadeStr(material.quantidade !== null && material.quantidade !== undefined ? String(material.quantidade).replace('.', ',') : '');
+    setEditingQuantidadeMinimaStr(material.quantidadeMinima !== null && material.quantidadeMinima !== undefined ? String(material.quantidadeMinima).replace('.', ',') : '');
     setIsEditModalOpen(true);
   };
 
@@ -194,6 +208,7 @@ export default function MateriaisPage() {
   const handleEditNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingMaterial) return;
     const { name, value } = e.target;
+    const sanitizedValue = value.replace(/[^0-9,.]/g, '').replace(',', '.');
     
     if (name === 'precoUnitario') {
       const maskedValue = maskCurrency(value);
@@ -201,9 +216,11 @@ export default function MateriaisPage() {
       const numericValue = parseFloat(maskedValue.replace(/[^0-9,]/g, '').replace(',', '.')) || null;
       setEditingMaterial(prev => prev ? { ...prev, precoUnitario: numericValue } : null);
     } else if (name === 'quantidade') {
-      const sanitizedValue = value.replace(/[^0-9,.]/g, '').replace(',', '.');
       setEditingQuantidadeStr(value.replace(/[^0-9,.]/g, ''));
       setEditingMaterial(prev => prev ? { ...prev, quantidade: sanitizedValue === '' ? null : parseFloat(sanitizedValue) } : null);
+    } else if (name === 'quantidadeMinima') {
+      setEditingQuantidadeMinimaStr(value.replace(/[^0-9,.]/g, ''));
+      setEditingMaterial(prev => prev ? { ...prev, quantidadeMinima: sanitizedValue === '' ? null : parseFloat(sanitizedValue) } : null);
     }
   };
 
@@ -297,10 +314,14 @@ export default function MateriaisPage() {
                             <Input id="precoUnitario-item" name="precoUnitario" type="text" inputMode='decimal' placeholder="R$ 12,50" value={precoUnitarioStr} onChange={handleNewItemNumberChange} required/>
                           </div>
                           <div>
-                            <Label htmlFor="quantidade-item">Quantidade em Estoque</Label>
+                            <Label htmlFor="quantidade-item">Qtd. em Estoque</Label>
                             <Input id="quantidade-item" name="quantidade" type="text" inputMode='decimal' placeholder="Ex: 10" value={quantidadeStr} onChange={handleNewItemNumberChange} />
                           </div>
-                          <div className="lg:col-span-4">
+                          <div>
+                            <Label htmlFor="quantidadeMinima-item">Estoque Mínimo</Label>
+                            <Input id="quantidadeMinima-item" name="quantidadeMinima" type="text" inputMode='decimal' placeholder="Ex: 2" value={quantidadeMinimaStr} onChange={handleNewItemNumberChange} />
+                          </div>
+                          <div className="lg:col-span-4 mt-2">
                             <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
                               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                               Adicionar Item
@@ -328,7 +349,7 @@ export default function MateriaisPage() {
                               <Label htmlFor="precoUnitario-servico">Preço (R$)</Label>
                               <Input id="precoUnitario-servico" name="precoUnitario" type="text" inputMode='decimal' placeholder="R$ 150,00" value={precoUnitarioStr} onChange={handleNewItemNumberChange} required/>
                           </div>
-                          <div className="lg:col-span-4">
+                          <div className="lg:col-span-4 mt-2">
                             <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
                               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                               Adicionar Serviço
@@ -363,7 +384,7 @@ export default function MateriaisPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[45%]">Descrição</TableHead>
+                        <TableHead className="w-[40%]">Descrição</TableHead>
                         <TableHead>Tipo</TableHead>
                         <TableHead>Estoque</TableHead>
                         <TableHead>Unidade</TableHead>
@@ -372,26 +393,39 @@ export default function MateriaisPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {materiais.map(item => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.descricao}</TableCell>
-                          <TableCell className="capitalize">{item.tipo}</TableCell>
-                          <TableCell>{item.tipo === 'item' ? formatNumber(item.quantidade, 0) : 'N/A'}</TableCell>
-                          <TableCell>{item.unidade}</TableCell>
-                          <TableCell>{formatCurrency(item.precoUnitario)}</TableCell>
-                          <TableCell className="flex gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(item)}><Pencil className="h-4 w-4 text-primary" /></Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleRemoverMaterial(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {materiais.map(item => {
+                        const isStockLow = item.tipo === 'item' &&
+                                          item.quantidade != null &&
+                                          item.quantidadeMinima != null &&
+                                          item.quantidade <= item.quantidadeMinima;
+                        return (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-medium">{item.descricao}</TableCell>
+                            <TableCell className="capitalize">{item.tipo}</TableCell>
+                            <TableCell className={cn(isStockLow && "text-destructive font-bold")}>
+                              {item.tipo === 'item' ? `${formatNumber(item.quantidade, 0)} (Min: ${formatNumber(item.quantidadeMinima, 0)})` : 'N/A'}
+                            </TableCell>
+                            <TableCell>{item.unidade}</TableCell>
+                            <TableCell>{formatCurrency(item.precoUnitario)}</TableCell>
+                            <TableCell className="flex gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => handleEditClick(item)}><Pencil className="h-4 w-4 text-primary" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleRemoverMaterial(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
                     </TableBody>
                   </Table>
                 </div>
 
                 {/* Mobile Cards */}
                 <div className="md:hidden grid grid-cols-1 gap-4">
-                  {materiais.map(item => (
+                  {materiais.map(item => {
+                     const isStockLow = item.tipo === 'item' &&
+                                          item.quantidade != null &&
+                                          item.quantidadeMinima != null &&
+                                          item.quantidade <= item.quantidadeMinima;
+                    return (
                     <Card key={item.id} className="p-0">
                         <CardHeader className="flex flex-row items-start justify-between p-4">
                             <div>
@@ -405,7 +439,7 @@ export default function MateriaisPage() {
                         </CardHeader>
                         <CardContent className="p-4 pt-0 text-sm">
                           {item.tipo === 'item' && item.quantidade != null && (
-                            <p><span className="font-medium text-muted-foreground">Estoque:</span> {formatNumber(item.quantidade, 0)}</p>
+                            <p className={cn(isStockLow && "text-destructive font-bold")}><span className="font-medium text-muted-foreground">Estoque:</span> {formatNumber(item.quantidade, 0)} (Mín: {formatNumber(item.quantidadeMinima, 0)})</p>
                           )}
                         </CardContent>
                         <CardFooter className="p-4 pt-2 mt-2 bg-muted/50 flex justify-between items-center">
@@ -413,7 +447,7 @@ export default function MateriaisPage() {
                             <p className="font-bold text-primary text-base">{formatCurrency(item.precoUnitario)} / {item.unidade}</p>
                         </CardFooter>
                     </Card>
-                  ))}
+                  )})}
                 </div>
               </div>
             ) : (
@@ -445,10 +479,16 @@ export default function MateriaisPage() {
                     </Select>
                 </div>
                 {editingMaterial.tipo === 'item' && (
+                  <>
                   <div>
-                    <Label htmlFor="edit-quantidade">Quantidade em Estoque</Label>
+                    <Label htmlFor="edit-quantidade">Qtd. em Estoque</Label>
                     <Input id="edit-quantidade" name="quantidade" type="text" inputMode='decimal' value={editingQuantidadeStr} onChange={handleEditNumberChange} />
                   </div>
+                  <div>
+                    <Label htmlFor="edit-quantidadeMinima">Estoque Mínimo</Label>
+                    <Input id="edit-quantidadeMinima" name="quantidadeMinima" type="text" inputMode='decimal' value={editingQuantidadeMinimaStr} onChange={handleEditNumberChange} />
+                  </div>
+                  </>
                 )}
                 <div>
                   <Label htmlFor="edit-precoUnitario">Preço (R$)</Label>
