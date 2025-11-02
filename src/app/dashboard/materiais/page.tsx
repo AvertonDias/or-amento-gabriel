@@ -480,7 +480,7 @@ export default function MateriaisPage() {
                             <TableCell>{formatCurrency(item.precoUnitario)}</TableCell>
                             <TableCell className="flex gap-1">
                               <Button variant="ghost" size="icon" onClick={() => handleEditClick(item)}><Pencil className="h-4 w-4 text-primary" /></Button>
-                              <Button variant="ghost" size="icon" onClick={()={() => handleRemoverMaterial(item.id)}}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleRemoverMaterial(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                             </TableCell>
                           </TableRow>
                         )
@@ -596,5 +596,9 @@ export default function MateriaisPage() {
 
     </div>
   );
+}
+    
+
+      
 
     
