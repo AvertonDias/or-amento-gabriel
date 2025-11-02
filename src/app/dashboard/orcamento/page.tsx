@@ -495,8 +495,14 @@ export default function OrcamentoPage() {
   const handleEditItemFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingItem) return;
     const { name, value } = e.target;
-    if (name === 'quantidade') { setEditingQuantidadeStr(value.replace(/[^0-9,]/g, '')); } 
-    else if (name === 'margemLucro') { setEditingMargemLucroStr(value.replace(/[^0-9,]/g, '')); }
+    
+    if (name === 'quantidade') { 
+      setEditingQuantidadeStr(value.replace(/[^0-9,]/g, ''));
+    } else if (name === 'margemLucro') { 
+      setEditingMargemLucroStr(value.replace(/[^0-9,]/g, ''));
+    } else if (name === 'materialNome') {
+       setEditingItem(prev => prev ? { ...prev, materialNome: value } : null);
+    }
   };
 
   const handleSalvarEdicaoItem = (e: FormEvent) => {
@@ -510,9 +516,14 @@ export default function OrcamentoPage() {
 
     const custoFinal = editingItem.precoUnitario * numQuantidade;
     const precoVendaCalculado = custoFinal * (1 + numMargemLucro / 100);
+    
     const itemAtualizado: OrcamentoItem = { 
-        ...editingItem, quantidade: numQuantidade, margemLucro: numMargemLucro,
-        total: custoFinal, precoVenda: precoVendaCalculado 
+        ...editingItem,
+        materialNome: editingItem.materialNome, // garante que o nome editado seja salvo
+        quantidade: numQuantidade, 
+        margemLucro: numMargemLucro,
+        total: custoFinal, 
+        precoVenda: precoVendaCalculado 
     };
 
     if (sourceList === 'wizard') {
@@ -808,10 +819,11 @@ export default function OrcamentoPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Item</DialogTitle>
-            <DialogDescription>Modifique a quantidade e o acréscimo do item selecionado.</DialogDescription>
+            <DialogDescription>Modifique o nome, a quantidade e o acréscimo do item selecionado.</DialogDescription>
           </DialogHeader>
           {editingItem && (
             <form onSubmit={handleSalvarEdicaoItem} className="space-y-4 py-4">
+              <div><Label htmlFor="edit-nome">Nome do Item</Label><Input id="edit-nome" name="materialNome" value={editingItem.materialNome} onChange={handleEditItemFormChange}/></div>
               <div><Label htmlFor="edit-quantidade">Quantidade ({editingItem.unidade})</Label><Input id="edit-quantidade" name="quantidade" type="text" inputMode='decimal' value={editingQuantidadeStr} onChange={handleEditItemFormChange}/></div>
               <div><Label htmlFor="edit-margemLucro">Acréscimo (%)</Label><Input id="edit-margemLucro" name="margemLucro" type="text" inputMode='decimal' value={editingMargemLucroStr} onChange={handleEditItemFormChange}/></div>
               <DialogFooter>
