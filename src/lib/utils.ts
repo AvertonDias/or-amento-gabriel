@@ -104,7 +104,13 @@ export const maskCnpj = (value: string): string => {
 
 export const maskCurrency = (value: string): string => {
     if (!value) return "R$ 0,00";
-    let v = value.replace(/\D/g, '');
+    let v = value.replace(/\D/g, ''); // Remove tudo que não é dígito
+    if (v === '') return "R$ 0,00";
+    // Adiciona zeros à esquerda se necessário para ter pelo menos 3 dígitos
+    while (v.length < 3) {
+      v = '0' + v;
+    }
+    // Formata o valor
     v = (parseInt(v, 10) / 100).toFixed(2) + '';
     v = v.replace(".", ",");
     v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');

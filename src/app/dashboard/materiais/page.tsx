@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatCurrency, formatNumber } from '@/lib/utils';
+import { formatCurrency, formatNumber, maskCurrency } from '@/lib/utils';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { addMaterial, deleteMaterial, getMateriais, updateMaterial } from '@/services/materiaisService';
@@ -103,23 +103,15 @@ export default function MateriaisPage() {
 
   const handleNewItemNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    // Permite apenas números, uma vírgula ou um ponto
-    const sanitizedValue = value.replace(/[^0-9,.]/g, '');
-    // Garante que haja apenas um separador decimal
-    const parts = sanitizedValue.split(/[.,]/);
-    let finalValue = sanitizedValue;
-    if (parts.length > 2) {
-      finalValue = `${parts[0]},${parts.slice(1).join('')}`;
-    }
-    
-    const numericValue = finalValue.replace(',', '.');
-
     if (name === 'precoUnitario') {
-      setPrecoUnitarioStr(finalValue);
-      setNewItem(prev => ({...prev, precoUnitario: finalValue === '' ? null : parseFloat(numericValue) }));
+      const maskedValue = maskCurrency(value);
+      setPrecoUnitarioStr(maskedValue);
+      const numericValue = parseFloat(maskedValue.replace(/[^0-9,]/g, '').replace(',', '.')) || null;
+      setNewItem(prev => ({...prev, precoUnitario: numericValue }));
     } else if (name === 'quantidade') {
-      setQuantidadeStr(finalValue);
-      setNewItem(prev => ({...prev, quantidade: finalValue === '' ? null : parseFloat(numericValue) }));
+      const sanitizedValue = value.replace(/[^0-9,.]/g, '').replace(',', '.');
+      setQuantidadeStr(value.replace(/[^0-9,.]/g, ''));
+      setNewItem(prev => ({...prev, quantidade: sanitizedValue === '' ? null : parseFloat(sanitizedValue) }));
     }
   };
 
@@ -188,7 +180,7 @@ export default function MateriaisPage() {
   
   const handleEditClick = (material: MaterialItem) => {
     setEditingMaterial({ ...material });
-    setEditingPrecoUnitarioStr(material.precoUnitario !== null ? String(material.precoUnitario).replace('.', ',') : '');
+    setEditingPrecoUnitarioStr(formatCurrency(material.precoUnitario));
     setEditingQuantidadeStr(material.quantidade !== null && material.quantidade !== undefined ? String(material.quantidade).replace('.', ',') : '');
     setIsEditModalOpen(true);
   };
@@ -202,23 +194,16 @@ export default function MateriaisPage() {
   const handleEditNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingMaterial) return;
     const { name, value } = e.target;
-    // Permite apenas números, uma vírgula ou um ponto
-    const sanitizedValue = value.replace(/[^0-9,.]/g, '');
-    // Garante que haja apenas um separador decimal
-    const parts = sanitizedValue.split(/[.,]/);
-    let finalValue = sanitizedValue;
-    if (parts.length > 2) {
-      finalValue = `${parts[0]},${parts.slice(1).join('')}`;
-    }
     
-    const numericValue = finalValue.replace(',', '.');
-
     if (name === 'precoUnitario') {
-      setEditingPrecoUnitarioStr(finalValue);
-      setEditingMaterial(prev => prev ? { ...prev, precoUnitario: finalValue === '' ? null : parseFloat(numericValue) } : null);
+      const maskedValue = maskCurrency(value);
+      setEditingPrecoUnitarioStr(maskedValue);
+      const numericValue = parseFloat(maskedValue.replace(/[^0-9,]/g, '').replace(',', '.')) || null;
+      setEditingMaterial(prev => prev ? { ...prev, precoUnitario: numericValue } : null);
     } else if (name === 'quantidade') {
-      setEditingQuantidadeStr(finalValue);
-      setEditingMaterial(prev => prev ? { ...prev, quantidade: finalValue === '' ? null : parseFloat(numericValue) } : null);
+      const sanitizedValue = value.replace(/[^0-9,.]/g, '').replace(',', '.');
+      setEditingQuantidadeStr(value.replace(/[^0-9,.]/g, ''));
+      setEditingMaterial(prev => prev ? { ...prev, quantidade: sanitizedValue === '' ? null : parseFloat(sanitizedValue) } : null);
     }
   };
 
@@ -309,7 +294,7 @@ export default function MateriaisPage() {
                           </div>
                           <div>
                             <Label htmlFor="precoUnitario-item">Preço (R$)</Label>
-                            <Input id="precoUnitario-item" name="precoUnitario" type="text" inputMode='decimal' placeholder="12,50" value={precoUnitarioStr} onChange={handleNewItemNumberChange} required/>
+                            <Input id="precoUnitario-item" name="precoUnitario" type="text" inputMode='decimal' placeholder="R$ 12,50" value={precoUnitarioStr} onChange={handleNewItemNumberChange} required/>
                           </div>
                           <div>
                             <Label htmlFor="quantidade-item">Quantidade em Estoque</Label>
@@ -341,7 +326,7 @@ export default function MateriaisPage() {
                           </div>
                           <div>
                               <Label htmlFor="precoUnitario-servico">Preço (R$)</Label>
-                              <Input id="precoUnitario-servico" name="precoUnitario" type="text" inputMode='decimal' placeholder="150,00" value={precoUnitarioStr} onChange={handleNewItemNumberChange} required/>
+                              <Input id="precoUnitario-servico" name="precoUnitario" type="text" inputMode='decimal' placeholder="R$ 150,00" value={precoUnitarioStr} onChange={handleNewItemNumberChange} required/>
                           </div>
                           <div className="lg:col-span-4">
                             <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>

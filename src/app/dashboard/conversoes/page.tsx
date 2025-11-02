@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -168,9 +169,9 @@ export default function ConversoesPage() {
     const parts = sanitizedValue.split(/[.,]/);
     if (parts.length > 2) {
       // Se houver mais de um separador, mantenha o primeiro e junte o resto
-      setter(`${parts[0]},${parts.slice(1).join('')}`);
+      setter(`${parts[0]}.${parts.slice(1).join('')}`.replace(",", "."));
     } else {
-      setter(sanitizedValue);
+      setter(sanitizedValue.replace(",", "."));
     }
   };
 
@@ -201,7 +202,7 @@ export default function ConversoesPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="espessura" className="flex items-center gap-1"><Ruler className="w-4 h-4" /> Espessura (mm)</Label>
-              <Input id="espessura" type="text" inputMode="decimal" value={espessura} onChange={handleDecimalInputChange(setEspessura)} placeholder="Ex: 0,50" />
+              <Input id="espessura" type="text" inputMode="decimal" value={espessura} onChange={handleDecimalInputChange(setEspessura)} placeholder="Ex: 0.50" />
             </div>
              <div className="space-y-2">
               <Label htmlFor="price-mode">Tipo de Valor</Label>
