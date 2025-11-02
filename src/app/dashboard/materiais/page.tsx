@@ -47,6 +47,12 @@ const unidadesDeMedida = [
   { value: 'serv', label: 'Serviço (serv)' },
 ];
 
+// Helper function to normalize strings for comparison
+const normalizeString = (str: string) => {
+  return str.trim().toLowerCase().replace(/,/g, '.').replace(/\s+/g, ' ');
+};
+
+
 export default function MateriaisPage() {
   const [user, loadingAuth] = useAuthState(auth);
   const [materiais, setMateriais] = useState<MaterialItem[]>([]);
@@ -123,10 +129,10 @@ export default function MateriaisPage() {
     } else {
         const sanitizedValue = value.replace(/[^0-9,.]/g, '').replace(',', '.');
         if (name === 'quantidade') {
-          setQuantidadeStr(value.replace(/[^0-9,.]/g, ''));
+          setQuantidadeStr(value.replace(/[^0-9,]/g, ''));
           setNewItem(prev => ({...prev, quantidade: sanitizedValue === '' ? null : parseFloat(sanitizedValue) }));
         } else if (name === 'quantidadeMinima') {
-          setQuantidadeMinimaStr(value.replace(/[^0-9,.]/g, ''));
+          setQuantidadeMinimaStr(value.replace(/[^0-9,]/g, ''));
           setNewItem(prev => ({...prev, quantidadeMinima: sanitizedValue === '' ? null : parseFloat(sanitizedValue) }));
         }
     }
@@ -224,7 +230,8 @@ export default function MateriaisPage() {
     }
 
     // Check for duplicates
-    const existingItem = materiais.find(m => m.descricao.trim().toLowerCase() === newItem.descricao.trim().toLowerCase() && m.tipo === newItem.tipo);
+    const normalizedNewDesc = normalizeString(newItem.descricao);
+    const existingItem = materiais.find(m => normalizeString(m.descricao) === normalizedNewDesc && m.tipo === newItem.tipo);
 
     if (existingItem) {
       setConflictingItem(existingItem);
@@ -286,10 +293,10 @@ export default function MateriaisPage() {
     } else {
         const sanitizedValue = value.replace(/[^0-9,.]/g, '').replace(',', '.');
         if (name === 'quantidade') {
-          setEditingQuantidadeStr(value.replace(/[^0-9,.]/g, ''));
+          setEditingQuantidadeStr(value.replace(/[^0-9,]/g, ''));
           setEditingMaterial(prev => prev ? { ...prev, quantidade: sanitizedValue === '' ? null : parseFloat(sanitizedValue) } : null);
         } else if (name === 'quantidadeMinima') {
-          setEditingQuantidadeMinimaStr(value.replace(/[^0-9,.]/g, ''));
+          setEditingQuantidadeMinimaStr(value.replace(/[^0-9,]/g, ''));
           setEditingMaterial(prev => prev ? { ...prev, quantidadeMinima: sanitizedValue === '' ? null : parseFloat(sanitizedValue) } : null);
         }
     }
@@ -474,7 +481,7 @@ export default function MateriaisPage() {
                             <TableCell className="font-medium">{item.descricao}</TableCell>
                             <TableCell className="capitalize">{item.tipo}</TableCell>
                             <TableCell className={cn(isStockLow && "text-destructive font-bold")}>
-                              {item.tipo === 'item' ? `${formatNumber(item.quantidade, 0)} (Min: ${formatNumber(item.quantidadeMinima, 0)})` : 'N/A'}
+                              {item.tipo === 'item' ? `${formatNumber(item.quantidade, 2)} (Min: ${formatNumber(item.quantidadeMinima, 2)})` : 'N/A'}
                             </TableCell>
                             <TableCell>{item.unidade}</TableCell>
                             <TableCell>{formatCurrency(item.precoUnitario)}</TableCell>
@@ -510,7 +517,7 @@ export default function MateriaisPage() {
                         </CardHeader>
                         <CardContent className="p-4 pt-0 text-sm">
                           {item.tipo === 'item' && item.quantidade != null && (
-                            <p className={cn(isStockLow && "text-destructive font-bold")}><span className="font-medium text-muted-foreground">Estoque:</span> {formatNumber(item.quantidade, 0)} (Mín: {formatNumber(item.quantidadeMinima, 0)})</p>
+                            <p className={cn(isStockLow && "text-destructive font-bold")}><span className="font-medium text-muted-foreground">Estoque:</span> {formatNumber(item.quantidade, 2)} (Mín: {formatNumber(item.quantidadeMinima, 2)})</p>
                           )}
                         </CardContent>
                         <CardFooter className="p-4 pt-2 mt-2 bg-muted/50 flex justify-between items-center">
@@ -600,5 +607,7 @@ export default function MateriaisPage() {
     
 
       
+
+    
 
     

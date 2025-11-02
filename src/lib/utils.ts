@@ -38,7 +38,7 @@ export function formatSmallValueCurrency(value: number | null | undefined, digit
 
 export function formatNumber(value: number | null | undefined, decimalPlaces: number = 2): string {
   if (value === null || value === undefined || isNaN(value)) {
-    return '0,00';
+    return '0';
   }
 
   const options: Intl.NumberFormatOptions = {
@@ -46,7 +46,12 @@ export function formatNumber(value: number | null | undefined, decimalPlaces: nu
     maximumFractionDigits: decimalPlaces,
   };
 
-  return new Intl.NumberFormat('pt-BR', options).format(value);
+  const formatted = new Intl.NumberFormat('pt-BR', options).format(value);
+  // Se o valor for inteiro e não for para mostrar casas decimais, não adiciona `,00`
+  if (decimalPlaces === 0 && value % 1 === 0) {
+    return String(value);
+  }
+  return formatted;
 }
 
 export const maskTelefone = (value: string): string => {
@@ -182,3 +187,5 @@ export function validateCpfCnpj(doc: string): 'valid' | 'invalid' | 'incomplete'
     return validateCPF(onlyNums) ? 'valid' : 'invalid';
   }
 }
+
+    

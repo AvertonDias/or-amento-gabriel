@@ -35,6 +35,11 @@ const UNIT_LABELS: Record<string, Record<string, string>> = {
 
 type PriceInputMode = 'kg' | 'total';
 
+// Helper function to normalize strings for comparison
+const normalizeString = (str: string) => {
+  return str.trim().toLowerCase().replace(/,/g, '.').replace(/\s+/g, ' ');
+};
+
 export default function ConversoesPage() {
   const [user] = useAuthState(auth);
   const { toast } = useToast();
@@ -211,9 +216,12 @@ export default function ConversoesPage() {
       });
       return;
     }
-
+    
+    // Use the raw, non-replaced values for the description
     const materialDescricao = `Calha ${material === 'aluminio' ? 'Alumínio' : 'Aço Galvanizado'} ${largura}mm ${espessura}mm`;
-    const existingItem = materiais.find(m => m.descricao.trim().toLowerCase() === materialDescricao.trim().toLowerCase() && m.tipo === 'item');
+    const normalizedDescricao = normalizeString(materialDescricao);
+
+    const existingItem = materiais.find(m => normalizeString(m.descricao) === normalizedDescricao && m.tipo === 'item');
 
     if (existingItem) {
       setConflictingItem(existingItem);
@@ -237,15 +245,13 @@ export default function ConversoesPage() {
   
   const handleDecimalInputChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
-    // Permite apenas números, uma vírgula ou um ponto
-    const sanitizedValue = value.replace(/[^0-9,.]/g, '');
-    // Garante que haja apenas um separador decimal
-    const parts = sanitizedValue.split(/[.,]/);
+    // Allow only numbers and one comma
+    const sanitizedValue = value.replace(/[^0-9,]/g, '');
+    const parts = sanitizedValue.split(',');
     if (parts.length > 2) {
-      // Se houver mais de um separador, mantenha o primeiro e junte o resto
-      setter(`${parts[0]}.${parts.slice(1).join('')}`.replace(",", "."));
+        setter(`${parts[0]},${parts.slice(1).join('')}`);
     } else {
-      setter(sanitizedValue.replace(",", "."));
+        setter(sanitizedValue);
     }
   };
 
@@ -276,7 +282,7 @@ export default function ConversoesPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="espessura" className="flex items-center gap-1"><Ruler className="w-4 h-4" /> Espessura (mm)</Label>
-              <Input id="espessura" type="text" inputMode="decimal" value={espessura} onChange={handleDecimalInputChange(setEspessura)} placeholder="Ex: 0.50" />
+              <Input id="espessura" type="text" inputMode="decimal" value={espessura} onChange={handleDecimalInputChange(setEspessura)} placeholder="Ex: 0,50" />
             </div>
              <div className="space-y-2">
               <Label htmlFor="price-mode">Tipo de Valor</Label>
@@ -408,5 +414,7 @@ export default function ConversoesPage() {
     </div>
   );
 }
+
+    
 
     
