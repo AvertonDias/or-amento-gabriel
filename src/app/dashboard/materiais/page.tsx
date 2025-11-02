@@ -11,6 +11,7 @@ import { Trash2, Wrench, PlusCircle, Pencil, Loader2, RefreshCw, Package, Constr
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency, formatNumber, maskCurrency } from '@/lib/utils';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -66,6 +67,10 @@ export default function MateriaisPage() {
   const [editingQuantidadeStr, setEditingQuantidadeStr] = useState('');
   const [editingQuantidadeMinimaStr, setEditingQuantidadeMinimaStr] = useState('');
 
+  // State for update confirmation
+  const [isUpdateConfirmOpen, setIsUpdateConfirmOpen] = useState(false);
+  const [conflictingItem, setConflictingItem] = useState<MaterialItem | null>(null);
+
 
   const { toast } = useToast();
   
@@ -109,19 +114,21 @@ export default function MateriaisPage() {
 
   const handleNewItemNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const sanitizedValue = value.replace(/[^0-9,.]/g, '').replace(',', '.');
 
     if (name === 'precoUnitario') {
       const maskedValue = maskCurrency(value);
       setPrecoUnitarioStr(maskedValue);
       const numericValue = parseFloat(maskedValue.replace(/[^0-9,]/g, '').replace(',', '.')) || null;
       setNewItem(prev => ({...prev, precoUnitario: numericValue }));
-    } else if (name === 'quantidade') {
-      setQuantidadeStr(value.replace(/[^0-9,.]/g, ''));
-      setNewItem(prev => ({...prev, quantidade: sanitizedValue === '' ? null : parseFloat(sanitizedValue) }));
-    } else if (name === 'quantidadeMinima') {
-      setQuantidadeMinimaStr(value.replace(/[^0-9,.]/g, ''));
-      setNewItem(prev => ({...prev, quantidadeMinima: sanitizedValue === '' ? null : parseFloat(sanitizedValue) }));
+    } else {
+        const sanitizedValue = value.replace(/[^0-9,.]/g, '').replace(',', '.');
+        if (name === 'quantidade') {
+          setQuantidadeStr(value.replace(/[^0-9,.]/g, ''));
+          setNewItem(prev => ({...prev, quantidade: sanitizedValue === '' ? null : parseFloat(sanitizedValue) }));
+        } else if (name === 'quantidadeMinima') {
+          setQuantidadeMinimaStr(value.replace(/[^0-9,.]/g, ''));
+          setNewItem(prev => ({...prev, quantidadeMinima: sanitizedValue === '' ? null : parseFloat(sanitizedValue) }));
+        }
     }
   };
 
@@ -129,24 +136,10 @@ export default function MateriaisPage() {
   const handleUnitChange = (value: string) => {
     setNewItem(prev => ({ ...prev, unidade: value }));
   };
-
-  const handleAdicionarMaterial = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!user) {
-      toast({ title: "Usuário não autenticado", variant: "destructive" });
-      return;
-    }
-    if (!newItem.descricao || newItem.precoUnitario === null || isNaN(newItem.precoUnitario)) {
-        toast({
-            title: "Campos Obrigatórios",
-            description: "Por favor, preencha a Descrição e o Preço.",
-            variant: "destructive"
-        });
-        return;
-    }
-    
-    setIsSubmitting(true);
-    try {
+  
+  const performAdd = async () => {
+    if (!user) return; // Should already be checked
+     try {
       const payload: Omit<MaterialItem, 'id' | 'userId'> = {
         descricao: newItem.descricao,
         unidade: newItem.unidade,
@@ -173,10 +166,82 @@ export default function MateriaisPage() {
       });
     } catch (error) {
        toast({ title: `Erro ao adicionar ${activeTab === 'item' ? 'item' : 'serviço'}`, variant: 'destructive' });
-    } finally {
-      setIsSubmitting(false);
     }
   };
+
+  const performUpdate = async () => {
+    if (!conflictingItem || !user) return; // Should not happen
+     try {
+       const { id, userId, ...materialToUpdate } = conflictingItem;
+       
+       const updatedPayload: Partial<Omit<MaterialItem, 'id' | 'userId'>> = {
+         ...materialToUpdate,
+         unidade: newItem.unidade,
+         precoUnitario: newItem.precoUnitario,
+         // Only update stock fields if it's an item
+         ...(newItem.tipo === 'item' && {
+            quantidade: newItem.quantidade,
+            quantidadeMinima: newItem.quantidadeMinima,
+         })
+       };
+
+        await updateMaterial(id, updatedPayload);
+        setNewItem({ ...initialNewItemState, tipo: activeTab, unidade: activeTab === 'servico' ? 'serv' : 'un' });
+        setPrecoUnitarioStr('');
+        setQuantidadeStr('');
+        setQuantidadeMinimaStr('');
+        await fetchMateriais(); // Refresh list
+        toast({
+            title: "Sucesso!",
+            description: "Item atualizado com sucesso.",
+        });
+
+     } catch (error) {
+       toast({ title: 'Erro ao atualizar item', variant: 'destructive' });
+     } finally {
+       setConflictingItem(null);
+     }
+  };
+
+
+  const handleAdicionarMaterial = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      toast({ title: "Usuário não autenticado", variant: "destructive" });
+      return;
+    }
+    if (!newItem.descricao || newItem.precoUnitario === null || isNaN(newItem.precoUnitario)) {
+        toast({
+            title: "Campos Obrigatórios",
+            description: "Por favor, preencha a Descrição e o Preço.",
+            variant: "destructive"
+        });
+        return;
+    }
+
+    // Check for duplicates
+    const existingItem = materiais.find(m => m.descricao.trim().toLowerCase() === newItem.descricao.trim().toLowerCase() && m.tipo === newItem.tipo);
+
+    if (existingItem) {
+      setConflictingItem(existingItem);
+      setIsUpdateConfirmOpen(true);
+      return;
+    }
+
+    setIsSubmitting(true);
+    await performAdd();
+    setIsSubmitting(false);
+  };
+  
+  const handleConfirmUpdate = async () => {
+    setIsUpdateConfirmOpen(false);
+    if (!conflictingItem) return;
+    
+    setIsSubmitting(true);
+    await performUpdate();
+    setIsSubmitting(false);
+  };
+
 
   const handleRemoverMaterial = async (id: string) => {
     try {
@@ -208,19 +273,21 @@ export default function MateriaisPage() {
   const handleEditNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingMaterial) return;
     const { name, value } = e.target;
-    const sanitizedValue = value.replace(/[^0-9,.]/g, '').replace(',', '.');
     
     if (name === 'precoUnitario') {
       const maskedValue = maskCurrency(value);
       setEditingPrecoUnitarioStr(maskedValue);
       const numericValue = parseFloat(maskedValue.replace(/[^0-9,]/g, '').replace(',', '.')) || null;
       setEditingMaterial(prev => prev ? { ...prev, precoUnitario: numericValue } : null);
-    } else if (name === 'quantidade') {
-      setEditingQuantidadeStr(value.replace(/[^0-9,.]/g, ''));
-      setEditingMaterial(prev => prev ? { ...prev, quantidade: sanitizedValue === '' ? null : parseFloat(sanitizedValue) } : null);
-    } else if (name === 'quantidadeMinima') {
-      setEditingQuantidadeMinimaStr(value.replace(/[^0-9,.]/g, ''));
-      setEditingMaterial(prev => prev ? { ...prev, quantidadeMinima: sanitizedValue === '' ? null : parseFloat(sanitizedValue) } : null);
+    } else {
+        const sanitizedValue = value.replace(/[^0-9,.]/g, '').replace(',', '.');
+        if (name === 'quantidade') {
+          setEditingQuantidadeStr(value.replace(/[^0-9,.]/g, ''));
+          setEditingMaterial(prev => prev ? { ...prev, quantidade: sanitizedValue === '' ? null : parseFloat(sanitizedValue) } : null);
+        } else if (name === 'quantidadeMinima') {
+          setEditingQuantidadeMinimaStr(value.replace(/[^0-9,.]/g, ''));
+          setEditingMaterial(prev => prev ? { ...prev, quantidadeMinima: sanitizedValue === '' ? null : parseFloat(sanitizedValue) } : null);
+        }
     }
   };
 
@@ -507,6 +574,25 @@ export default function MateriaisPage() {
           )}
         </DialogContent>
       </Dialog>
+      
+      <AlertDialog open={isUpdateConfirmOpen} onOpenChange={setIsUpdateConfirmOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Item Duplicado Encontrado</AlertDialogTitle>
+              <AlertDialogDescription>
+                Já existe um {conflictingItem?.tipo} com a descrição "{conflictingItem?.descricao}". 
+                Deseja atualizar o item existente com os novos dados inseridos?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setConflictingItem(null)}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmUpdate}>Sim, Atualizar</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
+
+    
