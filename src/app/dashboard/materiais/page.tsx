@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatCurrency, formatNumber, maskCurrency } from '@/lib/utils';
+import { formatCurrency, formatNumber, maskCurrency, maskDecimal } from '@/lib/utils';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { addMaterial, deleteMaterial, getMateriais, updateMaterial } from '@/services/materiaisService';
@@ -127,13 +127,14 @@ export default function MateriaisPage() {
       const numericValue = parseFloat(maskedValue.replace(/\D/g, '')) / 100 || null;
       setNewItem(prev => ({...prev, precoUnitario: numericValue }));
     } else {
-        const sanitizedValue = value.replace(/[^0-9,.]/g, '').replace(',', '.');
+        const maskedValue = maskDecimal(value);
+        const numericValue = maskedValue === '' ? null : parseFloat(maskedValue.replace(',', '.'));
         if (name === 'quantidade') {
-          setQuantidadeStr(value.replace(/[^0-9,]/g, ''));
-          setNewItem(prev => ({...prev, quantidade: sanitizedValue === '' ? null : parseFloat(sanitizedValue) }));
+          setQuantidadeStr(maskedValue);
+          setNewItem(prev => ({...prev, quantidade: numericValue }));
         } else if (name === 'quantidadeMinima') {
-          setQuantidadeMinimaStr(value.replace(/[^0-9,]/g, ''));
-          setNewItem(prev => ({...prev, quantidadeMinima: sanitizedValue === '' ? null : parseFloat(sanitizedValue) }));
+          setQuantidadeMinimaStr(maskedValue);
+          setNewItem(prev => ({...prev, quantidadeMinima: numericValue }));
         }
     }
   };
@@ -291,13 +292,14 @@ export default function MateriaisPage() {
       const numericValue = parseFloat(maskedValue.replace(/\D/g, '')) / 100 || null;
       setEditingMaterial(prev => prev ? { ...prev, precoUnitario: numericValue } : null);
     } else {
-        const sanitizedValue = value.replace(/[^0-9,.]/g, '').replace(',', '.');
+        const maskedValue = maskDecimal(value);
+        const numericValue = maskedValue === '' ? null : parseFloat(maskedValue.replace(',', '.'));
         if (name === 'quantidade') {
-          setEditingQuantidadeStr(value.replace(/[^0-9,]/g, ''));
-          setEditingMaterial(prev => prev ? { ...prev, quantidade: sanitizedValue === '' ? null : parseFloat(sanitizedValue) } : null);
+          setEditingQuantidadeStr(maskedValue);
+          setEditingMaterial(prev => prev ? { ...prev, quantidade: numericValue } : null);
         } else if (name === 'quantidadeMinima') {
-          setEditingQuantidadeMinimaStr(value.replace(/[^0-9,]/g, ''));
-          setEditingMaterial(prev => prev ? { ...prev, quantidadeMinima: sanitizedValue === '' ? null : parseFloat(sanitizedValue) } : null);
+          setEditingQuantidadeMinimaStr(maskedValue);
+          setEditingMaterial(prev => prev ? { ...prev, quantidadeMinima: numericValue } : null);
         }
     }
   };
