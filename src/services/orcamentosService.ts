@@ -1,3 +1,4 @@
+
 import { db } from '@/lib/firebase';
 import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy, limit, getCountFromServer } from 'firebase/firestore';
 import type { Orcamento } from '@/lib/types';
@@ -12,7 +13,11 @@ export const addOrcamento = async (orcamento: Omit<Orcamento, 'id'>) => {
       console.log(`[ORCAMENTO SERVICE - addOrcamento] Orçamento salvo com ID: ${docRef.id}`);
       return docRef.id;
   } catch (error: any) {
-    console.error("[ORCAMENTO SERVICE - addOrcamento] Erro ao adicionar orçamento:", error.code, "-", error.message);
+    console.error("[ORCAMENTO SERVICE - addOrcamento] Erro ao adicionar orçamento:", error.message);
+    // Lança um erro mais específico para a UI capturar
+    if (error.code === 'permission-denied') {
+        throw new Error("Permissão negada. Verifique as regras de segurança do Firestore.");
+    }
     throw new Error(`Falha ao adicionar orçamento: ${error.message}`);
   }
 };
@@ -54,8 +59,6 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
         const q = query(
             collection(db, ORCAMENTOS_COLLECTION),
             where('userId', '==', userId),
-            where('numeroOrcamento', '>=', `${currentYear}-000`),
-            where('numeroOrcamento', '<', `${currentYear + 1}-000`),
             orderBy('numeroOrcamento', 'desc'),
             limit(1)
         );
@@ -70,6 +73,11 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
         const lastOrcamento = querySnapshot.docs[0].data() as Orcamento;
         const lastNumberFull = lastOrcamento.numeroOrcamento;
         const [lastYear, lastNumberStr] = lastNumberFull.split('-');
+
+        if (String(currentYear) !== lastYear) {
+             console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Ano mudou. Iniciando contagem para ${currentYear}.`);
+             return `${currentYear}-001`;
+        }
         
         const newNumber = parseInt(lastNumberStr, 10) + 1;
 
