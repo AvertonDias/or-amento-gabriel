@@ -22,7 +22,7 @@ import { auth } from '@/lib/firebase';
 import { getMateriais, updateEstoque } from '@/services/materiaisService';
 import { getClientes } from '@/services/clientesService';
 import { getEmpresaData } from '@/services/empresaService';
-import { addOrcamento, deleteOrcamento, getOrcamentos, updateOrcamento, updateOrcamentoStatus, getNextOrcamentoNumber } from '@/services/orcamentosService';
+import { addOrcamento, deleteOrcamento, getOrcamentos, getNextOrcamentoNumber, updateOrcamento, updateOrcamentoStatus } from '@/services/orcamentosService';
 import { addDays, parseISO, format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import {
@@ -45,7 +45,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
     const dataValidade = !isNaN(validadeDiasNum) ? addDays(dataCriacao, validadeDiasNum) : null;
 
     return (
-      <div className="p-8 font-sans bg-white text-black text-base">
+      <div className="p-8 font-sans bg-white text-black text-sm">
         <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
           <div className="flex items-start gap-4">
             {empresa?.logo && (
@@ -55,22 +55,22 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
               </div>
             )}
             <div>
-              <h1 className="text-xl font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
-              <p className="text-sm">{empresa?.endereco}</p>
-              <p className="text-sm">{empresa?.telefone}</p>
-              <p className="text-sm">{empresa?.cnpj}</p>
+              <h1 className="text-lg font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
+              <p className="text-xs">{empresa?.endereco}</p>
+              <p className="text-xs">{empresa?.telefone}</p>
+              <p className="text-xs">{empresa?.cnpj}</p>
             </div>
           </div>
            <div className="text-right">
-            <h2 className="text-lg font-semibold">Orçamento #{orcamento.numeroOrcamento}</h2>
-            <p className="text-sm">Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
-            {dataValidade && <p className="text-sm mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
+            <h2 className="text-base font-semibold">Orçamento #{orcamento.numeroOrcamento}</h2>
+            <p className="text-xs">Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
+            {dataValidade && <p className="text-xs mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
           </div>
         </header>
 
         <section className="mb-4">
           <h3 className="font-semibold text-base mb-2">Cliente:</h3>
-          <div className="text-sm space-y-1">
+          <div className="text-xs space-y-1">
             <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
             {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
             {orcamento.cliente.endereco && <p><span className="font-medium">Endereço:</span> {orcamento.cliente.endereco}</p>}
@@ -79,7 +79,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
           </div>
         </section>
 
-        <table className="w-full text-sm text-black">
+        <table className="w-full text-xs text-black">
           <thead className="bg-gray-100">
             <tr className='border-b'>
               <th className="p-2 text-left font-semibold text-black">Item / Descrição</th>
@@ -123,7 +123,7 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
     const lucroTotal = orcamento.totalVenda - totalCusto;
 
     return (
-      <div className="p-8 font-sans bg-white text-black text-base">
+      <div className="p-8 font-sans bg-white text-black text-sm">
         <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
             <div className="flex items-start gap-4">
               {empresa?.logo && (
@@ -133,22 +133,22 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
                 </div>
               )}
               <div>
-                <h1 className="text-xl font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
-                <p className="text-sm">{empresa?.endereco}</p>
-                <p className="text-sm">{empresa?.telefone}</p>
-                <p className="text-sm">{empresa?.cnpj}</p>
+                <h1 className="text-lg font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
+                <p className="text-xs">{empresa?.endereco}</p>
+                <p className="text-xs">{empresa?.telefone}</p>
+                <p className="text-xs">{empresa?.cnpj}</p>
               </div>
             </div>
             <div className="text-right">
-              <h2 className="text-lg font-semibold">Orçamento Interno #{orcamento.numeroOrcamento}</h2>
-              <p className="text-sm">Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
-              {dataValidade && <p className="text-sm mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
+              <h2 className="text-base font-semibold">Orçamento Interno #{orcamento.numeroOrcamento}</h2>
+              <p className="text-xs">Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
+              {dataValidade && <p className="text-xs mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
             </div>
         </header>
 
         <section className="mb-4">
             <h3 className="font-semibold text-base mb-2">Cliente:</h3>
-            <div className="text-sm space-y-1">
+            <div className="text-xs space-y-1">
               <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
               {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
               {orcamento.cliente.endereco && <p><span className="font-medium">Endereço:</span> {orcamento.cliente.endereco}</p>}
@@ -157,7 +157,7 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
             </div>
         </section>
 
-        <table className="w-full text-sm text-black">
+        <table className="w-full text-xs text-black">
           <thead className="bg-gray-100">
             <tr className='border-b'>
               <th className="p-2 text-left font-semibold text-black">Item</th>
@@ -187,7 +187,7 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
               <td className="p-2 text-right"></td>
               <td className="p-2 text-right bg-green-100">{formatCurrency(orcamento.totalVenda)}</td>
             </tr>
-             <tr className="font-bold text-lg">
+             <tr className="font-bold text-base">
               <td colSpan={5} className="p-2 text-right bg-blue-100">LUCRO TOTAL</td>
               <td className="p-2 text-right bg-blue-100">{formatCurrency(lucroTotal)}</td>
             </tr>
@@ -242,6 +242,11 @@ export default function OrcamentoPage() {
   const [isEditBudgetModalOpen, setIsEditBudgetModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Orcamento | null>(null);
   const [editingBudgetItens, setEditingBudgetItens] = useState<OrcamentoItem[]>([]);
+
+  // State for adding new item in edit modal
+  const [newItemForEdit, setNewItemForEdit] = useState({ materialId: '', quantidade: '', margemLucro: '' });
+  const [newItemQtyStr, setNewItemQtyStr] = useState('');
+  const [newItemMarginStr, setNewItemMarginStr] = useState('');
 
 
   const fetchAllData = useCallback(async (isRefresh = false) => {
@@ -311,6 +316,10 @@ export default function OrcamentoPage() {
   const selectedMaterial = useMemo(() => {
     return materiais.find(m => m.id === novoItem.materialId);
   }, [materiais, novoItem.materialId]);
+
+  const selectedMaterialForEdit = useMemo(() => {
+    return materiais.find(m => m.id === newItemForEdit.materialId);
+  }, [materiais, newItemForEdit.materialId]);
   
   const totalCusto = useMemo(() => orcamentoItens.reduce((sum, item) => sum + item.total, 0), [orcamentoItens]);
   const totalVenda = useMemo(() => orcamentoItens.reduce((sum, item) => sum + item.precoVenda, 0), [orcamentoItens]);
@@ -346,6 +355,22 @@ export default function OrcamentoPage() {
     }
   };
 
+  const handleNewItemForEditChange = (field: keyof typeof newItemForEdit, value: string) => {
+    const setterMap = {
+      quantidade: setNewItemQtyStr,
+      margemLucro: setNewItemMarginStr,
+    };
+    const targetSetter = setterMap[field as keyof typeof setterMap];
+
+    if (targetSetter) {
+        const sanitizedValue = value.replace(/[^0-9,]/g, '');
+        targetSetter(sanitizedValue);
+        setNewItemForEdit(prev => ({ ...prev, [field]: sanitizedValue.replace(',', '.') }));
+    } else {
+        setNewItemForEdit(prev => ({ ...prev, [field]: value }));
+    }
+  };
+
   const addLinha = () => {
     if (!selectedMaterial) {
       toast({ title: 'Seleção necessária', description: 'Por favor, selecione um item ou serviço.', variant: 'destructive' });
@@ -371,6 +396,37 @@ export default function OrcamentoPage() {
     setMargemLucroStr('');
   };
 
+  const handleAddItemToEditBudget = () => {
+    if (!selectedMaterialForEdit) {
+      toast({ title: 'Seleção necessária', description: 'Por favor, selecione um item ou serviço.', variant: 'destructive' });
+      return;
+    }
+    const { precoUnitario, id: materialId, descricao, unidade } = selectedMaterialForEdit;
+    const numMargemLucro = parseFloat(newItemForEdit.margemLucro.replace(',', '.')) || 0;
+    const numQuantidade = parseFloat(newItemForEdit.quantidade.replace(/[^0-9,]/g, '').replace(',', '.'));
+
+    if (isNaN(numQuantidade) || numQuantidade <= 0 || precoUnitario === null) {
+      toast({ title: 'Valores inválidos', description: 'Preencha a Quantidade corretamente.', variant: 'destructive' });
+      return;
+    }
+
+    const custoFinal = precoUnitario * numQuantidade;
+    const precoVenda = custoFinal * (1 + numMargemLucro / 100);
+    
+    const novoOrcamentoItem: OrcamentoItem = { 
+      id: crypto.randomUUID(), materialId, materialNome: descricao, unidade,
+      quantidade: numQuantidade, precoUnitario, total: custoFinal, 
+      margemLucro: numMargemLucro, precoVenda,
+    };
+    
+    setEditingBudgetItens(prev => [...prev, novoOrcamentoItem]);
+    
+    // Reset form fields for adding new item in edit modal
+    setNewItemForEdit({ materialId: '', quantidade: '', margemLucro: '' });
+    setNewItemQtyStr('');
+    setNewItemMarginStr('');
+  };
+
   const removeLinha = (id: string) => {
     setOrcamentoItens(prev => prev.filter(i => i.id !== id));
   };
@@ -392,8 +448,8 @@ export default function OrcamentoPage() {
         await fetchOrcamentos();
         toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
         setIsWizardOpen(false);
-    } catch(error) {
-        toast({ title: "Erro ao salvar orçamento", variant: "destructive" });
+    } catch(error: any) {
+        toast({ title: "Erro ao salvar orçamento", description: error.message, variant: "destructive" });
         console.error("Erro ao salvar:", error);
     } finally {
         setIsSubmitting(false);
@@ -876,6 +932,25 @@ export default function OrcamentoPage() {
                 </DialogDescription>
             </DialogHeader>
             <div className="flex-grow overflow-y-auto p-1 pr-4">
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 p-4 border rounded-lg items-end">
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="edit-material-select">Item / Serviço</Label>
+                    <Select value={newItemForEdit.materialId} onValueChange={(val) => handleNewItemForEditChange('materialId', val)}>
+                      <SelectTrigger id="edit-material-select"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                      <SelectContent>
+                        {materiais.map(mat => (<SelectItem key={mat.id} value={mat.id}>{`${mat.descricao} (${formatCurrency(mat.precoUnitario)}/${mat.unidade})`}</SelectItem>))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {selectedMaterialForEdit && (
+                    <>
+                      <div><Label htmlFor="edit-quantidade">Qtd ({selectedMaterialForEdit.unidade})</Label><Input id="edit-quantidade" type="text" inputMode='decimal' placeholder="1,5" value={newItemQtyStr} onChange={e => handleNewItemForEditChange('quantidade', e.target.value)} /></div>
+                      <div><Label htmlFor="edit-margem-lucro">Acréscimo (%)</Label><Input id="edit-margem-lucro" type="text" inputMode='decimal' placeholder="10" value={newItemMarginStr} onChange={e => handleNewItemForEditChange('margemLucro', e.target.value)} /></div>
+                      <div className="lg:col-span-1"><Button onClick={handleAddItemToEditBudget} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Adicionar Item</Button></div>
+                    </>
+                  )}
+                </div>
+
                 <Table>
                     <TableHeader>
                         <TableRow>
