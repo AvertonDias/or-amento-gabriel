@@ -313,6 +313,7 @@ export default function OrcamentoPage() {
 
         await addOrcamento(newBudget);
         limparValores();
+        setClienteData({ id: undefined, nome: '', endereco: '', telefone: '', email: '', cpfCnpj: ''});
         setIsSaveModalOpen(false);
         await fetchAllData(true); // Refresh all data, including orcamentos
         toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
@@ -927,5 +928,7 @@ export default function OrcamentoPage() {
     </div>
   );
 }
+
+    
 
     

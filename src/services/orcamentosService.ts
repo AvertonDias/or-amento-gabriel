@@ -50,9 +50,12 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
     const currentYear = new Date().getFullYear();
 
     try {
+        // Query for budgets of the specific user for the current year
         const q = query(
             collection(db, ORCAMENTOS_COLLECTION),
             where('userId', '==', userId),
+            where('numeroOrcamento', '>=', `${currentYear}-000`),
+            where('numeroOrcamento', '<', `${currentYear + 1}-000`),
             orderBy('numeroOrcamento', 'desc'),
             limit(1)
         );
@@ -60,7 +63,7 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
         const querySnapshot = await getDocs(q);
         
         if (querySnapshot.empty) {
-            console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Nenhum orçamento anterior encontrado. Iniciando com 1.`);
+            console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Nenhum orçamento encontrado para ${currentYear}. Iniciando com 1.`);
             return `${currentYear}-001`;
         }
         
@@ -68,19 +71,16 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
         const lastNumberFull = lastOrcamento.numeroOrcamento;
         const [lastYear, lastNumberStr] = lastNumberFull.split('-');
         
-        let newNumber;
-        if (parseInt(lastYear, 10) === currentYear) {
-            newNumber = parseInt(lastNumberStr, 10) + 1;
-        } else {
-            newNumber = 1;
-        }
+        const newNumber = parseInt(lastNumberStr, 10) + 1;
 
         console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Último orçamento: ${lastNumberFull}. Novo número: ${newNumber}`);
         return `${currentYear}-${String(newNumber).padStart(3, '0')}`;
 
     } catch (e: any) {
         console.error("[ORCAMENTO SERVICE - getNextOrcamentoNumber] Erro ao obter próximo número:", e.message);
-        // Fallback robusto em caso de qualquer erro na consulta, inicia do 1
+        // Fallback robusto em caso de qualquer erro na consulta (ex: índice não existe), inicia do 1
         return `${currentYear}-001`;
     }
 };
+
+    
