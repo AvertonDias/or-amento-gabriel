@@ -22,7 +22,7 @@ import { auth } from '@/lib/firebase';
 import { getMateriais, updateEstoque } from '@/services/materiaisService';
 import { getClientes } from '@/services/clientesService';
 import { getEmpresaData } from '@/services/empresaService';
-import { addOrcamento, deleteOrcamento, getOrcamentos, updateOrcamentoStatus, getNextOrcamentoNumber } from '@/services/orcamentosService';
+import { addOrcamento, deleteOrcamento, getOrcamentos, updateOrcamento, updateOrcamentoStatus } from '@/services/orcamentosService';
 import { addDays, parseISO, format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 
@@ -131,7 +131,7 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
             <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
             {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
             {orcamento.cliente.endereco && <p><span className="font-medium">Endereço:</span> {orcamento.cliente.endereco}</p>}
-            <p><span className="font-medium">Telefone:</span> {orcamento.cliente.telefone}</p>
+            {orcamento.cliente.telefone && <p><span className="font-medium">Telefone:</span> {orcamento.cliente.telefone}</p>}
             {orcamento.cliente.email && <p><span className="font-medium">Email:</span> {orcamento.cliente.email}</p>}
           </div>
         </section>
@@ -218,6 +218,11 @@ export default function OrcamentoPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pdfBudget, setPdfBudget] = useState<Orcamento | null>(null);
+  
+  const [isEditBudgetModalOpen, setIsEditBudgetModalOpen] = useState(false);
+  const [editingBudget, setEditingBudget] = useState<Orcamento | null>(null);
+  const [editingBudgetItens, setEditingBudgetItens] = useState<OrcamentoItem[]>([]);
+
 
   const fetchAllData = useCallback(async (isRefresh = false) => {
     if (!user) return;
@@ -478,10 +483,12 @@ export default function OrcamentoPage() {
     window.open(urlWhatsApp, '_blank');
   };
 
-  const handleEditItemClick = (item: OrcamentoItem) => {
+  const handleEditItemClick = (item: OrcamentoItem, sourceList: 'wizard' | 'modal') => {
     setEditingItem({ ...item });
     setEditingQuantidadeStr(String(item.quantidade).replace('.', ','));
     setEditingMargemLucroStr(String(item.margemLucro).replace('.', ','));
+    // Definir de qual lista o item veio para saber onde salvar de volta
+    (item as any).sourceList = sourceList; 
     setIsEditItemModalOpen(true);
   };
   
@@ -495,16 +502,25 @@ export default function OrcamentoPage() {
   const handleSalvarEdicaoItem = (e: FormEvent) => {
     e.preventDefault();
     if (!editingItem) return;
+
+    const sourceList = (editingItem as any).sourceList;
     const numQuantidade = parseFloat(editingQuantidadeStr.replace(',', '.'));
     const numMargemLucro = parseFloat(editingMargemLucroStr.replace(',', '.')) || 0;
     if (isNaN(numQuantidade) || numQuantidade <= 0) { toast({ title: 'Quantidade inválida', variant: 'destructive' }); return; }
+
     const custoFinal = editingItem.precoUnitario * numQuantidade;
     const precoVendaCalculado = custoFinal * (1 + numMargemLucro / 100);
     const itemAtualizado: OrcamentoItem = { 
         ...editingItem, quantidade: numQuantidade, margemLucro: numMargemLucro,
         total: custoFinal, precoVenda: precoVendaCalculado 
     };
-    setOrcamentoItens(prev => prev.map(item => item.id === itemAtualizado.id ? itemAtualizado : item));
+
+    if (sourceList === 'wizard') {
+        setOrcamentoItens(prev => prev.map(item => item.id === itemAtualizado.id ? itemAtualizado : item));
+    } else if (sourceList === 'modal') {
+        setEditingBudgetItens(prev => prev.map(item => item.id === itemAtualizado.id ? itemAtualizado : item));
+    }
+
     setIsEditItemModalOpen(false);
     setEditingItem(null);
     toast({ title: 'Item atualizado.' });
@@ -529,24 +545,39 @@ export default function OrcamentoPage() {
     }
   };
 
-  const carregarOrcamentoParaEdicao = async (orcamento: Orcamento) => {
-    try {
-        await deleteOrcamento(orcamento.id);
-        setOrcamentoItens(orcamento.itens);
-        setClienteData(orcamento.cliente);
-        setValidadeDias(orcamento.validadeDias);
-        setWizardStep(2); // Pula para a etapa de itens
-        setIsWizardOpen(true);
-        await fetchOrcamentos();
-        toast({
-            title: 'Orçamento Carregado para Edição',
-            description: 'Faça suas alterações e salve novamente.',
-        });
-    } catch (error) {
-        toast({ title: 'Erro ao carregar orçamento para edição.', variant: 'destructive'});
-    }
+  const handleOpenEditBudgetModal = (orcamento: Orcamento) => {
+    setEditingBudget({ ...orcamento });
+    setEditingBudgetItens([...orcamento.itens]);
+    setIsEditBudgetModalOpen(true);
   };
   
+  const handleRemoveItemFromEditBudget = (itemId: string) => {
+    setEditingBudgetItens(prev => prev.filter(item => item.id !== itemId));
+  };
+  
+  const handleUpdateBudget = async () => {
+    if (!editingBudget || !user) return;
+    setIsSubmitting(true);
+    try {
+        const totalVendaFinal = editingBudgetItens.reduce((acc, item) => acc + item.precoVenda, 0);
+        const budgetToUpdate = {
+            ...editingBudget,
+            itens: editingBudgetItens,
+            totalVenda: totalVendaFinal,
+        };
+        await updateOrcamento(budgetToUpdate.id, budgetToUpdate);
+        await fetchOrcamentos();
+        setIsEditBudgetModalOpen(false);
+        setEditingBudget(null);
+        toast({title: "Orçamento atualizado com sucesso!"});
+    } catch (error) {
+        toast({title: "Erro ao atualizar o orçamento", variant: "destructive"});
+        console.error(error);
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
   const anyLoading = loadingAuth || Object.values(isLoading).some(Boolean);
 
   return (
@@ -624,19 +655,7 @@ export default function OrcamentoPage() {
                             </div>
                         </CardContent>
                         <CardFooter className="flex flex-wrap justify-end gap-2 bg-muted/50 p-4">
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild><Button variant="outline" size="sm"><Pencil className="mr-2 h-4 w-4" />Editar</Button></AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Carregar Orçamento para Edição?</AlertDialogTitle>
-                                        <AlertDialogDescription>Esta ação irá carregar os itens deste orçamento no editor. O orçamento atual será removido do histórico para que você possa salvá-lo novamente após a edição.</AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => carregarOrcamentoParaEdicao(orcamento)}>Sim, Carregar e Editar</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                           <Button variant="outline" size="sm" onClick={() => handleOpenEditBudgetModal(orcamento)}><Pencil className="mr-2 h-4 w-4" />Editar</Button>
                              <AlertDialog>
                                 <AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="mr-2 h-4 w-4" />Excluir</Button></AlertDialogTrigger>
                                 <AlertDialogContent>
@@ -756,7 +775,7 @@ export default function OrcamentoPage() {
                                     <TableCell className="text-right">{formatNumber(item.quantidade, 2)}</TableCell>
                                     <TableCell className="text-right font-bold text-primary">{formatCurrency(item.precoVenda)}</TableCell>
                                     <TableCell className="flex justify-center gap-1">
-                                        <Button variant="ghost" size="icon" onClick={() => handleEditItemClick(item)}><Pencil className="h-4 w-4 text-primary" /></Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleEditItemClick(item, 'wizard')}><Pencil className="h-4 w-4 text-primary" /></Button>
                                         <Button variant="ghost" size="icon" onClick={() => removeLinha(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                     </TableCell>
                                 </TableRow>
@@ -804,6 +823,58 @@ export default function OrcamentoPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isEditBudgetModalOpen} onOpenChange={setIsEditBudgetModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+            <DialogHeader>
+                <DialogTitle>Editar Orçamento #{editingBudget?.numeroOrcamento}</DialogTitle>
+                <DialogDescription>
+                    Cliente: {editingBudget?.cliente.nome} <br/>
+                    Ajuste os itens e clique em salvar.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="flex-grow overflow-y-auto p-1 pr-4">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Item</TableHead>
+                            <TableHead className="text-right">Qtd.</TableHead>
+                            <TableHead className="text-right">Venda</TableHead>
+                            <TableHead className="text-center">Ações</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {editingBudgetItens.map(item => (
+                            <TableRow key={item.id}>
+                                <TableCell>{item.materialNome}</TableCell>
+                                <TableCell className="text-right">{formatNumber(item.quantidade, 2)}</TableCell>
+                                <TableCell className="text-right font-bold text-primary">{formatCurrency(item.precoVenda)}</TableCell>
+                                <TableCell className="flex justify-center gap-1">
+                                    <Button variant="ghost" size="icon" onClick={() => handleEditItemClick(item, 'modal')}><Pencil className="h-4 w-4 text-primary" /></Button>
+                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveItemFromEditBudget(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                     <TableTotalFooter>
+                        <TableRow className="bg-muted/50 font-bold text-base">
+                            <TableCell colSpan={2}>TOTAL</TableCell>
+                            <TableCell className="text-right text-primary">{formatCurrency(editingBudgetItens.reduce((acc, item) => acc + item.precoVenda, 0))}</TableCell>
+                            <TableCell></TableCell>
+                        </TableRow>
+                    </TableTotalFooter>
+                </Table>
+            </div>
+            <DialogFooter className="pt-4 border-t">
+                <DialogClose asChild><Button variant="outline" disabled={isSubmitting}>Cancelar</Button></DialogClose>
+                <Button onClick={handleUpdateBudget} disabled={isSubmitting}>
+                  {isSubmitting ? <Loader2 className="mr-2 animate-spin" /> : <FileText className="mr-2"/>}
+                  Salvar Alterações
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
       <div className="absolute -z-10 top-0 -left-[9999px] w-[595pt] bg-white text-black">
           <div ref={pdfRef}>
               {<BudgetPDFLayout orcamento={pdfBudget} empresa={empresa} />}
@@ -815,3 +886,4 @@ export default function OrcamentoPage() {
     </div>
   );
 }
+

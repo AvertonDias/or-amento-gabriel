@@ -1,6 +1,6 @@
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy, limit, getCountFromServer } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
 import type { Orcamento } from '@/lib/types';
 
 const ORCAMENTOS_COLLECTION = 'orcamentos';
@@ -20,6 +20,13 @@ export const addOrcamento = async (orcamento: Omit<Orcamento, 'id'>): Promise<st
     throw new Error(`Falha ao adicionar orçamento: ${error.message}`);
   }
 };
+
+// Update an existing orcamento
+export const updateOrcamento = async (orcamentoId: string, orcamento: Partial<Orcamento>) => {
+  const orcamentoDoc = doc(db, ORCAMENTOS_COLLECTION, orcamentoId);
+  await updateDoc(orcamentoDoc, orcamento);
+};
+
 
 // Update an orcamento status
 export const updateOrcamentoStatus = async (orcamentoId: string, status: 'Aceito' | 'Recusado') => {
@@ -55,7 +62,6 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
     const currentYear = new Date().getFullYear();
 
     try {
-        // Busca todos os orçamentos do usuário para processar localmente
         const q = query(collection(db, ORCAMENTOS_COLLECTION), where('userId', '==', userId));
         const querySnapshot = await getDocs(q);
         
@@ -81,8 +87,8 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
         return `${currentYear}-${String(newSequenceNumber).padStart(3, '0')}`;
 
     } catch (e: any) {
-        console.error("[ORCAMENTO SERVICE - getNextOrcamentoNumber] Erro ao obter próximo número. Usando fallback.", e.message);
-        // Fallback robusto em caso de erro na consulta
+        console.error("[ORCAMENTO SERVICE - getNextOrcamentoNumber] Erro ao obter próximo número:", e.message);
+        // Fallback robusto em caso de erro na consulta, usando timestamp
         return `${currentYear}-${Date.now().toString().slice(-5)}`;
     }
 };
