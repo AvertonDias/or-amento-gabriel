@@ -195,9 +195,8 @@ export default function ClientesPage() {
         if (contacts.length > 0) {
           const contact = contacts[0];
           const address = contact.address?.[0];
-          const formattedAddress = address 
-            ? `${address.addressLine1 || ''} ${address.addressLine2 || ''}, ${address.city || ''} - ${address.region || ''}`.trim().replace(/, $/, '')
-            : '';
+          // Simplificando a obtenção do endereço para evitar erros
+          const formattedAddress = address ? Object.values(address).join(', ') : '';
 
           const partialClient = {
             nome: contact.name?.[0] || '',
@@ -230,6 +229,7 @@ export default function ClientesPage() {
               description: 'Revise as informações e salve o novo cliente.',
             });
           } catch(aiError) {
+            console.error("Erro na busca com IA:", aiError);
             toast({
               title: 'Erro na busca com IA',
               description: 'Não foi possível buscar dados adicionais. Preencha manualmente.',
@@ -240,6 +240,7 @@ export default function ClientesPage() {
           }
         }
       } catch (error) {
+        console.error("Erro ao importar contato:", error);
         toast({
           title: 'Importação Cancelada',
           description: 'Não foi possível importar o contato.',
