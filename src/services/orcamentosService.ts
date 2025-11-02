@@ -14,7 +14,6 @@ export const addOrcamento = async (orcamento: Omit<Orcamento, 'id'>): Promise<st
       return docRef.id;
   } catch (error: any) {
     console.error("[ORCAMENTO SERVICE - addOrcamento] Erro ao adicionar orçamento:", error.message);
-    // Lança um erro mais específico para a UI capturar
     if (error.code === 'permission-denied') {
         throw new Error("Permissão negada. Verifique as regras de segurança do Firestore.");
     }
@@ -52,54 +51,38 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
       console.error("[ORCAMENTO SERVICE - getNextOrcamentoNumber] userId é nulo.");
       throw new Error("User ID é nulo, impossível gerar número do orçamento.");
     }
+    
     const currentYear = new Date().getFullYear();
 
     try {
-        // Query for budgets of the specific user, ordered by the budget number descending.
-        const q = query(
-            collection(db, ORCAMENTOS_COLLECTION),
-            where('userId', '==', userId),
-            orderBy('numeroOrcamento', 'desc'),
-            limit(1)
-        );
-
+        // Busca todos os orçamentos do usuário para processar localmente
+        const q = query(collection(db, ORCAMENTOS_COLLECTION), where('userId', '==', userId));
         const querySnapshot = await getDocs(q);
         
-        if (querySnapshot.empty) {
-            console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Nenhum orçamento encontrado. Iniciando com 1 para o ano ${currentYear}.`);
-            return `${currentYear}-001`;
-        }
-        
-        const lastOrcamento = querySnapshot.docs[0].data() as Orcamento;
-        const lastNumberFull = lastOrcamento.numeroOrcamento;
-        const [lastYearStr, lastSequenceStr] = lastNumberFull.split('-');
-        
-        let newSequenceNumber;
-        // If the last budget is from a previous year, start the sequence from 1 for the new year.
-        if (lastYearStr !== String(currentYear)) {
-            newSequenceNumber = 1;
-            console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Ano mudou. Iniciando contagem para ${currentYear}.`);
-        } else {
-            // Otherwise, increment the last sequence number.
-            newSequenceNumber = parseInt(lastSequenceStr, 10) + 1;
-        }
+        const orcamentosDoAno = querySnapshot.docs
+            .map(doc => doc.data().numeroOrcamento as string)
+            .filter(num => num && num.startsWith(`${currentYear}-`));
 
-        console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Último orçamento: ${lastNumberFull}. Novo número sequencial: ${newSequenceNumber}`);
+        let lastSequence = 0;
+        if (orcamentosDoAno.length > 0) {
+            orcamentosDoAno.forEach(num => {
+                const sequencePart = num.split('-')[1];
+                if (sequencePart) {
+                    const sequence = parseInt(sequencePart, 10);
+                    if (sequence > lastSequence) {
+                        lastSequence = sequence;
+                    }
+                }
+            });
+        }
+        
+        const newSequenceNumber = lastSequence + 1;
+        console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Última sequência para ${currentYear}: ${lastSequence}. Nova sequência: ${newSequenceNumber}`);
         return `${currentYear}-${String(newSequenceNumber).padStart(3, '0')}`;
 
     } catch (e: any) {
-        console.error("[ORCAMENTO SERVICE - getNextOrcamentoNumber] Erro ao obter próximo número:", e.message);
-        // Fallback robusto: se a consulta falhar (por exemplo, índice pendente), tente contar todos os documentos como um fallback menos eficiente.
-        try {
-            const allDocsQuery = query(collection(db, ORCAMENTOS_COLLECTION), where('userId', '==', userId));
-            const snapshot = await getCountFromServer(allDocsQuery);
-            const count = snapshot.data().count;
-            console.warn(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Usando fallback de contagem. Total de orçamentos: ${count}`);
-            return `${currentYear}-${String(count + 1).padStart(3, '0')}`;
-        } catch (fallbackError: any) {
-            console.error("[ORCAMENTO SERVICE - getNextOrcamentoNumber] Erro no fallback. Retornando número padrão.", fallbackError.message);
-            // If everything fails, return a default number based on timestamp to ensure uniqueness.
-            return `${currentYear}-${Date.now().toString().slice(-5)}`;
-        }
+        console.error("[ORCAMENTO SERVICE - getNextOrcamentoNumber] Erro ao obter próximo número. Usando fallback.", e.message);
+        // Fallback robusto em caso de erro na consulta
+        return `${currentYear}-${Date.now().toString().slice(-5)}`;
     }
 };
