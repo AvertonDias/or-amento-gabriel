@@ -36,19 +36,23 @@ export function PwaInstallButton() {
       event.preventDefault();
       const promptEvent = event as BeforeInstallPromptEvent;
       setInstallPromptEvent(promptEvent);
+      // Only show the dialog if the app is not already marked as installed
       if (!isAppInstalled) {
         setShowDialog(true);
       }
     };
     
     const handleAppInstalled = () => {
+      // This event is fired after the user accepts the installation prompt.
       setIsAppInstalled(true);
       setShowDialog(false);
+      setInstallPromptEvent(null);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
+    // Clean up event listeners on component unmount
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
@@ -64,17 +68,19 @@ export function PwaInstallButton() {
 
     try {
         await installPromptEvent.prompt();
+        // The 'userChoice' promise resolves when the user interacts with the prompt
         const { outcome } = await installPromptEvent.userChoice;
         if (outcome === 'accepted') {
             toast({ title: 'Aplicativo instalado com sucesso!' });
-            setIsAppInstalled(true); 
-            setInstallPromptEvent(null);
-            setShowDialog(false);
+            // The 'appinstalled' event will handle hiding the dialog and updating state
         } else {
             toast({ title: 'Instalação cancelada.' });
+             // If the user dismisses, we can hide the dialog for this session
+            setShowDialog(false);
         }
     } catch(error) {
         toast({ title: 'Ocorreu um erro durante a instalação.', variant: 'destructive' });
+        setShowDialog(false);
     }
   };
   
@@ -84,14 +90,16 @@ export function PwaInstallButton() {
 
   return (
      <Dialog open={showDialog} onOpenChange={(open) => {
-        // This will be controlled by state, preventing accidental closure
-        if(open) setShowDialog(true);
+        // Prevent closing the dialog by clicking outside or pressing Escape
+        if (!open) {
+          setShowDialog(false);
+        }
      }}>
         <DialogContent 
             className="sm:max-w-md"
+            showCloseButton={false} // Hide the 'X' button
             onEscapeKeyDown={(e) => e.preventDefault()}
             onPointerDownOutside={(e) => e.preventDefault()}
-            showCloseButton={false}
         >
             <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
@@ -99,15 +107,20 @@ export function PwaInstallButton() {
                     Instalar Meu Orçamento
                 </DialogTitle>
                 <DialogDescription>
-                    Instale o aplicativo em seu dispositivo para uma experiência mais rápida, acesso offline e para usá-lo como um app nativo. É rápido e seguro!
+                    Instale o aplicativo em seu dispositivo para uma experiência mais rápida e para usá-lo como um app nativo,
+                    inclusive com **acesso offline**. É rápido e seguro!
                 </DialogDescription>
             </DialogHeader>
             <DialogFooter className="sm:justify-center">
+                 <Button type="button" variant="outline" onClick={() => setShowDialog(false)}>
+                    Agora não
+                </Button>
                 <Button onClick={handleInstallClick}>
-                    Instalar Agora
+                    Instalar
                 </Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
   );
 }
+

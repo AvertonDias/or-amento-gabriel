@@ -1,11 +1,13 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Adding a timestamp to force a rebuild
-  // Timestamp: 1729824276701
-  webpack: (config, { isServer }) => {
-    // Adicione quaisquer personalizações do webpack aqui, se necessário.
-    return config;
-  },
-};
+import withPWAInit from "@ducanh2912/next-pwa";
 
-export default nextConfig;
+const withPWA = withPWAInit({
+  dest: "public",
+  disable: process.env.NODE_ENV === "development",
+  register: true,
+  skipWaiting: true,
+});
+
+const nextConfig = {};
+
+export default withPWA(nextConfig);
