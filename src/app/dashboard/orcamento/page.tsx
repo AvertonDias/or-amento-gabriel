@@ -588,6 +588,9 @@ export default function OrcamentoPage() {
         <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Novo Orçamento - Etapa {wizardStep} de 2</DialogTitle>
+            <DialogDescription>
+              {wizardStep === 1 ? "Preencha ou selecione os dados do cliente para o orçamento." : "Adicione os itens ou serviços que farão parte do orçamento."}
+            </DialogDescription>
           </DialogHeader>
           
           {wizardStep === 1 && (
@@ -686,7 +689,10 @@ export default function OrcamentoPage() {
       
       <Dialog open={isEditItemModalOpen} onOpenChange={setIsEditItemModalOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Editar Item</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Editar Item</DialogTitle>
+            <DialogDescription>Modifique a quantidade e o acréscimo do item selecionado.</DialogDescription>
+          </DialogHeader>
           {editingItem && (
             <form onSubmit={handleSalvarEdicaoItem} className="space-y-4 py-4">
               <div><Label htmlFor="edit-quantidade">Quantidade ({editingItem.unidade})</Label><Input id="edit-quantidade" name="quantidade" type="text" inputMode='decimal' value={editingQuantidadeStr} onChange={handleEditItemFormChange}/></div>
