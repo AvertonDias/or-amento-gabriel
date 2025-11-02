@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Users, PlusCircle, Pencil, Contact, RefreshCw } from 'lucide-react';
+import { Trash2, Users, PlusCircle, Pencil, Contact, RefreshCw, Bot } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
@@ -17,6 +17,7 @@ import { Loader2 } from 'lucide-react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { addCliente, deleteCliente, getClientes, updateCliente } from '@/services/clientesService';
+import { fillCustomerData } from '@/ai/flows/fill-customer-data';
 
 const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
   nome: '',
@@ -31,6 +32,7 @@ export default function ClientesPage() {
   const [clientes, setClientes] = useState<ClienteData[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFillingWithAI, setIsFillingWithAI] = useState(false);
   
   const [newClient, setNewClient] = useState(initialNewClientState);
   
@@ -197,22 +199,50 @@ export default function ClientesPage() {
             ? `${address.addressLine1 || ''} ${address.addressLine2 || ''}, ${address.city || ''} - ${address.region || ''}`.trim().replace(/, $/, '')
             : '';
 
-          setNewClient({
+          const partialClient = {
             nome: contact.name?.[0] || '',
             email: contact.email?.[0] || '',
             telefone: contact.tel?.[0] ? maskTelefone(contact.tel[0]) : '',
             endereco: formattedAddress,
-            cpfCnpj: '', // CPF/CNPJ não está disponível na API de contatos
-          });
+            cpfCnpj: '',
+          };
+
+          setNewClient(partialClient);
           toast({
             title: 'Contato Importado!',
-            description: 'Os dados do contato foram preenchidos. Revise e salve o novo cliente.',
+            description: 'Buscando dados adicionais com IA...',
           });
+
+          // Preencher com IA
+          setIsFillingWithAI(true);
+          try {
+            const aiData = await fillCustomerData({ nome: partialClient.nome });
+            setNewClient(prev => ({
+              ...prev,
+              nome: aiData.nome || prev.nome,
+              cpfCnpj: aiData.cpfCnpj ? maskCpfCnpj(aiData.cpfCnpj) : prev.cpfCnpj,
+              endereco: aiData.endereco || prev.endereco,
+              telefone: aiData.telefone ? maskTelefone(aiData.telefone) : prev.telefone,
+              email: aiData.email || prev.email,
+            }));
+            toast({
+              title: 'Dados preenchidos com IA!',
+              description: 'Revise as informações e salve o novo cliente.',
+            });
+          } catch(aiError) {
+            toast({
+              title: 'Erro na busca com IA',
+              description: 'Não foi possível buscar dados adicionais. Preencha manualmente.',
+              variant: 'destructive',
+            });
+          } finally {
+            setIsFillingWithAI(false);
+          }
         }
       } catch (error) {
         toast({
           title: 'Importação Cancelada',
-          description: 'Não foi possível importar o contato. A permissão pode ter sido negada ou a operação cancelada.',
+          description: 'Não foi possível importar o contato.',
           variant: 'destructive',
         });
       }
@@ -266,13 +296,35 @@ export default function ClientesPage() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+              <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting || isFillingWithAI}>
+                {isSubmitting || isFillingWithAI ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                 Adicionar Cliente
               </Button>
-              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleImportContacts} disabled={isSubmitting}>
+              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleImportContacts} disabled={isSubmitting || isFillingWithAI}>
                 <Contact className="mr-2 h-4 w-4" />
                 Importar dos Contatos
+              </Button>
+               <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={async () => {
+                setIsFillingWithAI(true);
+                try {
+                  const aiData = await fillCustomerData({ nome: newClient.nome, cpfCnpj: newClient.cpfCnpj });
+                   setNewClient(prev => ({
+                    ...prev,
+                    nome: aiData.nome || prev.nome,
+                    cpfCnpj: aiData.cpfCnpj ? maskCpfCnpj(aiData.cpfCnpj) : prev.cpfCnpj,
+                    endereco: aiData.endereco || prev.endereco,
+                    telefone: aiData.telefone ? maskTelefone(aiData.telefone) : prev.telefone,
+                    email: aiData.email || prev.email,
+                  }));
+                   toast({ title: 'Dados preenchidos com IA!' });
+                } catch (e) {
+                  toast({ title: 'Erro na busca com IA', variant: 'destructive' });
+                } finally {
+                  setIsFillingWithAI(false);
+                }
+              }} disabled={isSubmitting || isFillingWithAI || (!newClient.nome && !newClient.cpfCnpj)}>
+                <Bot className="mr-2 h-4 w-4" />
+                Preencher com IA
               </Button>
             </div>
           </form>
