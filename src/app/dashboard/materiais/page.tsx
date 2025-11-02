@@ -18,6 +18,13 @@ import { auth } from '@/lib/firebase';
 import { addMaterial, deleteMaterial, getMateriais, updateMaterial } from '@/services/materiaisService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+
 
 const initialNewItemState: Omit<MaterialItem, 'id' | 'userId'> = {
   descricao: '',
@@ -250,74 +257,85 @@ export default function MateriaisPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="item"><Package className="mr-2 h-4 w-4" /> Cadastrar Item</TabsTrigger>
-              <TabsTrigger value="servico"><Construction className="mr-2 h-4 w-4" /> Cadastrar Serviço</TabsTrigger>
-            </TabsList>
-            <form onSubmit={handleAdicionarMaterial}>
-              <TabsContent value="item" className="border-x border-b rounded-b-md p-6 mt-0">
-                <h2 className="text-xl font-semibold mb-4">Adicionar Novo Item (Produto)</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                    <div className="lg:col-span-2">
-                      <Label htmlFor="descricao-item">Descrição do Item</Label>
-                      <Input id="descricao-item" name="descricao" value={newItem.descricao} onChange={handleNewItemChange} placeholder="Ex: Tomada dupla 10A" required/>
-                    </div>
-                    <div>
-                      <Label htmlFor="unidade-item">Unidade de Medida</Label>
-                      <Select name="unidade" value={newItem.unidade} onValueChange={handleUnitChange}>
-                          <SelectTrigger id="unidade-item"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                              {unidadesDeMedida.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
-                          </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="precoUnitario-item">Preço (R$)</Label>
-                      <Input id="precoUnitario-item" name="precoUnitario" type="text" inputMode='decimal' placeholder="12,50" value={precoUnitarioStr} onChange={handleNewItemNumberChange} required/>
-                    </div>
-                    <div>
-                      <Label htmlFor="quantidade-item">Quantidade em Estoque</Label>
-                      <Input id="quantidade-item" name="quantidade" type="text" inputMode='decimal' placeholder="Ex: 10" value={quantidadeStr} onChange={handleNewItemNumberChange} />
-                    </div>
-                    <div className="lg:col-span-4">
-                      <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
-                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                        Adicionar Item
-                      </Button>
-                    </div>
-                </div>
-              </TabsContent>
-              <TabsContent value="servico" className="border-x border-b rounded-b-md p-6 mt-0">
-                <h2 className="text-xl font-semibold mb-4">Adicionar Novo Serviço</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                    <div className="lg:col-span-2">
-                        <Label htmlFor="descricao-servico">Descrição do Serviço</Label>
-                        <Input id="descricao-servico" name="descricao" value={newItem.descricao} onChange={handleNewItemChange} placeholder="Ex: Instalação de ponto de luz" required/>
-                    </div>
-                    <div>
-                      <Label htmlFor="unidade-servico">Unidade de Medida</Label>
-                      <Select name="unidade" value={newItem.unidade} onValueChange={handleUnitChange}>
-                          <SelectTrigger id="unidade-servico"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                              {unidadesDeMedida.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
-                          </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                        <Label htmlFor="precoUnitario-servico">Preço (R$)</Label>
-                        <Input id="precoUnitario-servico" name="precoUnitario" type="text" inputMode='decimal' placeholder="150,00" value={precoUnitarioStr} onChange={handleNewItemNumberChange} required/>
-                    </div>
-                    <div className="lg:col-span-4">
-                      <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
-                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                        Adicionar Serviço
-                      </Button>
-                    </div>
-                </div>
-              </TabsContent>
-            </form>
-          </Tabs>
+          <Accordion type="single" collapsible className="w-full mb-6 border-b">
+            <AccordionItem value="add-item-form" className="border-b-0">
+              <AccordionTrigger className="hover:no-underline py-4">
+                  <h2 className="text-xl font-semibold flex items-center gap-2 text-primary">
+                    <PlusCircle className="h-5 w-5" /> Adicionar Novo Item/Serviço
+                  </h2>
+              </AccordionTrigger>
+              <AccordionContent>
+                <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full pt-4">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="item"><Package className="mr-2 h-4 w-4" /> Cadastrar Item</TabsTrigger>
+                    <TabsTrigger value="servico"><Construction className="mr-2 h-4 w-4" /> Cadastrar Serviço</TabsTrigger>
+                  </TabsList>
+                  <form onSubmit={handleAdicionarMaterial}>
+                    <TabsContent value="item" className="border-x border-b rounded-b-md p-6 mt-0">
+                      <h3 className="text-lg font-semibold mb-4 text-muted-foreground">Novo Item (Produto)</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                          <div className="lg:col-span-2">
+                            <Label htmlFor="descricao-item">Descrição do Item</Label>
+                            <Input id="descricao-item" name="descricao" value={newItem.descricao} onChange={handleNewItemChange} placeholder="Ex: Tomada dupla 10A" required/>
+                          </div>
+                          <div>
+                            <Label htmlFor="unidade-item">Unidade de Medida</Label>
+                            <Select name="unidade" value={newItem.unidade} onValueChange={handleUnitChange}>
+                                <SelectTrigger id="unidade-item"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {unidadesDeMedida.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label htmlFor="precoUnitario-item">Preço (R$)</Label>
+                            <Input id="precoUnitario-item" name="precoUnitario" type="text" inputMode='decimal' placeholder="12,50" value={precoUnitarioStr} onChange={handleNewItemNumberChange} required/>
+                          </div>
+                          <div>
+                            <Label htmlFor="quantidade-item">Quantidade em Estoque</Label>
+                            <Input id="quantidade-item" name="quantidade" type="text" inputMode='decimal' placeholder="Ex: 10" value={quantidadeStr} onChange={handleNewItemNumberChange} />
+                          </div>
+                          <div className="lg:col-span-4">
+                            <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
+                              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                              Adicionar Item
+                            </Button>
+                          </div>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="servico" className="border-x border-b rounded-b-md p-6 mt-0">
+                      <h3 className="text-lg font-semibold mb-4 text-muted-foreground">Novo Serviço</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                          <div className="lg:col-span-2">
+                              <Label htmlFor="descricao-servico">Descrição do Serviço</Label>
+                              <Input id="descricao-servico" name="descricao" value={newItem.descricao} onChange={handleNewItemChange} placeholder="Ex: Instalação de ponto de luz" required/>
+                          </div>
+                          <div>
+                            <Label htmlFor="unidade-servico">Unidade de Medida</Label>
+                            <Select name="unidade" value={newItem.unidade} onValueChange={handleUnitChange}>
+                                <SelectTrigger id="unidade-servico"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {unidadesDeMedida.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                              <Label htmlFor="precoUnitario-servico">Preço (R$)</Label>
+                              <Input id="precoUnitario-servico" name="precoUnitario" type="text" inputMode='decimal' placeholder="150,00" value={precoUnitarioStr} onChange={handleNewItemNumberChange} required/>
+                          </div>
+                          <div className="lg:col-span-4">
+                            <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
+                              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                              Adicionar Serviço
+                            </Button>
+                          </div>
+                      </div>
+                    </TabsContent>
+                  </form>
+                </Tabs>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
 
           <div className="mt-8">
             {showSkeleton ? (
