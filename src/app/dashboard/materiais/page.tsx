@@ -49,6 +49,7 @@ const unidadesDeMedida = [
 
 // Helper function to normalize strings for comparison
 const normalizeString = (str: string) => {
+  if (!str) return '';
   return str.trim().toLowerCase().replace(/,/g, '.').replace(/\s+/g, ' ');
 };
 
@@ -270,7 +271,9 @@ export default function MateriaisPage() {
   
   const handleEditClick = (material: MaterialItem) => {
     setEditingMaterial({ ...material });
-    setEditingPrecoUnitarioStr(maskCurrency(String(material.precoUnitario)));
+    // This is the fix. Ensure precoUnitario is a number before masking.
+    const priceAsNumber = Number(material.precoUnitario) || 0;
+    setEditingPrecoUnitarioStr(maskCurrency(String(priceAsNumber)));
     setEditingQuantidadeStr(material.quantidade !== null && material.quantidade !== undefined ? String(material.quantidade).replace('.', ',') : '');
     setEditingQuantidadeMinimaStr(material.quantidadeMinima !== null && material.quantidadeMinima !== undefined ? String(material.quantidadeMinima).replace('.', ',') : '');
     setIsEditModalOpen(true);

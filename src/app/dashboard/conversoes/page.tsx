@@ -231,7 +231,7 @@ export default function ConversoesPage() {
     const numLargura = parseFloat(largura.replace(',', '.'));
     const numEspessura = parseFloat(espessura.replace(',', '.'));
 
-    if (isNaN(numLargura) || isNaN(numEspessura)) {
+    if (isNaN(numLargura) || isNaN(numEspessura) || numEspessura <= 0) {
         toast({ title: "Largura ou espessura inválida", variant: "destructive" });
         return;
     }
@@ -287,7 +287,7 @@ export default function ConversoesPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="largura" className="flex items-center gap-1"><BetweenHorizonalStart className="w-4 h-4" /> Largura (mm)</Label>
-              <Input id="largura" type="text" inputMode="decimal" value={largura} onChange={(e) => setLargura(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Ex: 300" />
+              <Input id="largura" type="text" inputMode="numeric" value={largura} onChange={(e) => setLargura(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Ex: 300" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="espessura" className="flex items-center gap-1"><Ruler className="w-4 h-4" /> Espessura (mm)</Label>
@@ -427,8 +427,6 @@ export default function ConversoesPage() {
     </div>
   );
 }
-
-    
 
     
 
