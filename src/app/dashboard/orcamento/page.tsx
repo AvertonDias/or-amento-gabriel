@@ -108,36 +108,49 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
   empresa: EmpresaData | null,
 }) => {
     if (!orcamento) return null;
-
+    
+    const dataCriacao = parseISO(orcamento.dataCriacao);
+    const validadeDiasNum = parseInt(orcamento.validadeDias, 10);
+    const dataValidade = !isNaN(validadeDiasNum) ? addDays(dataCriacao, validadeDiasNum) : null;
     const totalCusto = orcamento.itens.reduce((acc, item) => acc + item.total, 0);
     const lucroTotal = orcamento.totalVenda - totalCusto;
-    
+
     return (
-      <div className="p-8 font-sans bg-white text-black text-sm">
+      <div className="p-8 font-sans bg-white text-black text-xs">
         <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
-          <div>
-            <h1 className="text-xl font-bold">Relatório Interno de Orçamento</h1>
-            <p className="text-base text-gray-600">{empresa?.nome || 'Sua Empresa'}</p>
-          </div>
-          <div className="text-right">
-            <h2 className="text-lg font-semibold">Orçamento #{orcamento.numeroOrcamento}</h2>
-            <p className="text-xs">Data: {format(parseISO(orcamento.dataCriacao), 'dd/MM/yyyy')}</p>
-          </div>
+            <div className="flex items-start gap-4">
+              {empresa?.logo && (
+                <div className="flex-shrink-0 w-[70px] h-[70px]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={empresa.logo} alt="Logo da Empresa" className="object-contain w-full h-full" />
+                </div>
+              )}
+              <div>
+                <h1 className="text-lg font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
+                <p className="text-[10px]">{empresa?.endereco}</p>
+                <p className="text-[10px]">{empresa?.telefone}</p>
+                <p className="text-[10px]">{empresa?.cnpj}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <h2 className="text-base font-semibold">Orçamento Interno #{orcamento.numeroOrcamento}</h2>
+              <p className="text-[10px]">Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
+              {dataValidade && <p className="text-[10px] mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
+            </div>
         </header>
 
         <section className="mb-4">
-          <h3 className="font-semibold text-base mb-2">Cliente:</h3>
-          <div className="text-xs space-y-1">
-            <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
-            {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
-            {orcamento.cliente.endereco && <p><span className="font-medium">Endereço:</span> {orcamento.cliente.endereco}</p>}
-            {orcamento.cliente.telefone && <p><span className="font-medium">Telefone:</span> {orcamento.cliente.telefone}</p>}
-            {orcamento.cliente.email && <p><span className="font-medium">Email:</span> {orcamento.cliente.email}</p>}
-          </div>
+            <h3 className="font-semibold text-sm mb-2">Cliente:</h3>
+            <div className="text-[10px] space-y-1">
+              <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
+              {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
+              {orcamento.cliente.endereco && <p><span className="font-medium">Endereço:</span> {orcamento.cliente.endereco}</p>}
+              <p><span className="font-medium">Telefone:</span> {orcamento.cliente.telefone}</p>
+              {orcamento.cliente.email && <p><span className="font-medium">Email:</span> {orcamento.cliente.email}</p>}
+            </div>
         </section>
 
-
-        <table className="w-full text-xs text-black">
+        <table className="w-full text-[10px] text-black">
           <thead className="bg-gray-100">
             <tr className='border-b'>
               <th className="p-2 text-left font-semibold text-black">Item</th>
@@ -899,4 +912,5 @@ export default function OrcamentoPage() {
   );
 }
 
+    
     
