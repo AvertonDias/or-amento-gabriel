@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeMenuButton } from '@/components/theme-menu-button';
+import { PwaInstallButton } from '@/components/pwa-install-button';
 import { 
   Menu, 
   Building, 
@@ -174,8 +175,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               </div>
             </div>
             <div className="mt-auto border-t p-2">
-              <div className="space-y-2">
-                <Tooltip delayDuration={0}>
+              <div className="space-y-1">
+                 <PwaInstallButton isCollapsed={isSidebarCollapsed} />
+                 <Tooltip delayDuration={0}>
                   <TooltipTrigger asChild>
                     <Button onClick={handleLogout} variant="ghost" className={cn(
                         'flex items-center gap-3 rounded-lg w-full text-muted-foreground transition-all hover:text-primary',
@@ -239,8 +241,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                   </Link>
                 </div>
                 <MobileNavContent />
-                <div className="mt-auto border-t -mx-4 pt-4 px-4">
-                  <Button
+                <div className="mt-auto border-t -mx-4 pt-4 px-4 space-y-2">
+                   <PwaInstallButton />
+                   <Button
                       onClick={async () => {
                           await handleLogout();
                           setIsMobileMenuOpen(false);
