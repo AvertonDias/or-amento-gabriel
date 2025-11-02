@@ -22,7 +22,7 @@ import { auth } from '@/lib/firebase';
 import { getMateriais, updateEstoque } from '@/services/materiaisService';
 import { getClientes } from '@/services/clientesService';
 import { getEmpresaData } from '@/services/empresaService';
-import { addOrcamento, deleteOrcamento, getOrcamentos, updateOrcamento, updateOrcamentoStatus } from '@/services/orcamentosService';
+import { addOrcamento, deleteOrcamento, getOrcamentos, updateOrcamento, updateOrcamentoStatus, getNextOrcamentoNumber } from '@/services/orcamentosService';
 import { addDays, parseISO, format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 
@@ -898,3 +898,5 @@ export default function OrcamentoPage() {
     </div>
   );
 }
+
+    
