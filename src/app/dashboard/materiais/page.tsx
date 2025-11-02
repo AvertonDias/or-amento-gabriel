@@ -118,7 +118,7 @@ export default function MateriaisPage() {
     if (name === 'precoUnitario') {
       const maskedValue = maskCurrency(value);
       setPrecoUnitarioStr(maskedValue);
-      const numericValue = parseFloat(maskedValue.replace(/[^0-9,]/g, '').replace(',', '.')) || null;
+      const numericValue = parseFloat(maskedValue.replace(/\D/g, '')) / 100 || null;
       setNewItem(prev => ({...prev, precoUnitario: numericValue }));
     } else {
         const sanitizedValue = value.replace(/[^0-9,.]/g, '').replace(',', '.');
@@ -170,38 +170,42 @@ export default function MateriaisPage() {
   };
 
   const performUpdate = async () => {
-    if (!conflictingItem || !user) return; // Should not happen
-     try {
-       const { id, userId, ...materialToUpdate } = conflictingItem;
-       
-       const updatedPayload: Partial<Omit<MaterialItem, 'id' | 'userId'>> = {
-         ...materialToUpdate,
-         unidade: newItem.unidade,
-         precoUnitario: newItem.precoUnitario,
-         // Only update stock fields if it's an item
-         ...(newItem.tipo === 'item' && {
-            quantidade: newItem.quantidade,
-            quantidadeMinima: newItem.quantidadeMinima,
-         })
-       };
+    if (!conflictingItem || !user) return;
+    try {
+      const { id, userId, ...materialToUpdate } = conflictingItem;
 
-        await updateMaterial(id, updatedPayload);
-        setNewItem({ ...initialNewItemState, tipo: activeTab, unidade: activeTab === 'servico' ? 'serv' : 'un' });
-        setPrecoUnitarioStr('');
-        setQuantidadeStr('');
-        setQuantidadeMinimaStr('');
-        await fetchMateriais(); // Refresh list
-        toast({
-            title: "Sucesso!",
-            description: "Item atualizado com sucesso.",
-        });
+      // Se for um item, soma a quantidade. Se não, apenas atualiza.
+      const newQuantity = (newItem.tipo === 'item' && materialToUpdate.quantidade != null && newItem.quantidade != null)
+        ? materialToUpdate.quantidade + newItem.quantidade
+        : newItem.quantidade;
 
-     } catch (error) {
-       toast({ title: 'Erro ao atualizar item', variant: 'destructive' });
-     } finally {
-       setConflictingItem(null);
-     }
-  };
+      const updatedPayload: Partial<Omit<MaterialItem, 'id' | 'userId'>> = {
+        unidade: newItem.unidade,
+        precoUnitario: newItem.precoUnitario,
+        // Só atualiza os campos de estoque se for um item
+        ...(newItem.tipo === 'item' && {
+          quantidade: newQuantity,
+          quantidadeMinima: newItem.quantidadeMinima,
+        })
+      };
+
+      await updateMaterial(id, updatedPayload);
+      setNewItem({ ...initialNewItemState, tipo: activeTab, unidade: activeTab === 'servico' ? 'serv' : 'un' });
+      setPrecoUnitarioStr('');
+      setQuantidadeStr('');
+      setQuantidadeMinimaStr('');
+      await fetchMateriais();
+      toast({
+        title: "Sucesso!",
+        description: "Item atualizado com sucesso.",
+      });
+
+    } catch (error) {
+      toast({ title: 'Erro ao atualizar item', variant: 'destructive' });
+    } finally {
+      setConflictingItem(null);
+    }
+};
 
 
   const handleAdicionarMaterial = async (e: FormEvent) => {
@@ -277,7 +281,7 @@ export default function MateriaisPage() {
     if (name === 'precoUnitario') {
       const maskedValue = maskCurrency(value);
       setEditingPrecoUnitarioStr(maskedValue);
-      const numericValue = parseFloat(maskedValue.replace(/[^0-9,]/g, '').replace(',', '.')) || null;
+      const numericValue = parseFloat(maskedValue.replace(/\D/g, '')) / 100 || null;
       setEditingMaterial(prev => prev ? { ...prev, precoUnitario: numericValue } : null);
     } else {
         const sanitizedValue = value.replace(/[^0-9,.]/g, '').replace(',', '.');
@@ -476,7 +480,7 @@ export default function MateriaisPage() {
                             <TableCell>{formatCurrency(item.precoUnitario)}</TableCell>
                             <TableCell className="flex gap-1">
                               <Button variant="ghost" size="icon" onClick={() => handleEditClick(item)}><Pencil className="h-4 w-4 text-primary" /></Button>
-                              <Button variant="ghost" size="icon" onClick={() => handleRemoverMaterial(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              <Button variant="ghost" size="icon" onClick={()={() => handleRemoverMaterial(item.id)}}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                             </TableCell>
                           </TableRow>
                         )
@@ -579,20 +583,18 @@ export default function MateriaisPage() {
         <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Item Duplicado Encontrado</AlertDialogTitle>
-              <AlertDialogDescription>
-                Já existe um {conflictingItem?.tipo} com a descrição "{conflictingItem?.descricao}". 
-                Deseja atualizar o item existente com os novos dados inseridos?
+               <AlertDialogDescription>
+                Este {conflictingItem?.tipo} já existe. Deseja somar a nova quantidade ao estoque e usar este novo preço?
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setConflictingItem(null)}>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleConfirmUpdate}>Sim, Atualizar</AlertDialogAction>
+              <AlertDialogAction onClick={handleConfirmUpdate}>Sim, Adicionar e Atualizar</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
     </div>
   );
-}
 
     
