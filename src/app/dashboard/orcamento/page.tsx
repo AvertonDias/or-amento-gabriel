@@ -113,50 +113,61 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
     const lucroTotal = orcamento.totalVenda - totalCusto;
     
     return (
-      <div className="p-8 font-sans bg-white text-black text-xs">
+      <div className="p-8 font-sans bg-white text-black text-sm">
         <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
           <div>
-            <h1 className="text-lg font-bold">Relatório Interno de Orçamento</h1>
-            <p className="text-sm text-gray-600">{empresa?.nome || 'Sua Empresa'}</p>
+            <h1 className="text-xl font-bold">Relatório Interno de Orçamento</h1>
+            <p className="text-base text-gray-600">{empresa?.nome || 'Sua Empresa'}</p>
           </div>
           <div className="text-right">
-            <h2 className="text-base font-semibold">Orçamento #{orcamento.numeroOrcamento}</h2>
-            <p className="text-[10px]">Cliente: {orcamento.cliente.nome}</p>
-            <p className="text-[10px]">Data: {format(parseISO(orcamento.dataCriacao), 'dd/MM/yyyy')}</p>
+            <h2 className="text-lg font-semibold">Orçamento #{orcamento.numeroOrcamento}</h2>
+            <p className="text-xs">Data: {format(parseISO(orcamento.dataCriacao), 'dd/MM/yyyy')}</p>
           </div>
         </header>
 
-        <table className="w-full text-[9px] text-black">
+        <section className="mb-4">
+          <h3 className="font-semibold text-base mb-2">Cliente:</h3>
+          <div className="text-xs space-y-1">
+            <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
+            {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
+            {orcamento.cliente.endereco && <p><span className="font-medium">Endereço:</span> {orcamento.cliente.endereco}</p>}
+            <p><span className="font-medium">Telefone:</span> {orcamento.cliente.telefone}</p>
+            {orcamento.cliente.email && <p><span className="font-medium">Email:</span> {orcamento.cliente.email}</p>}
+          </div>
+        </section>
+
+
+        <table className="w-full text-xs text-black">
           <thead className="bg-gray-100">
             <tr className='border-b'>
-              <th className="p-1 text-left font-semibold text-black">Item</th>
-              <th className="p-1 text-right font-semibold text-black">Qtd.</th>
-              <th className="p-1 text-right font-semibold text-black">Custo UN</th>
-              <th className="p-1 text-right font-semibold text-black">Custo Total</th>
-              <th className="p-1 text-right font-semibold text-black">Margem %</th>
-              <th className="p-1 text-right font-semibold text-black">Venda Total</th>
+              <th className="p-2 text-left font-semibold text-black">Item</th>
+              <th className="p-2 text-right font-semibold text-black">Qtd.</th>
+              <th className="p-2 text-right font-semibold text-black">Custo UN</th>
+              <th className="p-2 text-right font-semibold text-black">Custo Total</th>
+              <th className="p-2 text-right font-semibold text-black">Margem %</th>
+              <th className="p-2 text-right font-semibold text-black">Venda Total</th>
             </tr>
           </thead>
           <tbody>
             {orcamento.itens.map(item => (
               <tr key={item.id} className="even:bg-gray-50 border-b">
-                <td className="p-1">{item.materialNome}</td>
-                <td className="p-1 text-right">{formatNumber(item.quantidade, 2)} {item.unidade}</td>
-                <td className="p-1 text-right">{formatCurrency(item.precoUnitario)}</td>
-                <td className="p-1 text-right">{formatCurrency(item.total)}</td>
-                <td className="p-1 text-right">{formatNumber(item.margemLucro, 1)}%</td>
-                <td className="p-1 text-right font-medium">{formatCurrency(item.precoVenda)}</td>
+                <td className="p-2">{item.materialNome}</td>
+                <td className="p-2 text-right">{formatNumber(item.quantidade, 2)} {item.unidade}</td>
+                <td className="p-2 text-right">{formatCurrency(item.precoUnitario)}</td>
+                <td className="p-2 text-right">{formatCurrency(item.total)}</td>
+                <td className="p-2 text-right">{formatNumber(item.margemLucro, 1)}%</td>
+                <td className="p-2 text-right font-medium">{formatCurrency(item.precoVenda)}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
              <tr className="border-t-2 font-bold">
-              <td colSpan={3} className="p-1 text-right">Totais</td>
-              <td className="p-1 text-right bg-red-100">{formatCurrency(totalCusto)}</td>
-              <td className="p-1 text-right"></td>
-              <td className="p-1 text-right bg-green-100">{formatCurrency(orcamento.totalVenda)}</td>
+              <td colSpan={3} className="p-2 text-right">Totais</td>
+              <td className="p-2 text-right bg-red-100">{formatCurrency(totalCusto)}</td>
+              <td className="p-2 text-right"></td>
+              <td className="p-2 text-right bg-green-100">{formatCurrency(orcamento.totalVenda)}</td>
             </tr>
-             <tr className="font-bold text-sm">
+             <tr className="font-bold text-base">
               <td colSpan={5} className="p-2 text-right bg-blue-100">LUCRO TOTAL</td>
               <td className="p-2 text-right bg-blue-100">{formatCurrency(lucroTotal)}</td>
             </tr>
