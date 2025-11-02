@@ -51,6 +51,7 @@ export default function ConversoesPage() {
   const [material, setMaterial] = useState('galvanizado');
   const [priceInputMode, setPriceInputMode] = useState<PriceInputMode>('kg');
   const [valorInput, setValorInput] = useState('');
+  const [quantidadeMinimaStr, setQuantidadeMinimaStr] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Estado para o conversor de unidades
@@ -149,17 +150,21 @@ export default function ConversoesPage() {
     setLargura('');
     setEspessura('');
     setValorInput('');
+    setQuantidadeMinimaStr('');
   };
   
   const performAdd = async () => {
     if (!user || !resultadoCalha || !resultadoCalha.metros || resultadoCalha.precoPorMetro === null) return;
      try {
       const materialDescricao = `Calha ${material === 'aluminio' ? 'Alumínio' : 'Aço Galvanizado'} ${largura}mm ${espessura}mm`;
+      const numQuantidadeMinima = parseFloat(quantidadeMinimaStr.replace(',', '.')) || null;
+
       const novoItem: Omit<MaterialItem, 'id' | 'userId'> = {
         descricao: materialDescricao,
         unidade: 'm',
         precoUnitario: resultadoCalha.precoPorMetro,
         quantidade: Math.floor(resultadoCalha.metros),
+        quantidadeMinima: numQuantidadeMinima,
         tipo: 'item' as const,
       };
 
@@ -183,12 +188,14 @@ export default function ConversoesPage() {
     if (!conflictingItem || !user || !resultadoCalha || !resultadoCalha.metros || resultadoCalha.precoPorMetro === null) return;
     try {
       const { id, ...materialToUpdate } = conflictingItem;
+      const numQuantidadeMinima = parseFloat(quantidadeMinimaStr.replace(',', '.')) || materialToUpdate.quantidadeMinima || null;
 
       const newQuantity = (materialToUpdate.quantidade || 0) + Math.floor(resultadoCalha.metros);
 
       const updatedPayload: Partial<Omit<MaterialItem, 'id' | 'userId'>> = {
         precoUnitario: resultadoCalha.precoPorMetro,
         quantidade: newQuantity,
+        quantidadeMinima: numQuantidadeMinima,
       };
 
       await updateMaterial(id, updatedPayload);
@@ -217,8 +224,7 @@ export default function ConversoesPage() {
       return;
     }
     
-    // Use the raw, non-replaced values for the description
-    const materialDescricao = `Calha ${material === 'aluminio' ? 'Alumínio' : 'Aço Galvanizado'} ${largura}mm ${espessura}mm`;
+    const materialDescricao = `Calha ${material === 'aluminio' ? 'Alumínio' : 'Aço Galvanizado'} ${largura.replace(',', '.')}mm ${espessura.replace(',', '.')}mm`;
     const normalizedDescricao = normalizeString(materialDescricao);
 
     const existingItem = materiais.find(m => normalizeString(m.descricao) === normalizedDescricao && m.tipo === 'item');
@@ -254,7 +260,6 @@ export default function ConversoesPage() {
         setter(sanitizedValue);
     }
   };
-
 
   const currentUnitOptions = UNIT_LABELS[convType] || {};
 
@@ -307,6 +312,10 @@ export default function ConversoesPage() {
                   <SelectItem value="galvanizado">Aço Galvanizado (D: 7.850 kg/m³)</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="quantidadeMinima">Estoque Mínimo (opcional)</Label>
+              <Input id="quantidadeMinima" type="text" inputMode="decimal" value={quantidadeMinimaStr} onChange={handleDecimalInputChange(setQuantidadeMinimaStr)} placeholder="Ex: 10" />
             </div>
           </div>
         </CardContent>
@@ -402,7 +411,7 @@ export default function ConversoesPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Item Duplicado Encontrado</AlertDialogTitle>
                <AlertDialogDescription>
-                 Este item já existe. Deseja somar a nova quantidade (~{formatNumber(resultadoCalha?.metros, 0)}m) ao estoque e usar o novo preço de custo ({formatCurrency(resultadoCalha?.precoPorMetro)})?
+                 Este item já existe. Deseja somar a nova quantidade (~{formatNumber(resultadoCalha?.metros, 0)}m) ao estoque, usar o novo preço de custo ({formatCurrency(resultadoCalha?.precoPorMetro)}) e o novo estoque mínimo?
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -414,7 +423,3 @@ export default function ConversoesPage() {
     </div>
   );
 }
-
-    
-
-    
