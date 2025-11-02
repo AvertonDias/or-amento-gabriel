@@ -26,7 +26,7 @@ import { addOrcamento, deleteOrcamento, getOrcamentos, updateOrcamentoStatus, ge
 import { addDays, parseISO, format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 
-// Componente para o layout do PDF
+// Componente para o layout do PDF do Cliente
 const BudgetPDFLayout = ({ orcamento, empresa }: {
   orcamento: Orcamento | null,
   empresa: EmpresaData | null,
@@ -86,7 +86,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
               <tr key={item.id} className="even:bg-gray-50 border-b">
                 <td className="p-2">{item.materialNome}</td>
                 <td className="p-2 text-right">{formatNumber(item.quantidade, 2)} {item.unidade}</td>
-                <td className="p-2 text-right">{formatCurrency(item.precoUnitario)}</td>
+                <td className="p-2 text-right">{formatCurrency(item.precoVenda / item.quantidade)}</td>
                 <td className="p-2 text-right font-medium">{formatCurrency(item.precoVenda)}</td>
               </tr>
             ))}
@@ -95,6 +95,70 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
             <tr className="bg-gray-200 font-bold text-sm">
               <td colSpan={3} className="p-2 text-right text-black">TOTAL</td>
               <td className="p-2 text-right text-black">{formatCurrency(orcamento.totalVenda)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    )
+};
+
+// Componente para o layout do PDF Interno
+const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
+  orcamento: Orcamento | null,
+  empresa: EmpresaData | null,
+}) => {
+    if (!orcamento) return null;
+
+    const totalCusto = orcamento.itens.reduce((acc, item) => acc + item.total, 0);
+    const lucroTotal = orcamento.totalVenda - totalCusto;
+    
+    return (
+      <div className="p-8 font-sans bg-white text-black text-xs">
+        <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
+          <div>
+            <h1 className="text-lg font-bold">Relatório Interno de Orçamento</h1>
+            <p className="text-sm text-gray-600">{empresa?.nome || 'Sua Empresa'}</p>
+          </div>
+          <div className="text-right">
+            <h2 className="text-base font-semibold">Orçamento #{orcamento.numeroOrcamento}</h2>
+            <p className="text-[10px]">Cliente: {orcamento.cliente.nome}</p>
+            <p className="text-[10px]">Data: {format(parseISO(orcamento.dataCriacao), 'dd/MM/yyyy')}</p>
+          </div>
+        </header>
+
+        <table className="w-full text-[9px] text-black">
+          <thead className="bg-gray-100">
+            <tr className='border-b'>
+              <th className="p-1 text-left font-semibold text-black">Item</th>
+              <th className="p-1 text-right font-semibold text-black">Qtd.</th>
+              <th className="p-1 text-right font-semibold text-black">Custo UN</th>
+              <th className="p-1 text-right font-semibold text-black">Custo Total</th>
+              <th className="p-1 text-right font-semibold text-black">Margem %</th>
+              <th className="p-1 text-right font-semibold text-black">Venda Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orcamento.itens.map(item => (
+              <tr key={item.id} className="even:bg-gray-50 border-b">
+                <td className="p-1">{item.materialNome}</td>
+                <td className="p-1 text-right">{formatNumber(item.quantidade, 2)} {item.unidade}</td>
+                <td className="p-1 text-right">{formatCurrency(item.precoUnitario)}</td>
+                <td className="p-1 text-right">{formatCurrency(item.total)}</td>
+                <td className="p-1 text-right">{formatNumber(item.margemLucro, 1)}%</td>
+                <td className="p-1 text-right font-medium">{formatCurrency(item.precoVenda)}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+             <tr className="border-t-2 font-bold">
+              <td colSpan={3} className="p-1 text-right">Totais</td>
+              <td className="p-1 text-right bg-red-100">{formatCurrency(totalCusto)}</td>
+              <td className="p-1 text-right"></td>
+              <td className="p-1 text-right bg-green-100">{formatCurrency(orcamento.totalVenda)}</td>
+            </tr>
+             <tr className="font-bold text-sm">
+              <td colSpan={5} className="p-2 text-right bg-blue-100">LUCRO TOTAL</td>
+              <td className="p-2 text-right bg-blue-100">{formatCurrency(lucroTotal)}</td>
             </tr>
           </tfoot>
         </table>
@@ -128,6 +192,7 @@ export default function OrcamentoPage() {
 
   const { toast } = useToast();
   const pdfRef = useRef<HTMLDivElement>(null);
+  const internalPdfRef = useRef<HTMLDivElement>(null);
   
   const [novoItem, setNovoItem] = useState({ materialId: '', quantidade: '', margemLucro: '' });
   const [quantidadeStr, setQuantidadeStr] = useState('');
@@ -360,6 +425,27 @@ export default function OrcamentoPage() {
     setPdfBudget(null);
   };
   
+  const handleGerarPDFInterno = async (orcamento: Orcamento) => {
+    setPdfBudget(orcamento);
+    await new Promise(resolve => setTimeout(resolve, 100)); // Aguarda a renderização do PDF
+    const pdfElement = internalPdfRef.current;
+    if (!pdfElement) return;
+    const canvas = await html2canvas(pdfElement, { scale: 2, backgroundColor: '#ffffff' });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+    const ratio = canvasWidth / canvasHeight;
+    let width = pdfWidth;
+    let height = width / ratio;
+    if (height > pdfHeight) { height = pdfHeight; width = height * ratio; }
+    pdf.addImage(imgData, 'PNG', 0, 0, width, height);
+    pdf.save(`interno-${orcamento.cliente.nome.toLowerCase().replace(/ /g, '_')}-${orcamento.numeroOrcamento}.pdf`);
+    setPdfBudget(null);
+  };
+  
   const handleEnviarWhatsApp = (orcamento: Orcamento) => {
     const telefoneLimpo = orcamento.cliente.telefone.replace(/\D/g, '');
     if (!telefoneLimpo) { toast({ title: 'Telefone do Cliente inválido.', variant: 'destructive' }); return; }
@@ -553,7 +639,8 @@ export default function OrcamentoPage() {
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
-                            <Button variant="secondary" size="sm" onClick={() => handleGerarPDF(orcamento)}><FileText className="mr-2"/>Gerar PDF</Button>
+                            <Button variant="secondary" size="sm" onClick={() => handleGerarPDF(orcamento)}><FileText className="mr-2"/>PDF Cliente</Button>
+                            <Button variant="secondary" size="sm" onClick={() => handleGerarPDFInterno(orcamento)}><FileText className="mr-2"/>PDF Interno</Button>
                             <Button variant="secondary" size="sm" onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}><MessageCircle className="mr-2"/>Enviar Proposta</Button>
                             {orcamento.status === 'Pendente' && (
                                 <>
@@ -709,6 +796,9 @@ export default function OrcamentoPage() {
       <div className="absolute -z-10 top-0 -left-[9999px] w-[595pt] bg-white text-black">
           <div ref={pdfRef}>
               {<BudgetPDFLayout orcamento={pdfBudget} empresa={empresa} />}
+          </div>
+          <div ref={internalPdfRef}>
+              {<InternalBudgetPDFLayout orcamento={pdfBudget} empresa={empresa} />}
           </div>
       </div>
     </div>
