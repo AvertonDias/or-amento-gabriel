@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -147,6 +148,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <TooltipProvider>
+      <PwaInstallButton />
       <div className="flex min-h-screen w-full">
         {/* Desktop Sidebar */}
         <aside className={cn(
@@ -176,7 +178,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             </div>
             <div className="mt-auto border-t p-2">
               <div className="space-y-1">
-                 <PwaInstallButton isCollapsed={isSidebarCollapsed} />
                  <Tooltip delayDuration={0}>
                   <TooltipTrigger asChild>
                     <Button onClick={handleLogout} variant="ghost" className={cn(
@@ -242,7 +243,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 </div>
                 <MobileNavContent />
                 <div className="mt-auto border-t -mx-4 pt-4 px-4 space-y-2">
-                   <PwaInstallButton />
                    <Button
                       onClick={async () => {
                           await handleLogout();

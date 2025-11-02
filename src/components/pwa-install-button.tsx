@@ -14,8 +14,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { cn } from '@/lib/utils';
 
 // Define the shape of the event object for better type safety
 interface BeforeInstallPromptEvent extends Event {
@@ -27,7 +25,7 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
-export function PwaInstallButton({ isCollapsed }: { isCollapsed?: boolean }) {
+export function PwaInstallButton() {
   const { toast } = useToast();
   const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [showDialog, setShowDialog] = useState(false);
@@ -35,30 +33,25 @@ export function PwaInstallButton({ isCollapsed }: { isCollapsed?: boolean }) {
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event: Event) => {
-      // Prevent the mini-infobar from appearing on mobile
       event.preventDefault();
       const promptEvent = event as BeforeInstallPromptEvent;
       setInstallPromptEvent(promptEvent);
-      // If the app is not marked as installed, show the dialog
       if (!isAppInstalled) {
         setShowDialog(true);
       }
     };
     
-    // Check if the app is already installed
-    window.addEventListener('appinstalled', () => {
+    const handleAppInstalled = () => {
       setIsAppInstalled(true);
       setShowDialog(false);
-    });
+    };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-       window.removeEventListener('appinstalled', () => {
-          setIsAppInstalled(true);
-          setShowDialog(false);
-       });
+      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, [isAppInstalled, setIsAppInstalled]);
 
@@ -85,16 +78,14 @@ export function PwaInstallButton({ isCollapsed }: { isCollapsed?: boolean }) {
     }
   };
   
-  // Render nothing if there is no prompt event or the app is installed
-  if (!installPromptEvent || isAppInstalled) {
+  if (!installPromptEvent || isAppInstalled || !showDialog) {
     return null;
   }
 
   return (
      <Dialog open={showDialog} onOpenChange={(open) => {
-        // Prevent closing the dialog by interaction
-        if (!open) return;
-        setShowDialog(open);
+        // This will be controlled by state, preventing accidental closure
+        if(open) setShowDialog(true);
      }}>
         <DialogContent 
             className="sm:max-w-md"
