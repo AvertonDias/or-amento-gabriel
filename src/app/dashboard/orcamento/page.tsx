@@ -666,7 +666,7 @@ export default function OrcamentoPage() {
                             </div>
                         </CardContent>
                         <CardFooter className="flex flex-wrap justify-end gap-2 bg-muted/50 p-4">
-                           <Button variant="outline" size="sm" onClick={() => handleOpenEditBudgetModal(orcamento)}><Pencil className="mr-2 h-4 w-4" />Editar</Button>
+                           <Button variant="outline" size="sm" onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}><Pencil className="mr-2 h-4 w-4" />Editar</Button>
                              <AlertDialog>
                                 <AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="mr-2 h-4 w-4" />Excluir</Button></AlertDialogTrigger>
                                 <AlertDialogContent>
@@ -898,4 +898,3 @@ export default function OrcamentoPage() {
     </div>
   );
 }
-
