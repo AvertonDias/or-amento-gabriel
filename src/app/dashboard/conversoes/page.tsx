@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,12 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Ruler, Weight, BetweenHorizonalStart, Bot, ArrowRightLeft, DollarSign, PackagePlus, Loader2 } from 'lucide-react';
 import { formatNumber, formatCurrency, maskCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
-import { addMaterial } from '@/services/materiaisService';
-import { useRouter } from 'next/navigation';
+import { addMaterial, getMateriais, updateMaterial } from '@/services/materiaisService';
+import type { MaterialItem } from '@/lib/types';
+
 
 const DENSIDADES: Record<string, number> = {
   aluminio: 2700,
@@ -35,7 +37,6 @@ type PriceInputMode = 'kg' | 'total';
 
 export default function ConversoesPage() {
   const [user] = useAuthState(auth);
-  const router = useRouter();
   const { toast } = useToast();
 
   // Estado para a calculadora de calhas
@@ -47,12 +48,31 @@ export default function ConversoesPage() {
   const [valorInput, setValorInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-
   // Estado para o conversor de unidades
   const [convType, setConvType] = useState('length');
   const [unitValue, setUnitValue] = useState('');
   const [fromUnit, setFromUnit] = useState('m');
   const [toUnit, setToUnit] = useState('cm');
+  
+  // Estado para materiais e confirmação de atualização
+  const [materiais, setMateriais] = useState<MaterialItem[]>([]);
+  const [isUpdateConfirmOpen, setIsUpdateConfirmOpen] = useState(false);
+  const [conflictingItem, setConflictingItem] = useState<MaterialItem | null>(null);
+
+  const fetchMateriais = useCallback(async () => {
+    if (!user) return;
+    try {
+      const data = await getMateriais(user.uid);
+      setMateriais(data);
+    } catch (error) {
+      console.error("Erro ao buscar materiais:", error);
+      toast({ title: 'Erro ao carregar lista de materiais', variant: 'destructive' });
+    }
+  }, [user, toast]);
+
+  useEffect(() => {
+    fetchMateriais();
+  }, [fetchMateriais]);
 
 
   const resultadoCalha = useMemo(() => {
@@ -119,20 +139,18 @@ export default function ConversoesPage() {
     setValorInput(''); // Reseta o campo de valor ao trocar o modo
   };
 
-  const handleAdicionarAoEstoque = async () => {
-    if (!user || !resultadoCalha || !resultadoCalha.metros || resultadoCalha.precoPorMetro === null) {
-      toast({
-        title: "Dados incompletos",
-        description: "Preencha todos os campos, incluindo o valor, para adicionar ao estoque.",
-        variant: "destructive"
-      });
-      return;
-    }
-    setIsSubmitting(true);
-    try {
+  const resetForm = () => {
+    setPeso('');
+    setLargura('');
+    setEspessura('');
+    setValorInput('');
+  };
+  
+  const performAdd = async () => {
+    if (!user || !resultadoCalha || !resultadoCalha.metros || resultadoCalha.precoPorMetro === null) return;
+     try {
       const materialDescricao = `Calha ${material === 'aluminio' ? 'Alumínio' : 'Aço Galvanizado'} ${largura}mm ${espessura}mm`;
-
-      const novoItem = {
+      const novoItem: Omit<MaterialItem, 'id' | 'userId'> = {
         descricao: materialDescricao,
         unidade: 'm',
         precoUnitario: resultadoCalha.precoPorMetro,
@@ -146,20 +164,76 @@ export default function ConversoesPage() {
         title: "Sucesso!",
         description: `${materialDescricao} foi adicionado ao seu estoque.`,
       });
-      
-      // Reset form
-      setPeso('');
-      setLargura('');
-      setEspessura('');
-      setValorInput('');
+
+      await fetchMateriais();
+      resetForm();
       
     } catch (error) {
        toast({ title: 'Erro ao adicionar item', variant: 'destructive' });
        console.error("Erro ao adicionar ao estoque:", error);
-    } finally {
-        setIsSubmitting(false);
     }
-  }
+  };
+
+  const performUpdate = async () => {
+    if (!conflictingItem || !user || !resultadoCalha || !resultadoCalha.metros || resultadoCalha.precoPorMetro === null) return;
+    try {
+      const { id, ...materialToUpdate } = conflictingItem;
+
+      const newQuantity = (materialToUpdate.quantidade || 0) + Math.floor(resultadoCalha.metros);
+
+      const updatedPayload: Partial<Omit<MaterialItem, 'id' | 'userId'>> = {
+        precoUnitario: resultadoCalha.precoPorMetro,
+        quantidade: newQuantity,
+      };
+
+      await updateMaterial(id, updatedPayload);
+      toast({
+        title: "Sucesso!",
+        description: "Estoque do item atualizado com sucesso.",
+      });
+
+      await fetchMateriais();
+      resetForm();
+
+    } catch (error) {
+      toast({ title: 'Erro ao atualizar item', variant: 'destructive' });
+    } finally {
+      setConflictingItem(null);
+    }
+};
+
+  const handleAdicionarAoEstoque = async () => {
+    if (!user || !resultadoCalha || !resultadoCalha.metros || resultadoCalha.precoPorMetro === null) {
+      toast({
+        title: "Dados incompletos",
+        description: "Preencha todos os campos, incluindo o valor, para adicionar ao estoque.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const materialDescricao = `Calha ${material === 'aluminio' ? 'Alumínio' : 'Aço Galvanizado'} ${largura}mm ${espessura}mm`;
+    const existingItem = materiais.find(m => m.descricao.trim().toLowerCase() === materialDescricao.trim().toLowerCase() && m.tipo === 'item');
+
+    if (existingItem) {
+      setConflictingItem(existingItem);
+      setIsUpdateConfirmOpen(true);
+      return;
+    }
+
+    setIsSubmitting(true);
+    await performAdd();
+    setIsSubmitting(false);
+  };
+  
+  const handleConfirmUpdate = async () => {
+    setIsUpdateConfirmOpen(false);
+    if (!conflictingItem) return;
+    
+    setIsSubmitting(true);
+    await performUpdate();
+    setIsSubmitting(false);
+  };
   
   const handleDecimalInputChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
@@ -316,6 +390,23 @@ export default function ConversoesPage() {
             </div>
         </CardContent>
       </Card>
+      
+       <AlertDialog open={isUpdateConfirmOpen} onOpenChange={setIsUpdateConfirmOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Item Duplicado Encontrado</AlertDialogTitle>
+               <AlertDialogDescription>
+                 Este item já existe. Deseja somar a nova quantidade (~{formatNumber(resultadoCalha?.metros, 0)}m) ao estoque e usar o novo preço de custo ({formatCurrency(resultadoCalha?.precoPorMetro)})?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setConflictingItem(null)}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmUpdate}>Sim, Adicionar e Atualizar</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
+    
