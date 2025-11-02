@@ -291,7 +291,7 @@ export default function ConversoesPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="espessura" className="flex items-center gap-1"><Ruler className="w-4 h-4" /> Espessura (mm)</Label>
-              <Input id="espessura" type="text" inputMode="decimal" value={espessura} onChange={handleDecimalInputChange(setEspessura, 2)} placeholder="Ex: 0,50" />
+              <Input id="espessura" type="text" inputMode="decimal" value={espessura} onChange={(e) => setEspessura(maskDecimal(e.target.value, 2))} placeholder="Ex: 0,50" />
             </div>
              <div className="space-y-2">
               <Label htmlFor="price-mode">Tipo de Valor</Label>
@@ -427,5 +427,7 @@ export default function ConversoesPage() {
     </div>
   );
 }
+
+    
 
     
