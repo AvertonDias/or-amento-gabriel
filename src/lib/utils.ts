@@ -122,6 +122,27 @@ export const maskCurrency = (value: string): string => {
     return 'R$ ' + v;
 }
 
+export const maskDecimal = (value: string, decimals: number = 2): string => {
+  if (!value) return "";
+  let v = value.replace(/\D/g, '');
+  if (v === '') return "";
+
+  // Adiciona zeros à esquerda se necessário
+  while (v.length <= decimals) {
+    v = '0' + v;
+  }
+  
+  // Insere a vírgula
+  v = v.slice(0, v.length - decimals) + ',' + v.slice(v.length - decimals);
+
+  // Remove zeros à esquerda do número inteiro, mas mantém um se for o único dígito
+  if (v.length > decimals + 2 && v.startsWith('0')) {
+     v = v.replace(/^0+/, '');
+  }
+
+  return v;
+};
+
 
 // --- Funções de Validação de CPF e CNPJ ---
 
@@ -187,5 +208,7 @@ export function validateCpfCnpj(doc: string): 'valid' | 'invalid' | 'incomplete'
     return validateCPF(onlyNums) ? 'valid' : 'invalid';
   }
 }
+
+    
 
     

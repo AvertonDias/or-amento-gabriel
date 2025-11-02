@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Ruler, Weight, BetweenHorizonalStart, Bot, ArrowRightLeft, DollarSign, PackagePlus, Loader2 } from 'lucide-react';
-import { formatNumber, formatCurrency, maskCurrency } from '@/lib/utils';
+import { formatNumber, formatCurrency, maskCurrency, maskDecimal } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -261,16 +261,8 @@ export default function ConversoesPage() {
     setIsSubmitting(false);
   };
   
-  const handleDecimalInputChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target;
-    // Allow only numbers and one comma
-    const sanitizedValue = value.replace(/[^0-9,]/g, '');
-    const parts = sanitizedValue.split(',');
-    if (parts.length > 2) {
-        setter(`${parts[0]},${parts.slice(1).join('')}`);
-    } else {
-        setter(sanitizedValue);
-    }
+  const handleDecimalInputChange = (setter: React.Dispatch<React.SetStateAction<string>>, decimals: number = 2) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      setter(maskDecimal(e.target.value, decimals));
   };
 
   const currentUnitOptions = UNIT_LABELS[convType] || {};
@@ -299,7 +291,7 @@ export default function ConversoesPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="espessura" className="flex items-center gap-1"><Ruler className="w-4 h-4" /> Espessura (mm)</Label>
-              <Input id="espessura" type="text" inputMode="decimal" value={espessura} onChange={handleDecimalInputChange(setEspessura)} placeholder="Ex: 0,50" />
+              <Input id="espessura" type="text" inputMode="decimal" value={espessura} onChange={handleDecimalInputChange(setEspessura, 2)} placeholder="Ex: 0,50" />
             </div>
              <div className="space-y-2">
               <Label htmlFor="price-mode">Tipo de Valor</Label>
@@ -383,7 +375,7 @@ export default function ConversoesPage() {
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
                 <div className="md:col-span-2 space-y-2">
                     <Label htmlFor="from-value">Valor</Label>
-                    <Input id="from-value" type="text" inputMode="decimal" value={unitValue} onChange={handleDecimalInputChange(setUnitValue)} placeholder="Digite o valor" />
+                    <Input id="from-value" type="text" inputMode="decimal" value={unitValue} onChange={handleDecimalInputChange(setUnitValue, 3)} placeholder="Digite o valor" />
                 </div>
                  <div className="md:col-span-2 space-y-2">
                     <Label htmlFor="from-unit">De</Label>
@@ -435,3 +427,5 @@ export default function ConversoesPage() {
     </div>
   );
 }
+
+    
