@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -160,6 +159,21 @@ export default function ConversoesPage() {
         setIsSubmitting(false);
     }
   }
+  
+  const handleDecimalInputChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    // Permite apenas números, uma vírgula ou um ponto
+    const sanitizedValue = value.replace(/[^0-9,.]/g, '');
+    // Garante que haja apenas um separador decimal
+    const parts = sanitizedValue.split(/[.,]/);
+    if (parts.length > 2) {
+      // Se houver mais de um separador, mantenha o primeiro e junte o resto
+      setter(`${parts[0]},${parts.slice(1).join('')}`);
+    } else {
+      setter(sanitizedValue);
+    }
+  };
+
 
   const currentUnitOptions = UNIT_LABELS[convType] || {};
 
@@ -179,15 +193,15 @@ export default function ConversoesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
             <div className="space-y-2">
               <Label htmlFor="peso" className="flex items-center gap-1"><Weight className="w-4 h-4"/> Peso da Bobina (kg)</Label>
-              <Input id="peso" type="text" inputMode="decimal" value={peso} onChange={(e) => setPeso(e.target.value)} placeholder="Ex: 50" />
+              <Input id="peso" type="text" inputMode="decimal" value={peso} onChange={handleDecimalInputChange(setPeso)} placeholder="Ex: 50" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="largura" className="flex items-center gap-1"><BetweenHorizonalStart className="w-4 h-4" /> Largura (mm)</Label>
-              <Input id="largura" type="text" inputMode="decimal" value={largura} onChange={(e) => setLargura(e.target.value)} placeholder="Ex: 300" />
+              <Input id="largura" type="text" inputMode="decimal" value={largura} onChange={handleDecimalInputChange(setLargura)} placeholder="Ex: 300" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="espessura" className="flex items-center gap-1"><Ruler className="w-4 h-4" /> Espessura (mm)</Label>
-              <Input id="espessura" type="text" inputMode="decimal" value={espessura} onChange={(e) => setEspessura(e.target.value)} placeholder="Ex: 0,50" />
+              <Input id="espessura" type="text" inputMode="decimal" value={espessura} onChange={handleDecimalInputChange(setEspessura)} placeholder="Ex: 0,50" />
             </div>
              <div className="space-y-2">
               <Label htmlFor="price-mode">Tipo de Valor</Label>
@@ -267,7 +281,7 @@ export default function ConversoesPage() {
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
                 <div className="md:col-span-2 space-y-2">
                     <Label htmlFor="from-value">Valor</Label>
-                    <Input id="from-value" type="text" inputMode="decimal" value={unitValue} onChange={e => setUnitValue(e.target.value)} placeholder="Digite o valor" />
+                    <Input id="from-value" type="text" inputMode="decimal" value={unitValue} onChange={handleDecimalInputChange(setUnitValue)} placeholder="Digite o valor" />
                 </div>
                  <div className="md:col-span-2 space-y-2">
                     <Label htmlFor="from-unit">De</Label>
@@ -304,6 +318,3 @@ export default function ConversoesPage() {
     </div>
   );
 }
-
-    
-

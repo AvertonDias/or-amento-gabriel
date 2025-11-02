@@ -103,16 +103,26 @@ export default function MateriaisPage() {
 
   const handleNewItemNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const sanitizedValue = value.replace(/[^0-9,]/g, '').replace(',', '.');
+    // Permite apenas números, uma vírgula ou um ponto
+    const sanitizedValue = value.replace(/[^0-9,.]/g, '');
+    // Garante que haja apenas um separador decimal
+    const parts = sanitizedValue.split(/[.,]/);
+    let finalValue = sanitizedValue;
+    if (parts.length > 2) {
+      finalValue = `${parts[0]},${parts.slice(1).join('')}`;
+    }
     
+    const numericValue = finalValue.replace(',', '.');
+
     if (name === 'precoUnitario') {
-      setPrecoUnitarioStr(value);
-      setNewItem(prev => ({...prev, precoUnitario: value === '' ? null : parseFloat(sanitizedValue) }));
+      setPrecoUnitarioStr(finalValue);
+      setNewItem(prev => ({...prev, precoUnitario: finalValue === '' ? null : parseFloat(numericValue) }));
     } else if (name === 'quantidade') {
-      setQuantidadeStr(value);
-      setNewItem(prev => ({...prev, quantidade: value === '' ? null : parseFloat(sanitizedValue) }));
+      setQuantidadeStr(finalValue);
+      setNewItem(prev => ({...prev, quantidade: finalValue === '' ? null : parseFloat(numericValue) }));
     }
   };
+
 
   const handleUnitChange = (value: string) => {
     setNewItem(prev => ({ ...prev, unidade: value }));
@@ -192,16 +202,26 @@ export default function MateriaisPage() {
   const handleEditNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingMaterial) return;
     const { name, value } = e.target;
-    const sanitizedValue = value.replace(/[^0-9,]/g, '').replace(',', '.');
+    // Permite apenas números, uma vírgula ou um ponto
+    const sanitizedValue = value.replace(/[^0-9,.]/g, '');
+    // Garante que haja apenas um separador decimal
+    const parts = sanitizedValue.split(/[.,]/);
+    let finalValue = sanitizedValue;
+    if (parts.length > 2) {
+      finalValue = `${parts[0]},${parts.slice(1).join('')}`;
+    }
+    
+    const numericValue = finalValue.replace(',', '.');
 
     if (name === 'precoUnitario') {
-      setEditingPrecoUnitarioStr(value);
-      setEditingMaterial(prev => prev ? { ...prev, precoUnitario: value === '' ? null : parseFloat(sanitizedValue) } : null);
+      setEditingPrecoUnitarioStr(finalValue);
+      setEditingMaterial(prev => prev ? { ...prev, precoUnitario: finalValue === '' ? null : parseFloat(numericValue) } : null);
     } else if (name === 'quantidade') {
-      setEditingQuantidadeStr(value);
-      setEditingMaterial(prev => prev ? { ...prev, quantidade: value === '' ? null : parseFloat(sanitizedValue) } : null);
+      setEditingQuantidadeStr(finalValue);
+      setEditingMaterial(prev => prev ? { ...prev, quantidade: finalValue === '' ? null : parseFloat(numericValue) } : null);
     }
   };
+
 
   const handleEditUnitChange = (value: string) => {
     if (!editingMaterial) return;
