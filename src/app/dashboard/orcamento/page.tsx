@@ -144,6 +144,20 @@ export default function OrcamentoPage() {
 
   const [pdfBudget, setPdfBudget] = useState<Orcamento | null>(null);
 
+  const fetchOrcamentos = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(prev => ({ ...prev, orcamentos: true }));
+    try {
+      const orcamentosData = await getOrcamentos(user.uid);
+      setOrcamentosSalvos(orcamentosData);
+    } catch (error) {
+      console.error("Erro ao buscar orçamentos:", error);
+      toast({ title: 'Erro ao carregar orçamentos', variant: 'destructive' });
+    } finally {
+      setIsLoading(prev => ({ ...prev, orcamentos: false }));
+    }
+  }, [user, toast]);
+
   const fetchAllData = useCallback(async (isRefresh = false) => {
     if (!user) return;
     
@@ -315,7 +329,7 @@ export default function OrcamentoPage() {
         limparValores();
         setClienteData({ id: undefined, nome: '', endereco: '', telefone: '', email: '', cpfCnpj: ''});
         setIsSaveModalOpen(false);
-        await fetchAllData(true); // Refresh all data, including orcamentos
+        await fetchOrcamentos(); // Apenas atualiza os orçamentos
         toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
     } catch(error) {
         toast({ title: "Erro ao salvar orçamento", variant: "destructive" });
@@ -346,7 +360,7 @@ export default function OrcamentoPage() {
             }
         }
         
-        await fetchAllData(true); // Refresh all data
+        await fetchOrcamentos(); // Apenas atualiza os orçamentos
         toast({ title: `Orçamento ${status.toLowerCase()}!` });
 
         if (status === 'Aceito' && acceptedBudget) {
@@ -505,7 +519,7 @@ export default function OrcamentoPage() {
   const handleRemoverOrcamento = async (id: string) => {
     try {
         await deleteOrcamento(id);
-        await fetchAllData(true); // Refresh
+        await fetchOrcamentos(); // Refresh
         toast({
             title: 'Orçamento Excluído',
             variant: 'destructive',
@@ -526,7 +540,7 @@ export default function OrcamentoPage() {
         setValidadeDias(orcamento.validadeDias);
         setMargemLucroStr(orcamento.itens[0]?.margemLucro.toString() || '0');
         
-        await fetchAllData(true); // Refresh
+        await fetchOrcamentos(); // Refresh
         
         toast({
             title: 'Orçamento Carregado para Edição',
@@ -710,8 +724,8 @@ export default function OrcamentoPage() {
                       className="w-full pl-10"
                     />
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => fetchAllData(true)} disabled={isRefreshing}>
-                    <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <Button variant="ghost" size="icon" onClick={() => fetchOrcamentos()} disabled={isRefreshing}>
+                    <RefreshCw className={`h-5 w-5 ${isRefreshing || isLoading.orcamentos ? 'animate-spin' : ''}`} />
                   </Button>
                 </div>
             </CardHeader>
@@ -928,6 +942,8 @@ export default function OrcamentoPage() {
     </div>
   );
 }
+
+    
 
     
 
