@@ -146,20 +146,20 @@ export default function MateriaisPage() {
   };
   
   const performAdd = async () => {
-    if (!user) return; // Should already be checked
-     try {
-      const payload: Omit<MaterialItem, 'id' | 'userId'> = {
+    if (!user) return;
+    try {
+      let payload: Omit<MaterialItem, 'id' | 'userId'> = {
         descricao: newItem.descricao,
         unidade: newItem.unidade,
         precoUnitario: newItem.precoUnitario,
         tipo: newItem.tipo,
-        quantidade: newItem.quantidade,
-        quantidadeMinima: newItem.quantidadeMinima,
+        quantidade: null,
+        quantidadeMinima: null,
       };
 
-      if (payload.tipo === 'servico') {
-        delete payload.quantidade;
-        delete payload.quantidadeMinima;
+      if (payload.tipo === 'item') {
+        payload.quantidade = newItem.quantidade;
+        payload.quantidadeMinima = newItem.quantidadeMinima;
       }
 
       await addMaterial(user.uid, payload);
@@ -271,9 +271,8 @@ export default function MateriaisPage() {
   
   const handleEditClick = (material: MaterialItem) => {
     setEditingMaterial({ ...material });
-    // This is the fix. Ensure precoUnitario is a number before masking.
     const priceAsNumber = Number(material.precoUnitario) || 0;
-    setEditingPrecoUnitarioStr(maskCurrency(String(priceAsNumber)));
+    setEditingPrecoUnitarioStr(maskCurrency(String(priceAsNumber.toFixed(2))));
     setEditingQuantidadeStr(material.quantidade !== null && material.quantidade !== undefined ? String(material.quantidade).replace('.', ',') : '');
     setEditingQuantidadeMinimaStr(material.quantidadeMinima !== null && material.quantidadeMinima !== undefined ? String(material.quantidadeMinima).replace('.', ',') : '');
     setIsEditModalOpen(true);

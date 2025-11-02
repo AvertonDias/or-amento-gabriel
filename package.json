@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "rm -rf .next && firebase deploy --only firestore:rules --project gutters-budget-pro --non-interactive && next dev",
-    "build": "next build",
+    "build": "rm -rf .next && next build",
     "postbuild": "echo 'Firestore rules are not deployed automatically on Vercel.'",
     "start": "next start",
     "lint": "next lint",
