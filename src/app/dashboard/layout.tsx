@@ -220,7 +220,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           isSidebarCollapsed ? "md:pl-[60px]" : "md:pl-[220px] lg:pl-[280px]"
         )}>
           {/* Mobile Header */}
-          <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6 md:hidden">
+          <header className="sticky top-0 z-20 flex h-14 items-center gap-4 border-b bg-muted/90 px-4 backdrop-blur-sm lg:h-[60px] lg:px-6 md:hidden">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon" className="shrink-0">
