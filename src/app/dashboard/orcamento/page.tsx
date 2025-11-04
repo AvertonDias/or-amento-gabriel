@@ -565,7 +565,7 @@ export default function OrcamentoPage() {
         await fetchOrcamentos();
         toast({ title: `Orçamento ${status.toLowerCase()}!` });
         if (status === 'Aceito' && acceptedBudget) { 
-            const updatedBudget = { ...acceptedBudget, status, ...updatePayload };
+            const updatedBudget = { ...acceptedBudget, ...updatePayload };
             handleSendAcceptanceWhatsApp(updatedBudget); 
         }
     } catch(error) {
@@ -1114,7 +1114,7 @@ export default function OrcamentoPage() {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
+      </Dialog>
 
 
       <div className="absolute -z-10 top-0 -left-[9999px] w-[595pt] bg-white text-black">
@@ -1128,4 +1128,3 @@ export default function OrcamentoPage() {
     </div>
   );
 }
-
