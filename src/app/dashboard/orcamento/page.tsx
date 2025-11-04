@@ -46,7 +46,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
     const dataAceite = orcamento.dataAceite ? parseISO(orcamento.dataAceite) : null;
 
     return (
-      <div className="p-8 font-sans bg-white text-black text-sm">
+      <div className="p-8 font-sans bg-white text-black text-xs">
         <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
           <div className="flex items-start gap-4">
             {empresa?.logo && (
@@ -74,7 +74,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
         </header>
 
         <section className="mb-4">
-          <h3 className="font-semibold text-lg mb-2">Cliente:</h3>
+          <h3 className="font-semibold text-base mb-2">Cliente:</h3>
           <div className="space-y-1">
             <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
             {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
@@ -129,7 +129,7 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
     const dataAceite = orcamento.dataAceite ? parseISO(orcamento.dataAceite) : null;
 
     return (
-      <div className="p-8 font-sans bg-white text-black text-sm">
+      <div className="p-8 font-sans bg-white text-black text-xs">
         <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
             <div className="flex items-start gap-4">
               {empresa?.logo && (
@@ -157,7 +157,7 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
         </header>
 
         <section className="mb-4">
-            <h3 className="font-semibold text-lg mb-2">Cliente:</h3>
+            <h3 className="font-semibold text-base mb-2">Cliente:</h3>
             <div className="space-y-1">
               <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
               {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
