@@ -1,19 +1,19 @@
 
 'use client';
 
-import React, { useState, FormEvent, useEffect, useCallback } from 'react';
+import React, { useState, FormEvent, useEffect, useCallback, useMemo } from 'react';
 import type { ClienteData } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Users, PlusCircle, Pencil, Contact, RefreshCw } from 'lucide-react';
+import { Trash2, Users, PlusCircle, Pencil, Contact, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { maskCpfCnpj, maskTelefone } from '@/lib/utils';
+import { maskCpfCnpj, maskTelefone, validateCpfCnpj } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
@@ -25,6 +25,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 
 const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
@@ -60,6 +61,17 @@ export default function ClientesPage() {
   const [duplicateMessage, setDuplicateMessage] = useState("");
 
   const { toast } = useToast();
+  
+  const newClientCpfCnpjStatus = useMemo(() => {
+    if (!newClient.cpfCnpj) return 'incomplete';
+    return validateCpfCnpj(newClient.cpfCnpj);
+  }, [newClient.cpfCnpj]);
+
+  const editingClientCpfCnpjStatus = useMemo(() => {
+    if (!editingClient?.cpfCnpj) return 'incomplete';
+    return validateCpfCnpj(editingClient.cpfCnpj);
+  }, [editingClient?.cpfCnpj]);
+
 
   const fetchClientes = useCallback(async () => {
     if (!user) return;
@@ -128,6 +140,12 @@ export default function ClientesPage() {
       });
       return;
     }
+
+    if (newClient.cpfCnpj && newClientCpfCnpjStatus === 'invalid') {
+        toast({ title: "Documento inválido", description: "O CPF/CNPJ inserido não é válido.", variant: "destructive" });
+        return;
+    }
+
 
     const duplicateInfo = checkForDuplicates();
     if (duplicateInfo) {
@@ -201,6 +219,11 @@ export default function ClientesPage() {
         variant: 'destructive',
       });
       return;
+    }
+
+    if (editingClient.cpfCnpj && editingClientCpfCnpjStatus === 'invalid') {
+        toast({ title: "Documento inválido", description: "O CPF/CNPJ inserido não é válido.", variant: "destructive" });
+        return;
     }
     
     setIsSubmitting(true);
@@ -310,7 +333,8 @@ export default function ClientesPage() {
   };
   
   const showSkeleton = loadingAuth || isLoadingData;
-
+  const isCpfCnpjInvalid = newClient.cpfCnpj ? newClientCpfCnpjStatus === 'invalid' : false;
+  const isEditingCpfCnpjInvalid = editingClient?.cpfCnpj ? editingClientCpfCnpjStatus === 'invalid' : false;
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
@@ -341,7 +365,34 @@ export default function ClientesPage() {
                     </div>
                     <div>
                       <Label htmlFor="cpfCnpj">CPF / CNPJ</Label>
-                      <Input id="cpfCnpj" name="cpfCnpj" value={newClient.cpfCnpj || ''} onChange={handleNewClientChange} placeholder="XXX.XXX.XXX-XX ou XX.XXX.XXX/XXXX-XX" />
+                      <div className="relative">
+                          <Input 
+                            id="cpfCnpj" 
+                            name="cpfCnpj" 
+                            value={newClient.cpfCnpj || ''} 
+                            onChange={handleNewClientChange} 
+                            placeholder="XXX.XXX.XXX-XX ou XX.XXX.XXX/XXXX-XX"
+                            className={cn(
+                                newClient.cpfCnpj && 'pr-10',
+                                newClientCpfCnpjStatus === 'valid' && 'border-green-500 focus-visible:ring-green-500',
+                                newClientCpfCnpjStatus === 'invalid' && 'border-destructive focus-visible:ring-destructive'
+                            )}
+                          />
+                          {newClient.cpfCnpj && (
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                              {newClientCpfCnpjStatus === 'valid' && <CheckCircle className="h-5 w-5 text-green-500" />}
+                              {newClientCpfCnpjStatus === 'invalid' && <XCircle className="h-5 w-5 text-destructive" />}
+                            </div>
+                          )}
+                      </div>
+                      {newClient.cpfCnpj && (
+                           <p className={cn(
+                              "text-xs mt-1",
+                              newClientCpfCnpjStatus === 'invalid' ? 'text-destructive' : 'text-muted-foreground'
+                           )}>
+                            {newClientCpfCnpjStatus === 'invalid' ? 'Documento inválido.' : newClientCpfCnpjStatus === 'incomplete' ? 'Documento incompleto.' : 'Documento válido.'}
+                           </p>
+                        )}
                     </div>
                     <div className="md:col-span-2">
                       <Label htmlFor="endereco">Endereço Completo</Label>
@@ -357,7 +408,7 @@ export default function ClientesPage() {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
+                    <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting || isCpfCnpjInvalid}>
                       {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                       Adicionar Cliente
                     </Button>
@@ -511,7 +562,33 @@ export default function ClientesPage() {
                 </div>
                 <div>
                   <Label htmlFor="edit-cpfCnpj">CPF / CNPJ</Label>
-                  <Input id="edit-cpfCnpj" name="cpfCnpj" value={editingClient.cpfCnpj || ''} onChange={handleEditFormChange} />
+                  <div className="relative">
+                      <Input 
+                        id="edit-cpfCnpj" 
+                        name="cpfCnpj" 
+                        value={editingClient.cpfCnpj || ''} 
+                        onChange={handleEditFormChange}
+                        className={cn(
+                            editingClient.cpfCnpj && 'pr-10',
+                            editingClientCpfCnpjStatus === 'valid' && 'border-green-500 focus-visible:ring-green-500',
+                            editingClientCpfCnpjStatus === 'invalid' && 'border-destructive focus-visible:ring-destructive'
+                        )}
+                      />
+                      {editingClient.cpfCnpj && (
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                          {editingClientCpfCnpjStatus === 'valid' && <CheckCircle className="h-5 w-5 text-green-500" />}
+                          {editingClientCpfCnpjStatus === 'invalid' && <XCircle className="h-5 w-5 text-destructive" />}
+                        </div>
+                      )}
+                  </div>
+                   {editingClient.cpfCnpj && (
+                       <p className={cn(
+                          "text-xs mt-1",
+                          editingClientCpfCnpjStatus === 'invalid' ? 'text-destructive' : 'text-muted-foreground'
+                       )}>
+                        {editingClientCpfCnpjStatus === 'invalid' ? 'Documento inválido.' : editingClientCpfCnpjStatus === 'incomplete' ? 'Documento incompleto.' : 'Documento válido.'}
+                       </p>
+                    )}
                 </div>
                 <div className="md:col-span-2">
                   <Label htmlFor="edit-endereco">Endereço</Label>
@@ -530,7 +607,7 @@ export default function ClientesPage() {
                 <DialogClose asChild>
                   <Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button>
                 </DialogClose>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" disabled={isSubmitting || isEditingCpfCnpjInvalid}>
                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                    Salvar Alterações
                 </Button>

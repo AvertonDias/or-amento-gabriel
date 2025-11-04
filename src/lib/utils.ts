@@ -208,7 +208,3 @@ export function validateCpfCnpj(doc: string): 'valid' | 'invalid' | 'incomplete'
     return validateCPF(onlyNums) ? 'valid' : 'invalid';
   }
 }
-
-    
-
-    
