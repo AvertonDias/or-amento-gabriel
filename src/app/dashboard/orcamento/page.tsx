@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, FormEvent, useRef, useCallback } from 'react';
@@ -109,7 +110,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
             ))}
           </tbody>
           <tfoot>
-            <tr className="bg-gray-200 font-bold text-lg">
+            <tr className="bg-gray-200 font-bold text-base">
               <td colSpan={3} className="p-2 text-right text-black">TOTAL</td>
               <td className="p-2 text-right text-black">{formatCurrency(orcamento.totalVenda)}</td>
             </tr>
@@ -209,7 +210,7 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
               <td className="p-2 text-right"></td>
               <td className="p-2 text-right bg-green-100">{formatCurrency(orcamento.totalVenda)}</td>
             </tr>
-             <tr className="font-bold text-lg">
+             <tr className="font-bold text-base">
               <td colSpan={5} className="p-2 text-right bg-blue-100">LUCRO TOTAL</td>
               <td className="p-2 text-right bg-blue-100">{formatCurrency(lucroTotal)}</td>
             </tr>
@@ -312,23 +313,33 @@ export default function OrcamentoPage() {
   useEffect(() => {
     if (orcamentosSalvos.length > 0) {
       const today = startOfToday();
-      orcamentosSalvos.forEach(async (orcamento) => {
-        if (orcamento.status === 'Pendente') {
-          const dataCriacao = parseISO(orcamento.dataCriacao);
-          const validadeDiasNum = parseInt(orcamento.validadeDias, 10);
-          if (!isNaN(validadeDiasNum)) {
-            const dataValidade = addDays(dataCriacao, validadeDiasNum);
-            if (isBefore(dataValidade, today)) {
-              await updateOrcamentoStatus(orcamento.id, 'Vencido', {});
-               // Refresh local data after update
-              setOrcamentosSalvos(prev => 
-                prev.map(o => o.id === orcamento.id ? { ...o, status: 'Vencido' } : o)
-              );
-            }
-          }
-        }
+      const budgetsToExpire = orcamentosSalvos.filter(orcamento => {
+        if (orcamento.status !== 'Pendente') return false;
+        const dataCriacao = parseISO(orcamento.dataCriacao);
+        const validadeDiasNum = parseInt(orcamento.validadeDias, 10);
+        if (isNaN(validadeDiasNum)) return false;
+        const dataValidade = addDays(dataCriacao, validadeDiasNum);
+        return isBefore(dataValidade, today);
       });
+
+      if (budgetsToExpire.length > 0) {
+        const updatedBudgets = [...orcamentosSalvos];
+        budgetsToExpire.forEach(orcamento => {
+          updateOrcamentoStatus(orcamento.id, 'Vencido', {});
+          const index = updatedBudgets.findIndex(o => o.id === orcamento.id);
+          if (index !== -1) {
+            updatedBudgets[index] = { ...updatedBudgets[index], status: 'Vencido' };
+          }
+          toast({
+            title: 'Orçamento Vencido',
+            description: `O orçamento Nº ${orcamento.numeroOrcamento} para ${orcamento.cliente.nome} venceu.`,
+            variant: 'destructive',
+          });
+        });
+        setOrcamentosSalvos(updatedBudgets);
+      }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orcamentosSalvos]);
 
   const fetchOrcamentos = useCallback(async () => {
@@ -527,7 +538,7 @@ export default function OrcamentoPage() {
   const handleUpdateStatus = async (budgetId: string, status: 'Aceito' | 'Recusado') => {
     if (!user) return;
     try {
-        let updatePayload: { status: 'Aceito' | 'Recusado' | 'Vencido', dataAceite?: string | null, dataRecusa?: string | null} = { status };
+        let updatePayload: { status: Orcamento['status'], dataAceite?: string | null, dataRecusa?: string | null} = { status };
         
         if (status === 'Aceito') {
             updatePayload.dataAceite = new Date().toISOString();
@@ -695,11 +706,11 @@ export default function OrcamentoPage() {
     toast({ title: 'Item atualizado.' });
   };
   
-  const getStatusBadgeVariant = (status: Orcamento['status']): "default" | "destructive" | "secondary" => {
+  const getStatusBadgeVariant = (status: Orcamento['status']): "default" | "destructive" | "secondary" | "warning" => {
     switch (status) {
         case 'Aceito': return 'default';
         case 'Recusado': return 'destructive';
-        case 'Vencido': return 'secondary'; // Could be a different color like orange
+        case 'Vencido': return 'warning';
         case 'Pendente': return 'secondary';
         default: return 'secondary';
     }
@@ -1087,3 +1098,4 @@ export default function OrcamentoPage() {
     </div>
   );
 }
+
