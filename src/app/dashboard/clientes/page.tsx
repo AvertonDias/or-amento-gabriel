@@ -23,6 +23,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
@@ -32,6 +33,13 @@ const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
   telefone: '',
   email: '',
 };
+
+interface SelectedContactDetails {
+  name: string[];
+  email: string[];
+  tel: string[];
+  address: any[];
+}
 
 export default function ClientesPage() {
   const [user, loadingAuth] = useAuthState(auth);
@@ -43,6 +51,9 @@ export default function ClientesPage() {
   
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<ClienteData | null>(null);
+
+  const [isContactSelectionModalOpen, setIsContactSelectionModalOpen] = useState(false);
+  const [selectedContactDetails, setSelectedContactDetails] = useState<SelectedContactDetails | null>(null);
 
   const { toast } = useToast();
 
@@ -197,23 +208,32 @@ export default function ClientesPage() {
         const props = ['name', 'email', 'tel', 'address'];
         const opts = { multiple: false };
         const contacts = await (navigator as any).contacts.select(props, opts);
+        
         if (contacts.length > 0) {
           const contact = contacts[0];
-          const address = contact.address?.[0];
-          const formattedAddress = address ? [address.streetAddress, address.addressLevel2, address.addressLevel1, address.postalCode, address.country].filter(Boolean).join(', ') : '';
+          
+          const hasMultipleOptions = (contact.tel?.length > 1 || contact.email?.length > 1 || contact.address?.length > 1);
 
-          const partialClient = {
-            nome: contact.name?.[0] || '',
-            email: contact.email?.[0] || '',
-            telefone: contact.tel?.[0] ? maskTelefone(contact.tel[0]) : '',
-            endereco: formattedAddress,
-            cpfCnpj: '',
-          };
-          setNewClient(partialClient);
-          toast({
-            title: 'Contato Importado!',
-            description: 'Os dados do contato foram preenchidos no formulário.',
-          });
+          if (hasMultipleOptions) {
+            setSelectedContactDetails(contact);
+            setIsContactSelectionModalOpen(true);
+          } else {
+            const address = contact.address?.[0];
+            const formattedAddress = address ? [address.streetAddress, address.addressLevel2, address.addressLevel1, address.postalCode, address.country].filter(Boolean).join(', ') : '';
+            
+            const partialClient = {
+              nome: contact.name?.[0] || '',
+              email: contact.email?.[0] || '',
+              telefone: contact.tel?.[0] ? maskTelefone(contact.tel[0]) : '',
+              endereco: formattedAddress,
+              cpfCnpj: '',
+            };
+            setNewClient(partialClient);
+            toast({
+              title: 'Contato Importado!',
+              description: 'Os dados do contato foram preenchidos no formulário.',
+            });
+          }
         }
       } catch (error) {
         console.error('Erro ao importar contato:', error);
@@ -230,6 +250,35 @@ export default function ClientesPage() {
         variant: 'destructive',
       });
     }
+  };
+
+  const handleConfirmContactSelection = (e: FormEvent) => {
+    e.preventDefault();
+    if (!selectedContactDetails) return;
+
+    const formData = new FormData(e.target as HTMLFormElement);
+    const selectedTel = formData.get('tel') as string || '';
+    const selectedEmail = formData.get('email') as string || '';
+    const selectedAddressString = formData.get('address') as string || '';
+    const selectedAddress = selectedAddressString ? JSON.parse(selectedAddressString) : null;
+    
+    const formattedAddress = selectedAddress ? [selectedAddress.streetAddress, selectedAddress.addressLevel2, selectedAddress.addressLevel1, selectedAddress.postalCode, selectedAddress.country].filter(Boolean).join(', ') : '';
+
+    const partialClient = {
+      nome: selectedContactDetails.name?.[0] || '',
+      email: selectedEmail,
+      telefone: selectedTel ? maskTelefone(selectedTel) : '',
+      endereco: formattedAddress,
+      cpfCnpj: '',
+    };
+    
+    setNewClient(partialClient);
+    setIsContactSelectionModalOpen(false);
+    setSelectedContactDetails(null);
+    toast({
+      title: 'Contato Importado!',
+      description: 'Os dados selecionados foram preenchidos no formulário.',
+    });
   };
   
   const showSkeleton = loadingAuth || isLoadingData;
@@ -462,7 +511,81 @@ export default function ClientesPage() {
           )}
         </DialogContent>
       </Dialog>
+      
+      <Dialog open={isContactSelectionModalOpen} onOpenChange={setIsContactSelectionModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Escolha os Detalhes do Contato</DialogTitle>
+            <DialogDescription>
+              O contato selecionado tem múltiplas informações. Escolha quais usar.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedContactDetails && (
+            <form onSubmit={handleConfirmContactSelection} className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Nome</Label>
+                <Input value={selectedContactDetails.name?.[0] || 'Sem nome'} disabled />
+              </div>
 
+              {selectedContactDetails.tel?.length > 1 && (
+                <div className="space-y-2">
+                  <Label htmlFor="tel-select">Telefone</Label>
+                  <Select name="tel">
+                    <SelectTrigger id="tel-select">
+                      <SelectValue placeholder="Selecione um telefone..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedContactDetails.tel.map((tel, i) => (
+                        <SelectItem key={i} value={tel}>{tel}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {selectedContactDetails.email?.length > 1 && (
+                <div className="space-y-2">
+                  <Label htmlFor="email-select">Email</Label>
+                  <Select name="email">
+                    <SelectTrigger id="email-select">
+                      <SelectValue placeholder="Selecione um email..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedContactDetails.email.map((email, i) => (
+                        <SelectItem key={i} value={email}>{email}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {selectedContactDetails.address?.length > 1 && (
+                <div className="space-y-2">
+                  <Label htmlFor="address-select">Endereço</Label>
+                  <Select name="address">
+                    <SelectTrigger id="address-select">
+                      <SelectValue placeholder="Selecione um endereço..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedContactDetails.address.map((addr, i) => {
+                        const formatted = [addr.streetAddress, addr.addressLevel2, addr.addressLevel1, addr.postalCode, addr.country].filter(Boolean).join(', ');
+                        return <SelectItem key={i} value={JSON.stringify(addr)}>{formatted}</SelectItem>
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline" onClick={() => setSelectedContactDetails(null)}>Cancelar</Button>
+                </DialogClose>
+                <Button type="submit">Confirmar Seleção</Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
