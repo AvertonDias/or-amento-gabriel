@@ -540,7 +540,7 @@ export default function OrcamentoPage() {
   const handleUpdateStatus = async (budgetId: string, status: 'Aceito' | 'Recusado') => {
     if (!user) return;
     try {
-        let updatePayload: { status: Orcamento['status'], dataAceite?: string | null, dataRecusa?: string | null} = { status };
+        let updatePayload: { dataAceite?: string | null, dataRecusa?: string | null} = {};
         
         if (status === 'Aceito') {
             updatePayload.dataAceite = new Date().toISOString();
@@ -565,7 +565,7 @@ export default function OrcamentoPage() {
         await fetchOrcamentos();
         toast({ title: `Orçamento ${status.toLowerCase()}!` });
         if (status === 'Aceito' && acceptedBudget) { 
-            const updatedBudget = { ...acceptedBudget, ...updatePayload };
+            const updatedBudget = { ...acceptedBudget, status, ...updatePayload };
             handleSendAcceptanceWhatsApp(updatedBudget); 
         }
     } catch(error) {
@@ -1114,7 +1114,7 @@ export default function OrcamentoPage() {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </Dialog>
+      </AlertDialog>
 
 
       <div className="absolute -z-10 top-0 -left-[9999px] w-[595pt] bg-white text-black">
