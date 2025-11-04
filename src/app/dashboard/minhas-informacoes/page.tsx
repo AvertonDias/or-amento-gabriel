@@ -39,7 +39,7 @@ export default function MinhasInformacoesPage() {
       await sendPasswordResetEmail(auth, user.email);
       toast({
         title: 'E-mail enviado!',
-        description: 'Verifique sua caixa de entrada para redefinir sua senha.',
+        description: 'Verifique sua caixa de entrada e a de spam para redefinir sua senha.',
       });
     } catch (error) {
       console.error('Erro ao enviar e-mail de redefinição de senha:', error);
