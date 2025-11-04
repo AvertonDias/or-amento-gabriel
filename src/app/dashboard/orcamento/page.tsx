@@ -65,10 +65,10 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
            <div className="text-right">
             <h2 className="text-lg font-semibold">Orçamento #{orcamento.numeroOrcamento}</h2>
             <p>Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
-             {orcamento.status === 'Aceito' && dataAceite ? (
-              <p className="mt-1 font-semibold text-green-600">Aceito em: {format(dataAceite, 'dd/MM/yyyy')}</p>
+            {orcamento.status === 'Aceito' && dataAceite ? (
+                <p className="mt-1 font-semibold text-green-600">Aceito em: {format(dataAceite, 'dd/MM/yyyy')}</p>
             ) : dataValidade ? (
-              <p className="mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>
+                <p className="mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>
             ) : null}
           </div>
         </header>
@@ -148,7 +148,7 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
             <div className="text-right">
               <h2 className="text-lg font-semibold">Orçamento Interno #{orcamento.numeroOrcamento}</h2>
               <p>Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
-               {orcamento.status === 'Aceito' && dataAceite ? (
+              {orcamento.status === 'Aceito' && dataAceite ? (
                 <p className="mt-1 font-semibold text-green-600">Aceito em: {format(dataAceite, 'dd/MM/yyyy')}</p>
               ) : dataValidade ? (
                 <p className="mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>
@@ -483,8 +483,8 @@ export default function OrcamentoPage() {
         toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
         setIsWizardOpen(false);
     } catch(error: any) {
-        toast({ title: "Erro ao salvar orçamento", description: error.message, variant: "destructive" });
         console.error("Erro ao salvar:", error);
+        toast({ title: "Erro ao salvar orçamento", description: error.message, variant: "destructive" });
     } finally {
         setIsSubmitting(false);
     }
@@ -509,7 +509,7 @@ export default function OrcamentoPage() {
         await fetchOrcamentos();
         toast({ title: `Orçamento ${status.toLowerCase()}!` });
         if (status === 'Aceito' && acceptedBudget) { 
-            const updatedBudget = { ...acceptedBudget, dataAceite };
+            const updatedBudget = { ...acceptedBudget, dataAceite, status }; // Make sure status is updated
             handleSendAcceptanceWhatsApp(updatedBudget); 
         }
     } catch(error) {
