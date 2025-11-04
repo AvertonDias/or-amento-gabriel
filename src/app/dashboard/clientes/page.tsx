@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Users, PlusCircle, Pencil, Contact, RefreshCw } from 'lucide-react';
+import { Trash2, Users, PlusCircle, Pencil, Contact, RefreshCw, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
@@ -44,6 +44,10 @@ export default function ClientesPage() {
   
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<ClienteData | null>(null);
+  
+  const [isContactSearchOpen, setIsContactSearchOpen] = useState(false);
+  const [contactSearchTerm, setContactSearchTerm] = useState('');
+
 
   const { toast } = useToast();
 
@@ -194,12 +198,13 @@ export default function ClientesPage() {
   const handleImportContacts = async () => {
     if ('contacts' in navigator && 'select' in (navigator as any).contacts) {
       try {
+        setIsContactSearchOpen(false); // Fecha o modal de busca
         const props = ['name', 'email', 'tel', 'address'];
         const opts = { multiple: false };
         const contacts = await (navigator as any).contacts.select(props, opts);
         if (contacts.length > 0) {
           const contact = contacts[0];
-           const address = contact.address?.[0];
+          const address = contact.address?.[0];
           const formattedAddress = address ? [address.streetAddress, address.addressLevel2, address.addressLevel1, address.postalCode, address.country].filter(Boolean).join(', ') : '';
 
           const partialClient = {
@@ -284,7 +289,7 @@ export default function ClientesPage() {
                       {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                       Adicionar Cliente
                     </Button>
-                    <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleImportContacts} disabled={isSubmitting}>
+                    <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setIsContactSearchOpen(true)} disabled={isSubmitting}>
                       <Contact className="mr-2 h-4 w-4" />
                       Importar dos Contatos
                     </Button>
@@ -462,6 +467,45 @@ export default function ClientesPage() {
           )}
         </DialogContent>
       </Dialog>
+      
+      <Dialog open={isContactSearchOpen} onOpenChange={setIsContactSearchOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Buscar Contato no Dispositivo</DialogTitle>
+              <DialogDescription>
+                Digite um nome para buscar em seus contatos e depois use o seletor do seu dispositivo para importar os dados.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+               <div className="space-y-2">
+                  <Label htmlFor="contact-search">Nome do Contato</Label>
+                   <div className="relative">
+                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                       <Input
+                           id="contact-search"
+                           placeholder="Buscar por nome..."
+                           value={contactSearchTerm}
+                           onChange={(e) => setContactSearchTerm(e.target.value)}
+                           className="pl-10"
+                       />
+                   </div>
+               </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
+                  Cancelar
+                </Button>
+              </DialogClose>
+              <Button type="button" onClick={handleImportContacts}>
+                <Contact className="mr-2 h-4 w-4" />
+                Buscar e Importar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
+    
