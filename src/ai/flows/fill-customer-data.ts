@@ -59,8 +59,13 @@ const fillCustomerDataFlow = ai.defineFlow(
     inputSchema: FillCustomerDataInputSchema,
     outputSchema: FillCustomerDataOutputSchema,
   },
-  async (input: any) => {
-    const {output} = await prompt(input);
+  async (input) => {
+    // Garante que cpfCnpj seja undefined se for uma string vazia, para o prompt Handlebars
+    const sanitizedInput = {
+      ...input,
+      cpfCnpj: input.cpfCnpj || undefined,
+    };
+    const {output} = await prompt(sanitizedInput);
     return output!;
   }
 );

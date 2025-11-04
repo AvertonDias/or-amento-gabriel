@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, FormEvent, useEffect, useCallback } from 'react';
@@ -7,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Users, PlusCircle, Pencil, Contact, RefreshCw, Search } from 'lucide-react';
+import { Trash2, Users, PlusCircle, Pencil, Contact, RefreshCw, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
@@ -24,6 +23,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { fillCustomerData } from '@/ai/flows/fill-customer-data';
 
 
 const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
@@ -39,15 +39,12 @@ export default function ClientesPage() {
   const [clientes, setClientes] = useState<ClienteData[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFilling, setIsFilling] = useState(false);
   
   const [newClient, setNewClient] = useState(initialNewClientState);
   
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<ClienteData | null>(null);
-  
-  const [isContactSearchOpen, setIsContactSearchOpen] = useState(false);
-  const [contactSearchTerm, setContactSearchTerm] = useState('');
-
 
   const { toast } = useToast();
 
@@ -85,6 +82,46 @@ export default function ClientesPage() {
     }
     setNewClient(prev => ({ ...prev, [name]: maskedValue }));
   };
+  
+  const handleAIFill = async () => {
+    if (!newClient.nome && !newClient.cpfCnpj) {
+      toast({
+        title: 'Dados insuficientes',
+        description: 'Por favor, preencha o Nome ou o CPF/CNPJ para o preenchimento mágico.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setIsFilling(true);
+    try {
+      const result = await fillCustomerData({
+        nome: newClient.nome,
+        cpfCnpj: newClient.cpfCnpj || undefined, // Garante que não enviamos string vazia
+      });
+      setNewClient({
+        ...newClient,
+        nome: result.nome || newClient.nome,
+        cpfCnpj: result.cpfCnpj ? maskCpfCnpj(result.cpfCnpj) : newClient.cpfCnpj,
+        endereco: result.endereco || newClient.endereco,
+        telefone: result.telefone ? maskTelefone(result.telefone) : newClient.telefone,
+        email: result.email || newClient.email,
+      });
+      toast({
+        title: 'Dados Preenchidos!',
+        description: 'A IA preencheu os campos que encontrou.',
+      });
+    } catch (error) {
+      console.error('Erro no preenchimento com IA:', error);
+      toast({
+        title: 'Erro no Preenchimento Mágico',
+        description: 'Não foi possível buscar os dados. Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsFilling(false);
+    }
+  };
+
 
   const handleAdicionarCliente = async (e: FormEvent) => {
     e.preventDefault();
@@ -198,7 +235,6 @@ export default function ClientesPage() {
   const handleImportContacts = async () => {
     if ('contacts' in navigator && 'select' in (navigator as any).contacts) {
       try {
-        setIsContactSearchOpen(false); // Fecha o modal de busca
         const props = ['name', 'email', 'tel', 'address'];
         const opts = { multiple: false };
         const contacts = await (navigator as any).contacts.select(props, opts);
@@ -285,13 +321,17 @@ export default function ClientesPage() {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
+                    <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting || isFilling}>
                       {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                       Adicionar Cliente
                     </Button>
-                    <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setIsContactSearchOpen(true)} disabled={isSubmitting}>
+                    <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleImportContacts} disabled={isSubmitting || isFilling}>
                       <Contact className="mr-2 h-4 w-4" />
                       Importar dos Contatos
+                    </Button>
+                    <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleAIFill} disabled={isSubmitting || isFilling}>
+                       {isFilling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                       Preenchimento Mágico
                     </Button>
                   </div>
                 </form>
@@ -467,45 +507,7 @@ export default function ClientesPage() {
           )}
         </DialogContent>
       </Dialog>
-      
-      <Dialog open={isContactSearchOpen} onOpenChange={setIsContactSearchOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Buscar Contato no Dispositivo</DialogTitle>
-              <DialogDescription>
-                Digite um nome para buscar em seus contatos e depois use o seletor do seu dispositivo para importar os dados.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4 space-y-4">
-               <div className="space-y-2">
-                  <Label htmlFor="contact-search">Nome do Contato</Label>
-                   <div className="relative">
-                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                       <Input
-                           id="contact-search"
-                           placeholder="Buscar por nome..."
-                           value={contactSearchTerm}
-                           onChange={(e) => setContactSearchTerm(e.target.value)}
-                           className="pl-10"
-                       />
-                   </div>
-               </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Cancelar
-                </Button>
-              </DialogClose>
-              <Button type="button" onClick={handleImportContacts}>
-                <Contact className="mr-2 h-4 w-4" />
-                Buscar e Importar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-      </Dialog>
+
     </div>
   );
 }
-
-    
