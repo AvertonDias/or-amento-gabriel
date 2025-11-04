@@ -928,7 +928,7 @@ export default function OrcamentoPage() {
       <Dialog open={isEditItemModalOpen} onOpenChange={setIsEditItemModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar Item</DialogTitle>
+            <DialogTitle>Editar Item do Orçamento</DialogTitle>
             <DialogDescription>Modifique o nome, a quantidade e o acréscimo do item selecionado.</DialogDescription>
           </DialogHeader>
           {editingItem && (
@@ -1027,4 +1027,3 @@ export default function OrcamentoPage() {
     </div>
   );
 }
-
