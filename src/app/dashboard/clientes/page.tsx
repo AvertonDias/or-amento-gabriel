@@ -98,8 +98,11 @@ export default function ClientesPage() {
 
   const checkForDuplicates = (): string | null => {
     let message = null;
+    const newClientNameLower = newClient.nome.trim().toLowerCase();
     clientes.forEach(cliente => {
-        if (newClient.cpfCnpj && cliente.cpfCnpj === newClient.cpfCnpj) {
+        if (newClient.nome && cliente.nome.trim().toLowerCase() === newClientNameLower) {
+            message = `O nome "${newClient.nome}" já está cadastrado.`;
+        } else if (newClient.cpfCnpj && cliente.cpfCnpj === newClient.cpfCnpj) {
             message = `O CPF/CNPJ "${newClient.cpfCnpj}" já está sendo usado pelo cliente "${cliente.nome}".`;
         } else if (newClient.email && cliente.email && cliente.email.toLowerCase() === newClient.email.toLowerCase()) {
             message = `O e-mail "${newClient.email}" já está sendo usado pelo cliente "${cliente.nome}".`;
@@ -629,4 +632,3 @@ export default function ClientesPage() {
     </div>
   );
 }
-
