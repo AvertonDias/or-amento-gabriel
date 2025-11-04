@@ -29,9 +29,9 @@ export const updateOrcamento = async (orcamentoId: string, orcamento: Partial<Or
 
 
 // Update an orcamento status
-export const updateOrcamentoStatus = async (orcamentoId: string, status: 'Aceito' | 'Recusado', dataAceite: string | null = null) => {
+export const updateOrcamentoStatus = async (orcamentoId: string, status: Orcamento['status'], payload: object) => {
   const orcamentoDoc = doc(db, ORCAMENTOS_COLLECTION, orcamentoId);
-  await updateDoc(orcamentoDoc, { status, dataAceite });
+  await updateDoc(orcamentoDoc, { status, ...payload });
 };
 
 // Delete an orcamento

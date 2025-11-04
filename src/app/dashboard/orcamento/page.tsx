@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, FormEvent, useRef, useCallback } from 'react';
@@ -23,7 +22,7 @@ import { getMateriais, updateEstoque } from '@/services/materiaisService';
 import { getClientes } from '@/services/clientesService';
 import { getEmpresaData } from '@/services/empresaService';
 import { addOrcamento, deleteOrcamento, getOrcamentos, getNextOrcamentoNumber, updateOrcamento, updateOrcamentoStatus } from '@/services/orcamentosService';
-import { addDays, parseISO, format } from 'date-fns';
+import { addDays, parseISO, format, isBefore, startOfToday } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import {
   DropdownMenu,
@@ -44,6 +43,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
     const validadeDiasNum = parseInt(orcamento.validadeDias, 10);
     const dataValidade = !isNaN(validadeDiasNum) ? addDays(dataCriacao, validadeDiasNum) : null;
     const dataAceite = orcamento.dataAceite ? parseISO(orcamento.dataAceite) : null;
+    const dataRecusa = orcamento.dataRecusa ? parseISO(orcamento.dataRecusa) : null;
 
     return (
       <div className="p-8 font-sans bg-white text-black text-xs">
@@ -65,8 +65,13 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
            <div className="text-right">
             <h2 className="text-lg font-semibold">Orçamento #{orcamento.numeroOrcamento}</h2>
             <p>Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
+            
             {orcamento.status === 'Aceito' && dataAceite ? (
                 <p className="mt-1 font-semibold text-green-600">Aceito em: {format(dataAceite, 'dd/MM/yyyy')}</p>
+            ) : orcamento.status === 'Recusado' && dataRecusa ? (
+                 <p className="mt-1 font-semibold text-red-600">Recusado em: {format(dataRecusa, 'dd/MM/yyyy')}</p>
+            ) : orcamento.status === 'Vencido' ? (
+                <p className="mt-1 font-semibold text-orange-600">Vencido em: {dataValidade ? format(dataValidade, 'dd/MM/yyyy') : 'N/A'}</p>
             ) : dataValidade ? (
                 <p className="mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>
             ) : null}
@@ -127,6 +132,7 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
     const totalCusto = orcamento.itens.reduce((acc, item) => acc + item.total, 0);
     const lucroTotal = orcamento.totalVenda - totalCusto;
     const dataAceite = orcamento.dataAceite ? parseISO(orcamento.dataAceite) : null;
+    const dataRecusa = orcamento.dataRecusa ? parseISO(orcamento.dataRecusa) : null;
 
     return (
       <div className="p-8 font-sans bg-white text-black text-xs">
@@ -148,11 +154,17 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
             <div className="text-right">
               <h2 className="text-lg font-semibold">Orçamento Interno #{orcamento.numeroOrcamento}</h2>
               <p>Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
+              
               {orcamento.status === 'Aceito' && dataAceite ? (
-                <p className="mt-1 font-semibold text-green-600">Aceito em: {format(dataAceite, 'dd/MM/yyyy')}</p>
+                  <p className="mt-1 font-semibold text-green-600">Aceito em: {format(dataAceite, 'dd/MM/yyyy')}</p>
+              ) : orcamento.status === 'Recusado' && dataRecusa ? (
+                  <p className="mt-1 font-semibold text-red-600">Recusado em: {format(dataRecusa, 'dd/MM/yyyy')}</p>
+              ) : orcamento.status === 'Vencido' ? (
+                  <p className="mt-1 font-semibold text-orange-600">Vencido em: {dataValidade ? format(dataValidade, 'dd/MM/yyyy') : 'N/A'}</p>
               ) : dataValidade ? (
-                <p className="mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>
+                  <p className="mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>
               ) : null}
+
             </div>
         </header>
 
@@ -220,7 +232,7 @@ export default function OrcamentoPage() {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [orcamentoItens, setOrcamentoItens] = useState<OrcamentoItem[]>([]);
-  const [clienteData, setClienteData] = useState<Omit<ClienteData, 'userId'>>({ id: undefined, nome: '', endereco: '', telefone: '', email: '', cpfCnpj: ''});
+  const [clienteData, setClienteData] = useState<Omit<ClienteData, 'userId' | 'id'> & {id?: string}>({ id: undefined, nome: '', endereco: '', telefone: '', email: '', cpfCnpj: ''});
   const [validadeDias, setValidadeDias] = useState('7');
   
   const [isLoading, setIsLoading] = useState({
@@ -257,7 +269,6 @@ export default function OrcamentoPage() {
   const [newItemForEdit, setNewItemForEdit] = useState({ materialId: '', quantidade: '', margemLucro: '' });
   const [newItemQtyStr, setNewItemQtyStr] = useState('');
   const [newItemMarginStr, setNewItemMarginStr] = useState('');
-
 
   const fetchAllData = useCallback(async (isRefresh = false) => {
     if (!user) return;
@@ -298,6 +309,28 @@ export default function OrcamentoPage() {
     }
   }, [user, loadingAuth, fetchAllData]);
   
+  useEffect(() => {
+    if (orcamentosSalvos.length > 0) {
+      const today = startOfToday();
+      orcamentosSalvos.forEach(async (orcamento) => {
+        if (orcamento.status === 'Pendente') {
+          const dataCriacao = parseISO(orcamento.dataCriacao);
+          const validadeDiasNum = parseInt(orcamento.validadeDias, 10);
+          if (!isNaN(validadeDiasNum)) {
+            const dataValidade = addDays(dataCriacao, validadeDiasNum);
+            if (isBefore(dataValidade, today)) {
+              await updateOrcamentoStatus(orcamento.id, 'Vencido', {});
+               // Refresh local data after update
+              setOrcamentosSalvos(prev => 
+                prev.map(o => o.id === orcamento.id ? { ...o, status: 'Vencido' } : o)
+              );
+            }
+          }
+        }
+      });
+    }
+  }, [orcamentosSalvos]);
+
   const fetchOrcamentos = useCallback(async () => {
     if (!user) return;
     setIsLoading(prev => ({ ...prev, orcamentos: true }));
@@ -461,21 +494,22 @@ export default function OrcamentoPage() {
     try {
         const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
         
-        const finalClienteData = { ...clienteData };
+        const finalClienteData: Partial<ClienteData> = { ...clienteData };
         if (finalClienteData.id === undefined) {
-            delete (finalClienteData as Partial<typeof finalClienteData>).id;
+            delete finalClienteData.id;
         }
 
         const newBudget: Omit<Orcamento, 'id'> = {
             userId: user.uid, 
             numeroOrcamento,
-            cliente: { ...finalClienteData, userId: user.uid },
+            cliente: { ...(finalClienteData as Omit<ClienteData, 'id'>), userId: user.uid },
             itens: orcamentoItens, 
             totalVenda: totalVenda,
             dataCriacao: new Date().toISOString(), 
             status: 'Pendente', 
             validadeDias: validadeDias,
             dataAceite: null,
+            dataRecusa: null,
         };
 
         await addOrcamento(newBudget);
@@ -493,8 +527,17 @@ export default function OrcamentoPage() {
   const handleUpdateStatus = async (budgetId: string, status: 'Aceito' | 'Recusado') => {
     if (!user) return;
     try {
-        const dataAceite = status === 'Aceito' ? new Date().toISOString() : null;
-        await updateOrcamentoStatus(budgetId, status, dataAceite);
+        let updatePayload: { status: 'Aceito' | 'Recusado' | 'Vencido', dataAceite?: string | null, dataRecusa?: string | null} = { status };
+        
+        if (status === 'Aceito') {
+            updatePayload.dataAceite = new Date().toISOString();
+            updatePayload.dataRecusa = null;
+        } else if (status === 'Recusado') {
+            updatePayload.dataRecusa = new Date().toISOString();
+            updatePayload.dataAceite = null;
+        }
+
+        await updateOrcamentoStatus(budgetId, status, updatePayload);
         
         const acceptedBudget = orcamentosSalvos.find(b => b.id === budgetId);
         if (status === 'Aceito' && acceptedBudget) {
@@ -509,7 +552,7 @@ export default function OrcamentoPage() {
         await fetchOrcamentos();
         toast({ title: `Orçamento ${status.toLowerCase()}!` });
         if (status === 'Aceito' && acceptedBudget) { 
-            const updatedBudget = { ...acceptedBudget, dataAceite, status }; // Make sure status is updated
+            const updatedBudget = { ...acceptedBudget, status, ...updatePayload };
             handleSendAcceptanceWhatsApp(updatedBudget); 
         }
     } catch(error) {
@@ -656,6 +699,7 @@ export default function OrcamentoPage() {
     switch (status) {
         case 'Aceito': return 'default';
         case 'Recusado': return 'destructive';
+        case 'Vencido': return 'secondary'; // Could be a different color like orange
         case 'Pendente': return 'secondary';
         default: return 'secondary';
     }

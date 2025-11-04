@@ -51,7 +51,8 @@ export interface Orcamento {
   itens: OrcamentoItem[];
   totalVenda: number;
   dataCriacao: string; // ISO Date String
-  status: 'Pendente' | 'Aceito' | 'Recusado';
+  status: 'Pendente' | 'Aceito' | 'Recusado' | 'Vencido';
   validadeDias: string;
   dataAceite: string | null; // ISO Date String
+  dataRecusa: string | null; // ISO Date String
 }
