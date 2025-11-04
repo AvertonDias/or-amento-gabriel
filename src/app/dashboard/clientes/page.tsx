@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, FormEvent, useEffect, useCallback } from 'react';
@@ -55,6 +56,9 @@ export default function ClientesPage() {
   const [isContactSelectionModalOpen, setIsContactSelectionModalOpen] = useState(false);
   const [selectedContactDetails, setSelectedContactDetails] = useState<SelectedContactDetails | null>(null);
 
+  const [isDuplicateAlertOpen, setIsDuplicateAlertOpen] = useState(false);
+  const [duplicateMessage, setDuplicateMessage] = useState("");
+
   const { toast } = useToast();
 
   const fetchClientes = useCallback(async () => {
@@ -92,6 +96,20 @@ export default function ClientesPage() {
     setNewClient(prev => ({ ...prev, [name]: maskedValue }));
   };
 
+  const checkForDuplicates = (): string | null => {
+    let message = null;
+    clientes.forEach(cliente => {
+        if (newClient.cpfCnpj && cliente.cpfCnpj === newClient.cpfCnpj) {
+            message = `O CPF/CNPJ "${newClient.cpfCnpj}" já está sendo usado pelo cliente "${cliente.nome}".`;
+        } else if (newClient.email && cliente.email && cliente.email.toLowerCase() === newClient.email.toLowerCase()) {
+            message = `O e-mail "${newClient.email}" já está sendo usado pelo cliente "${cliente.nome}".`;
+        } else if (newClient.telefone && cliente.telefone === newClient.telefone) {
+            message = `O telefone "${newClient.telefone}" já está sendo usado pelo cliente "${cliente.nome}".`;
+        }
+    });
+    return message;
+  };
+
 
   const handleAdicionarCliente = async (e: FormEvent) => {
     e.preventDefault();
@@ -106,6 +124,13 @@ export default function ClientesPage() {
         variant: 'destructive',
       });
       return;
+    }
+
+    const duplicateInfo = checkForDuplicates();
+    if (duplicateInfo) {
+        setDuplicateMessage(duplicateInfo);
+        setIsDuplicateAlertOpen(true);
+        return;
     }
 
     setIsSubmitting(true);
@@ -586,6 +611,22 @@ export default function ClientesPage() {
           )}
         </DialogContent>
       </Dialog>
+      <AlertDialog open={isDuplicateAlertOpen} onOpenChange={setIsDuplicateAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cliente Duplicado</AlertDialogTitle>
+            <AlertDialogDescription>
+              {duplicateMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setIsDuplicateAlertOpen(false)}>
+              Entendido
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
