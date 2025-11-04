@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableTotalFooter } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, FileText, Pencil, MessageCircle, History, CheckCircle2, XCircle, Search, Loader2, RefreshCw, ArrowRight, ArrowLeft } from 'lucide-react';
+import { PlusCircle, Trash2, FileText, Pencil, MessageCircle, History, CheckCircle2, XCircle, Search, Loader2, RefreshCw, ArrowRight, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -271,6 +271,11 @@ export default function OrcamentoPage() {
   const [newItemQtyStr, setNewItemQtyStr] = useState('');
   const [newItemMarginStr, setNewItemMarginStr] = useState('');
 
+  // State for expired budgets modal
+  const [expiredBudgets, setExpiredBudgets] = useState<Orcamento[]>([]);
+  const [isExpiredModalOpen, setIsExpiredModalOpen] = useState(false);
+
+
   const fetchAllData = useCallback(async (isRefresh = false) => {
     if (!user) return;
     
@@ -325,18 +330,15 @@ export default function OrcamentoPage() {
       if (budgetsToExpire.length > 0) {
         const updatedBudgets = [...orcamentosSalvos];
         budgetsToExpire.forEach(orcamento => {
-          updateOrcamentoStatus(orcamento.id, 'Vencido', {});
+          updateOrcamentoStatus(orcamento.id, 'Vencido', { dataRecusa: null, dataAceite: null });
           const index = updatedBudgets.findIndex(o => o.id === orcamento.id);
           if (index !== -1) {
             updatedBudgets[index] = { ...updatedBudgets[index], status: 'Vencido' };
           }
-          toast({
-            title: 'Orçamento Vencido',
-            description: `O orçamento Nº ${orcamento.numeroOrcamento} para ${orcamento.cliente.nome} venceu.`,
-            variant: 'destructive',
-          });
         });
         setOrcamentosSalvos(updatedBudgets);
+        setExpiredBudgets(budgetsToExpire);
+        setIsExpiredModalOpen(true);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1085,6 +1087,34 @@ export default function OrcamentoPage() {
             </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isExpiredModalOpen} onOpenChange={setIsExpiredModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-6 w-6 text-warning" />
+              Orçamentos Vencidos
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Os seguintes orçamentos expiraram e seus status foram atualizados para &quot;Vencido&quot;.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="max-h-60 overflow-y-auto">
+            <ul className="space-y-2">
+              {expiredBudgets.map(orc => (
+                <li key={orc.id} className="text-sm text-muted-foreground">
+                  <span className="font-semibold text-foreground">Nº {orc.numeroOrcamento}</span> para <span className="font-semibold text-foreground">{orc.cliente.nome}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setIsExpiredModalOpen(false)}>
+              Entendido
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
 
       <div className="absolute -z-10 top-0 -left-[9999px] w-[595pt] bg-white text-black">
