@@ -43,9 +43,10 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
     const dataCriacao = parseISO(orcamento.dataCriacao);
     const validadeDiasNum = parseInt(orcamento.validadeDias, 10);
     const dataValidade = !isNaN(validadeDiasNum) ? addDays(dataCriacao, validadeDiasNum) : null;
+    const dataAceite = orcamento.dataAceite ? parseISO(orcamento.dataAceite) : null;
 
     return (
-      <div className="p-8 font-sans bg-white text-black text-base">
+      <div className="p-8 font-sans bg-white text-black text-sm">
         <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
           <div className="flex items-start gap-4">
             {empresa?.logo && (
@@ -64,7 +65,11 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
            <div className="text-right">
             <h2 className="text-lg font-semibold">Orçamento #{orcamento.numeroOrcamento}</h2>
             <p>Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
-            {dataValidade && <p className="mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
+             {orcamento.status === 'Aceito' && dataAceite ? (
+              <p className="mt-1 font-semibold text-green-600">Aceito em: {format(dataAceite, 'dd/MM/yyyy')}</p>
+            ) : dataValidade ? (
+              <p className="mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>
+            ) : null}
           </div>
         </header>
 
@@ -121,9 +126,10 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
     const dataValidade = !isNaN(validadeDiasNum) ? addDays(dataCriacao, validadeDiasNum) : null;
     const totalCusto = orcamento.itens.reduce((acc, item) => acc + item.total, 0);
     const lucroTotal = orcamento.totalVenda - totalCusto;
+    const dataAceite = orcamento.dataAceite ? parseISO(orcamento.dataAceite) : null;
 
     return (
-      <div className="p-8 font-sans bg-white text-black text-base">
+      <div className="p-8 font-sans bg-white text-black text-sm">
         <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
             <div className="flex items-start gap-4">
               {empresa?.logo && (
@@ -142,7 +148,11 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
             <div className="text-right">
               <h2 className="text-lg font-semibold">Orçamento Interno #{orcamento.numeroOrcamento}</h2>
               <p>Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
-              {dataValidade && <p className="mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>}
+               {orcamento.status === 'Aceito' && dataAceite ? (
+                <p className="mt-1 font-semibold text-green-600">Aceito em: {format(dataAceite, 'dd/MM/yyyy')}</p>
+              ) : dataValidade ? (
+                <p className="mt-1">Validade: {format(dataValidade, 'dd/MM/yyyy')}</p>
+              ) : null}
             </div>
         </header>
 
@@ -464,7 +474,8 @@ export default function OrcamentoPage() {
             totalVenda: totalVenda,
             dataCriacao: new Date().toISOString(), 
             status: 'Pendente', 
-            validadeDias: validadeDias
+            validadeDias: validadeDias,
+            dataAceite: null,
         };
 
         await addOrcamento(newBudget);
@@ -482,7 +493,9 @@ export default function OrcamentoPage() {
   const handleUpdateStatus = async (budgetId: string, status: 'Aceito' | 'Recusado') => {
     if (!user) return;
     try {
-        await updateOrcamentoStatus(budgetId, status);
+        const dataAceite = status === 'Aceito' ? new Date().toISOString() : null;
+        await updateOrcamentoStatus(budgetId, status, dataAceite);
+        
         const acceptedBudget = orcamentosSalvos.find(b => b.id === budgetId);
         if (status === 'Aceito' && acceptedBudget) {
             for (const item of acceptedBudget.itens) {
@@ -495,7 +508,10 @@ export default function OrcamentoPage() {
         }
         await fetchOrcamentos();
         toast({ title: `Orçamento ${status.toLowerCase()}!` });
-        if (status === 'Aceito' && acceptedBudget) { handleSendAcceptanceWhatsApp(acceptedBudget); }
+        if (status === 'Aceito' && acceptedBudget) { 
+            const updatedBudget = { ...acceptedBudget, dataAceite };
+            handleSendAcceptanceWhatsApp(updatedBudget); 
+        }
     } catch(error) {
         toast({ title: 'Erro ao atualizar status', variant: 'destructive' });
     }
@@ -719,7 +735,7 @@ export default function OrcamentoPage() {
                       className="w-full pl-10"
                     />
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => fetchOrcamentos()} disabled={isRefreshing}>
+                  <Button variant="ghost" size="icon" onClick={() => fetchAllData(true)} disabled={isRefreshing}>
                     <RefreshCw className={`h-5 w-5 ${isRefreshing || isLoading.orcamentos ? 'animate-spin' : ''}`} />
                   </Button>
                 </div>

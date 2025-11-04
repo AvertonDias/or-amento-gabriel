@@ -53,4 +53,5 @@ export interface Orcamento {
   dataCriacao: string; // ISO Date String
   status: 'Pendente' | 'Aceito' | 'Recusado';
   validadeDias: string;
+  dataAceite: string | null; // ISO Date String
 }
