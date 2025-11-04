@@ -450,12 +450,23 @@ export default function OrcamentoPage() {
     setIsSubmitting(true);
     try {
         const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
+        
+        const finalClienteData = { ...clienteData };
+        if (finalClienteData.id === undefined) {
+            delete (finalClienteData as Partial<typeof finalClienteData>).id;
+        }
+
         const newBudget: Omit<Orcamento, 'id'> = {
-            userId: user.uid, numeroOrcamento,
-            cliente: { ...clienteData, userId: user.uid },
-            itens: orcamentoItens, totalVenda: totalVenda,
-            dataCriacao: new Date().toISOString(), status: 'Pendente', validadeDias: validadeDias
+            userId: user.uid, 
+            numeroOrcamento,
+            cliente: { ...finalClienteData, userId: user.uid },
+            itens: orcamentoItens, 
+            totalVenda: totalVenda,
+            dataCriacao: new Date().toISOString(), 
+            status: 'Pendente', 
+            validadeDias: validadeDias
         };
+
         await addOrcamento(newBudget);
         await fetchOrcamentos();
         toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
@@ -1016,3 +1027,4 @@ export default function OrcamentoPage() {
     </div>
   );
 }
+
