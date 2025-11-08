@@ -22,7 +22,7 @@ import { auth } from '@/lib/firebase';
 import { getMateriais, updateEstoque } from '@/services/materiaisService';
 import { getClientes } from '@/services/clientesService';
 import { getEmpresaData } from '@/services/empresaService';
-import { addOrcamento, deleteOrcamento, getOrcamentos, getNextOrcamentoNumber, updateOrcamento, updateOrcamentoStatus } from '@/services/orcamentosService';
+import { addOrcamento, deleteOrcamento, getOrcamentos, getNextOrcamentoNumber, updateOrcamento, updateOrcamentoStatus, syncOfflineOrcamentos } from '@/services/orcamentosService';
 import { addDays, parseISO, format, isBefore, startOfToday } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import {
@@ -306,6 +306,10 @@ export default function OrcamentoPage() {
   useEffect(() => {
     if (user) {
       fetchAllData();
+       // Sincroniza orçamentos offline quando o app carrega (e tem internet)
+      syncOfflineOrcamentos(user.uid).then(() => {
+          fetchOrcamentos(); // Re-busca orçamentos para ter os números atualizados
+      });
     } else if (!loadingAuth) {
       setMateriais([]);
       setClientes([]);
@@ -313,7 +317,8 @@ export default function OrcamentoPage() {
       setEmpresa(null);
       setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
     }
-  }, [user, loadingAuth, fetchAllData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, loadingAuth]);
   
   useEffect(() => {
     if (orcamentosSalvos.length > 0) {
@@ -563,7 +568,7 @@ export default function OrcamentoPage() {
             updatePayload.dataAceite = null;
         }
 
-        await updateOrcamentoStatus(budgetId, status, updatePayload);
+        await updateOrcamentoStatus(budgetId, status, payload);
         
         const acceptedBudget = orcamentosSalvos.find(b => b.id === budgetId);
         if (status === 'Aceito' && acceptedBudget) {
