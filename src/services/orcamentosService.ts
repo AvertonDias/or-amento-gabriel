@@ -66,7 +66,6 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
             collection(db, ORCAMENTOS_COLLECTION),
             where('userId', '==', userId),
             where('numeroOrcamento', '>=', `${currentYear}-000`),
-            where('numeroOrcamento', '<', `${currentYear + 1}-000`),
             orderBy('numeroOrcamento', 'desc'),
             limit(1)
         );
@@ -127,26 +126,24 @@ export const syncOfflineOrcamentos = async (userId: string) => {
             return timeA - timeB;
         });
         
-        const batch = writeBatch(db);
-
         for (const orcamento of offlineOrcamentos) {
             try {
                 const newNumeroOrcamento = await getNextOrcamentoNumber(userId);
                 // Se ainda estivermos offline, o número conterá TEMP, então abortamos a sincronização.
                 if (newNumeroOrcamento.includes('TEMP')) {
-                    console.warn("Ainda offline, não é possível sincronizar os números dos orçamentos.");
+                    console.log("Ainda offline, não é possível sincronizar os números dos orçamentos.");
                     return; 
                 }
                 
                 const docRef = doc(db, ORCAMENTOS_COLLECTION, orcamento.id);
-                batch.update(docRef, { numeroOrcamento: newNumeroOrcamento });
+                // Usamos updateDoc para atualizar apenas o campo necessário.
+                await updateDoc(docRef, { numeroOrcamento: newNumeroOrcamento });
                 console.log(`Atualizando orçamento ${orcamento.numeroOrcamento} para ${newNumeroOrcamento}`);
             } catch(e) {
                 console.error(`Erro ao gerar novo número para o orçamento ${orcamento.id}. Pulando.`, e);
             }
         }
 
-        await batch.commit();
         console.log("Sincronização de orçamentos offline concluída.");
 
     } catch (error) {
