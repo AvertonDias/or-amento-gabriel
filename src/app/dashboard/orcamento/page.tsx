@@ -535,45 +535,44 @@ export default function OrcamentoPage() {
   
   const proceedToSaveBudget = async () => {
     if (!user || !clientToSave) {
-      toast({ title: "Erro interno: dados do usuário ou cliente ausentes.", variant: "destructive" });
-      return;
+        toast({ title: "Erro interno: dados do usuário ou cliente ausentes.", variant: "destructive" });
+        return;
     }
 
     setIsSubmitting(true);
     try {
-      const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
-      
-      const newBudget: Omit<Orcamento, "id"> = {
-        userId: user.uid,
-        numeroOrcamento,
-        cliente: { ...clientToSave, id: clientToSave.id || crypto.randomUUID() },
-        itens: orcamentoItens,
-        totalVenda,
-        dataCriacao: new Date().toISOString(),
-        status: "Pendente",
-        validadeDias,
-        dataAceite: null,
-        dataRecusa: null,
-      };
+        const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
+        
+        const newBudget: Omit<Orcamento, "id"> = {
+            userId: user.uid,
+            numeroOrcamento,
+            cliente: { ...clientToSave, id: clientToSave.id || crypto.randomUUID() },
+            itens: orcamentoItens,
+            totalVenda,
+            dataCriacao: new Date().toISOString(),
+            status: "Pendente",
+            validadeDias,
+            dataAceite: null,
+            dataRecusa: null,
+        };
 
-      addOrcamento(newBudget);
-
-      setIsWizardOpen(false);
-      toast({ title: `Orçamento ${numeroOrcamento} salvo!` });
-      
-      // Atualiza a lista de orçamentos e clientes para refletir as novas adições
-      // Usamos um pequeno delay para dar tempo do firebase processar a escrita local
-      setTimeout(() => fetchAllData(true), 500);
+        addOrcamento(newBudget);
+        
+        toast({ title: `Orçamento ${numeroOrcamento} salvo!` });
+        
+        // As escritas offline são rápidas, então podemos fechar o modal e atualizar a UI.
+        setIsWizardOpen(false);
+        setTimeout(() => fetchAllData(true), 500);
 
     } catch (error: any) {
-      console.error("Erro ao salvar orçamento:", error);
-      toast({ title: "Erro ao salvar orçamento", description: error.message, variant: "destructive" });
+        console.error("Erro ao salvar orçamento:", error);
+        toast({ title: "Erro ao salvar orçamento", description: error.message, variant: "destructive" });
     } finally {
-      setIsSubmitting(false);
+        setIsSubmitting(false);
     }
 };
 
-  const handleConfirmSave = async () => {
+const handleConfirmSave = async () => {
     if (orcamentoItens.length === 0) {
         toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item.", variant: "destructive" });
         return;
@@ -588,37 +587,37 @@ export default function OrcamentoPage() {
 
     if (existingClient) {
         setClientToSave(existingClient);
-        await proceedToSaveBudget();
+        // Usamos um timeout para garantir que o estado seja atualizado antes de prosseguir
+        setTimeout(() => proceedToSaveBudget(), 0);
         return;
     }
 
+    // Se o cliente não existe, abre o dialog de confirmação
     setClientToSave(clienteData);
     setIsConfirmSaveClientOpen(true);
 };
 
-const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
-    setIsConfirmSaveClientOpen(false);
+
+const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
     if (!clientToSave || !user) return;
 
     if (shouldSave) {
         const clientPayload = { ...clientToSave };
-        delete clientPayload.id; 
+        delete clientPayload.id;
         try {
-            // Não usamos await para não bloquear a UI, especialmente offline
+            // A função addCliente já não usa await, então isso é enfileirado offline.
             addCliente(user.uid, clientPayload);
-            toast({ title: "Novo cliente salvo com sucesso!" });
-            // O ID será gerado pelo firebase, para o orçamento usamos um temporario
-            setClientToSave(prev => ({...prev!, id: crypto.randomUUID()}));
+            toast({ title: "Novo cliente será salvo ao reconectar." });
         } catch (error: any) {
-            console.error("Erro ao salvar novo cliente:", error);
-            toast({ title: "Erro ao salvar novo cliente.", description: "O orçamento será salvo com um ID temporário para o cliente.", variant: "destructive" });
-            setClientToSave(prev => ({...prev!, id: crypto.randomUUID()}));
+            console.error("Erro ao enfileirar salvamento do novo cliente:", error);
+            toast({ title: "Erro ao tentar salvar novo cliente.", variant: "destructive" });
         }
-    } else {
-        setClientToSave(prev => ({...prev!, id: crypto.randomUUID()}));
     }
     
-    await proceedToSaveBudget();
+    // Independentemente de salvar ou não o novo cliente, prosseguimos para salvar o orçamento.
+    // Usamos um timeout para garantir que o estado do diálogo feche antes de prosseguir.
+    setTimeout(() => proceedToSaveBudget(), 0);
+    setIsConfirmSaveClientOpen(false);
     setClientToSave(null);
 };
 
@@ -1168,7 +1167,7 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isConfirmSaveClientOpen} onOpenChange={setIsConfirmSaveClientOpen}>
+      <AlertDialog open={isConfirmSaveClientOpen} onOpenChange={setIsConfirmSaveClientOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>Este cliente não está na sua lista</AlertDialogTitle>
@@ -1177,11 +1176,11 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <Button variant="outline" onClick={() => handleConfirmSaveClientDialog(false)}>Não, Usar Apenas Desta Vez</Button>
-                <Button onClick={() => handleConfirmSaveClientDialog(true)}>Sim, Salvar Cliente</Button>
+                <AlertDialogCancel onClick={() => handleConfirmSaveClientDialog(false)}>Não, Usar Apenas Desta Vez</AlertDialogCancel>
+                <AlertDialogAction onClick={() => handleConfirmSaveClientDialog(true)}>Sim, Salvar Cliente</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
-      </Dialog>
+      </AlertDialog>
 
       <AlertDialog open={isExpiredModalOpen} onOpenChange={setIsExpiredModalOpen}>
         <AlertDialogContent>
@@ -1223,3 +1222,5 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
     </div>
   );
 }
+
+    
