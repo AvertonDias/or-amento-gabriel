@@ -15,24 +15,32 @@ export const addCliente = (userId: string, cliente: Omit<ClienteData, 'id' | 'us
 };
 
 // Update an existing client
-export const updateCliente = async (clienteId: string, cliente: Partial<Omit<ClienteData, 'id' | 'userId'>>) => {
+export const updateCliente = (clienteId: string, cliente: Partial<Omit<ClienteData, 'id' | 'userId'>>) => {
   const clienteDoc = doc(db, CLIENTES_COLLECTION, clienteId);
-  await updateDoc(clienteDoc, cliente);
+  // Não usamos await para permitir que a operação seja enfileirada no modo offline
+  updateDoc(clienteDoc, cliente);
 };
 
 // Delete a client
-export const deleteCliente = async (clienteId: string) => {
+export const deleteCliente = (clienteId: string) => {
   const clienteDoc = doc(db, CLIENTES_COLLECTION, clienteId);
-  await deleteDoc(clienteDoc);
+  // Não usamos await para permitir que a operação seja enfileirada no modo offline
+  deleteDoc(clienteDoc);
 };
 
 // Get all clients for a user
 export const getClientes = async (userId: string): Promise<ClienteData[]> => {
-  const q = query(collection(db, CLIENTES_COLLECTION), where('userId', '==', userId), orderBy('nome', 'asc'));
-  const querySnapshot = await getDocs(q);
-  const clientes: ClienteData[] = [];
-  querySnapshot.forEach((doc) => {
-    clientes.push({ id: doc.id, ...doc.data() } as ClienteData);
-  });
-  return clientes;
+  try {
+    const q = query(collection(db, CLIENTES_COLLECTION), where('userId', '==', userId), orderBy('nome', 'asc'));
+    const querySnapshot = await getDocs(q);
+    const clientes: ClienteData[] = [];
+    querySnapshot.forEach((doc) => {
+      clientes.push({ id: doc.id, ...doc.data() } as ClienteData);
+    });
+    return clientes;
+  } catch (error) {
+    console.error("Erro ao buscar clientes:", error);
+    // Em caso de erro (ex: offline sem dados em cache), retorna um array vazio.
+    return [];
+  }
 };

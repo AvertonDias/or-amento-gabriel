@@ -341,7 +341,16 @@ export default function OrcamentoPage() {
       setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, loadingAuth, isOnline]);
+  }, [user, loadingAuth]);
+  
+  useEffect(() => {
+    if (isOnline && user) {
+      syncOfflineOrcamentos(user.uid).then(() => {
+        fetchAllData(true);
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnline, user]);
   
   useEffect(() => {
     if (orcamentosSalvos.length > 0) {
@@ -591,8 +600,6 @@ export default function OrcamentoPage() {
     }
     
     if (clienteData.id) {
-        // Isso acontece se o usuário selecionou um cliente e depois mudou o nome para um nome novo.
-        // Tratamos como um novo cliente.
         delete clienteData.id;
     }
     
@@ -607,9 +614,9 @@ export default function OrcamentoPage() {
   const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
     setIsConfirmSaveClientOpen(false);
     if (!clientToSave || !user) return;
-
+  
     let finalClientData: ClienteData;
-
+  
     if (shouldSave) {
       const clientPayload = {
         nome: clientToSave.nome,
@@ -618,19 +625,20 @@ export default function OrcamentoPage() {
         telefone: clientToSave.telefone,
         email: clientToSave.email,
       };
-
+  
       try {
         const newClientId = await addCliente(user.uid, clientPayload);
-        finalClientData = { ...clientToSave, userId: user.uid, id: newClientId };
+        finalClientData = { ...clientPayload, userId: user.uid, id: newClientId };
         toast({ title: "Novo cliente salvo com sucesso!" });
-        fetchAllData(true);
+        fetchAllData(true); 
       } catch (error) {
         console.error("Erro ao salvar novo cliente:", error);
         toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
-        finalClientData = { ...clientToSave, userId: user.uid, id: crypto.randomUUID() }; // Use um ID temporário se o salvamento falhar
+        // Em caso de erro, prossegue com um ID temporário para não bloquear o usuário
+        finalClientData = { ...clientPayload, userId: user.uid, id: crypto.randomUUID() };
       }
     } else {
-       finalClientData = { ...clientToSave, userId: user.uid, id: crypto.randomUUID() };
+      finalClientData = { ...clientToSave, userId: user.uid, id: crypto.randomUUID() };
     }
     
     proceedToSaveBudget(finalClientData);
@@ -1290,12 +1298,12 @@ export default function OrcamentoPage() {
             <AlertDialogHeader>
                 <AlertDialogTitle>Salvar Novo Cliente?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    O cliente "{clientToSave?.nome}" não está na sua lista. Deseja salvá-lo para uso futuro?
+                    O cliente "{clientToSave?.nome}" não foi encontrado. Deseja salvá-lo para uso futuro?
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogAction onClick={() => handleConfirmSaveClientDialog(true)}>Sim, Salvar Cliente</AlertDialogAction>
-                <AlertDialogCancel onClick={() => handleConfirmSaveClientDialog(false)}>Não, Apenas no Orçamento</AlertDialogCancel>
+                <Button variant="outline" onClick={() => handleConfirmSaveClientDialog(false)}>Não, Usar Apenas Desta Vez</Button>
+                <Button onClick={() => handleConfirmSaveClientDialog(true)}>Sim, Salvar Cliente</Button>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1340,5 +1348,6 @@ export default function OrcamentoPage() {
     </div>
   );
 }
+
 
 
