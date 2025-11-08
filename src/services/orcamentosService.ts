@@ -1,6 +1,6 @@
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy, writeBatch, Timestamp, getDoc, limit, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy, writeBatch, Timestamp, getDoc, limit, serverTimestamp, collectionGroup } from 'firebase/firestore';
 import type { Orcamento } from '@/lib/types';
 
 const getOrcamentosCollection = (userId: string) => {
@@ -20,8 +20,8 @@ export const addOrcamento = async (userId: string, orcamento: Omit<Orcamento, 'i
     console.log("[ORCAMENTO SERVICE - addOrcamento] Orçamento adicionado com ID:", docRef.id);
   } catch (error) {
       console.error("[ORCAMENTO SERVICE - addOrcamento] Erro ao adicionar orçamento:", error);
-      // If offline, Firestore writes to a local queue and resolves the promise.
-      // The error here would be something other than network. Let's re-throw.
+      // Se estiver offline, o Firestore escreve em uma fila local e a promessa é resolvida.
+      // O erro aqui seria algo diferente de rede. Vamos relançar.
       throw error;
   }
 };
@@ -36,29 +36,38 @@ export const updateOrcamento = async (orcamentoId: string, orcamento: Partial<Or
 
 
 // Update an orcamento status
-export const updateOrcamentoStatus = async (orcamentoId: string, status: Orcamento['status'], payload: object) => {
-  const orcamentoToUpdate = await getDoc(doc(db, 'orcamentos', orcamentoId));
-  if (!orcamentoToUpdate.exists()) throw new Error("Orçamento não encontrado");
-  const userId = orcamentoToUpdate.data().userId;
-  const orcamentoDoc = doc(db, 'empresa', userId, 'orcamentos', orcamentoId);
+export const updateOrcamentoStatus = async (budgetId: string, status: Orcamento['status'], payload: object) => {
+  // Como agora é uma subcoleção, precisamos do userId para achar o documento.
+  // Uma solução seria buscar em todos os orcamentos, mas isso é ineficiente.
+  // O ideal é que a função que chama já tenha o userId. 
+  // Por ora, vamos assumir que a busca por ID ainda funciona em cache, mas isso pode precisar de refatoração.
+  const q = query(collectionGroup(db, 'orcamentos'), where('__name__', '==', `empresa/${auth.currentUser?.uid}/orcamentos/${budgetId}`));
+  const querySnapshot = await getDocs(q);
+
+  if (querySnapshot.empty) {
+    throw new Error("Orçamento não encontrado ou você não tem permissão para acessá-lo.");
+  }
+  const orcamentoDoc = querySnapshot.docs[0].ref;
   await updateDoc(orcamentoDoc, { status, ...payload });
 };
 
 // Delete an orcamento
-export const deleteOrcamento = async (orcamentoId: string) => {
-    const orcamentoToUpdate = await getDoc(doc(db, 'orcamentos', orcamentoId));
-    if (!orcamentoToUpdate.exists()) throw new Error("Orçamento não encontrado");
-    const userId = orcamentoToUpdate.data().userId;
+export const deleteOrcamento = async (orcamentoId: string, userId: string) => {
+    if (!userId) throw new Error("Usuário não autenticado.");
     const orcamentoDoc = doc(db, 'empresa', userId, 'orcamentos', orcamentoId);
     await deleteDoc(orcamentoDoc);
 };
 
+
 // Get all orcamentos for a user
 export const getOrcamentos = async (userId: string): Promise<Orcamento[]> => {
   try {
-    const orcamentosCollection = getOrcamentosCollection(userId);
-    const q = query(orcamentosCollection, where('userId', '==', userId), orderBy('numeroOrcamento', 'desc'));
-    const querySnapshot = await getDocs(q);
+    const orcamentosQuery = query(
+      collectionGroup(db, 'orcamentos'),
+      where('userId', '==', userId),
+      orderBy('numeroOrcamento', 'desc')
+    );
+    const querySnapshot = await getDocs(orcamentosQuery);
     const orcamentos: Orcamento[] = [];
     querySnapshot.forEach((doc) => {
       orcamentos.push({ id: doc.id, ...doc.data() } as Orcamento);
@@ -79,15 +88,14 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
     console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Chamado com userId: ${userId}`);
     
     try {
-        const orcamentosCollection = getOrcamentosCollection(userId);
-        const q = query(
-            orcamentosCollection,
+        const orcamentosQuery = query(
+            collectionGroup(db, 'orcamentos'),
             where('userId', '==', userId),
             orderBy('numeroOrcamento', 'desc'),
             limit(1)
         );
 
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await getDocs(orcamentosQuery);
         
         const currentYear = new Date().getFullYear();
         let lastSequence = 0;
@@ -127,12 +135,17 @@ export const syncOfflineOrcamentos = async (userId: string) => {
     }
 
     try {
-        const orcamentosCollection = getOrcamentosCollection(userId);
-        const q = query(orcamentosCollection, where('userId', '==', userId), where('numeroOrcamento', '>=', '0-TEMP-'), where('numeroOrcamento', '<=', '9-TEMP-~'));
+        const q = query(
+          collectionGroup(db, 'orcamentos'), 
+          where('userId', '==', userId), 
+          where('numeroOrcamento', '>=', '0-TEMP-'), 
+          where('numeroOrcamento', '<=', '9-TEMP-~')
+        );
+
         const querySnapshot = await getDocs(q);
         
         const offlineOrcamentos = querySnapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() } as Orcamento))
+            .map(doc => ({ id: doc.id, ref: doc.ref, ...doc.data() } as Orcamento & { ref: any }))
             .filter(orc => orc.numeroOrcamento && orc.numeroOrcamento.includes('TEMP'));
         
         if (offlineOrcamentos.length === 0) {
@@ -156,8 +169,7 @@ export const syncOfflineOrcamentos = async (userId: string) => {
                     return; 
                 }
                 
-                const docRef = doc(db, 'empresa', userId, 'orcamentos', orcamento.id);
-                await updateDoc(docRef, { numeroOrcamento: newNumeroOrcamento });
+                await updateDoc(orcamento.ref, { numeroOrcamento: newNumeroOrcamento });
                 console.log(`Atualizando orçamento ${orcamento.numeroOrcamento} para ${newNumeroOrcamento}`);
             } catch(e) {
                 console.error(`Erro ao gerar novo número para o orçamento ${orcamento.id}. Pulando.`, e);
