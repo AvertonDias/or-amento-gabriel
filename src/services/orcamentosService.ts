@@ -8,36 +8,49 @@ const getOrcamentosCollection = (userId: string) => {
 };
 
 // Add a new orcamento
-export const addOrcamento = async (userId: string, orcamento: Omit<Orcamento, 'id' | 'userId'>) => {
+export const addOrcamento = async (userId: string, orcamento: Omit<Orcamento, 'id'>) => {
+  if (!orcamento || !orcamento.cliente) {
+    console.error("[ORCAMENTO SERVICE - addOrcamento] Tentativa de salvar orçamento com dados inválidos.");
+    throw new Error("Dados do orçamento ou cliente inválidos.");
+  }
   console.log(`[ORCAMENTO SERVICE - addOrcamento] Tentando salvar orçamento para cliente: ${orcamento.cliente.nome}`);
   const orcamentosCollection = getOrcamentosCollection(userId);
   try {
-    const docRef = await addDoc(orcamentosCollection, { ...orcamento, userId });
+    const docRef = await addDoc(orcamentosCollection, { ...orcamento });
     console.log("[ORCAMENTO SERVICE - addOrcamento] Orçamento adicionado com ID:", docRef.id);
   } catch (error) {
       console.error("[ORCAMENTO SERVICE - addOrcamento] Erro ao adicionar orçamento:", error);
+      // If offline, Firestore writes to a local queue and resolves the promise.
+      // The error here would be something other than network. Let's re-throw.
       throw error;
   }
 };
 
 
 // Update an existing orcamento
-export const updateOrcamento = async (userId: string, orcamentoId: string, orcamento: Partial<Orcamento>) => {
-  const orcamentoDoc = doc(db, 'empresa', userId, 'orcamentos', orcamentoId);
+export const updateOrcamento = async (orcamentoId: string, orcamento: Partial<Orcamento>) => {
+  if (!orcamento.userId) throw new Error("userId é obrigatório para atualizar");
+  const orcamentoDoc = doc(db, 'empresa', orcamento.userId, 'orcamentos', orcamentoId);
   await updateDoc(orcamentoDoc, orcamento);
 };
 
 
 // Update an orcamento status
-export const updateOrcamentoStatus = async (userId: string, orcamentoId: string, status: Orcamento['status'], payload: object) => {
+export const updateOrcamentoStatus = async (orcamentoId: string, status: Orcamento['status'], payload: object) => {
+  const orcamentoToUpdate = await getDoc(doc(db, 'orcamentos', orcamentoId));
+  if (!orcamentoToUpdate.exists()) throw new Error("Orçamento não encontrado");
+  const userId = orcamentoToUpdate.data().userId;
   const orcamentoDoc = doc(db, 'empresa', userId, 'orcamentos', orcamentoId);
   await updateDoc(orcamentoDoc, { status, ...payload });
 };
 
 // Delete an orcamento
-export const deleteOrcamento = async (userId: string, orcamentoId: string) => {
-  const orcamentoDoc = doc(db, 'empresa', userId, 'orcamentos', orcamentoId);
-  await deleteDoc(orcamentoDoc);
+export const deleteOrcamento = async (orcamentoId: string) => {
+    const orcamentoToUpdate = await getDoc(doc(db, 'orcamentos', orcamentoId));
+    if (!orcamentoToUpdate.exists()) throw new Error("Orçamento não encontrado");
+    const userId = orcamentoToUpdate.data().userId;
+    const orcamentoDoc = doc(db, 'empresa', userId, 'orcamentos', orcamentoId);
+    await deleteDoc(orcamentoDoc);
 };
 
 // Get all orcamentos for a user
