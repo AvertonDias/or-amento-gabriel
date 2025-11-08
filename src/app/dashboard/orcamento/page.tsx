@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, FormEvent, useRef, useCallback } from 'react';
@@ -9,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableTotalFooter } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, FileText, Pencil, MessageCircle, History, CheckCircle2, XCircle, Search, Loader2, RefreshCw, ArrowRight, ArrowLeft, AlertTriangle, FilterX } from 'lucide-react';
+import { PlusCircle, Trash2, FileText, Pencil, MessageCircle, History, CheckCircle2, XCircle, Search, Loader2, RefreshCw, ArrowRight, ArrowLeft, AlertTriangle, FilterX, MoreVertical } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -533,95 +532,96 @@ export default function OrcamentoPage() {
     setOrcamentoItens(prev => prev.filter(i => i.id !== id));
   };
   
-  const proceedToSaveBudget = (clienteFinal: ClienteData) => {
-    if (!user) {
-      toast({ title: "Usuário não autenticado", variant: "destructive" });
-      return;
+  const proceedToSaveBudget = async () => {
+    if (!user || !clientToSave) {
+        toast({ title: "Erro interno: dados do usuário ou cliente ausentes.", variant: "destructive" });
+        return;
     }
     setIsSubmitting(true);
-    
-    getNextOrcamentoNumber(user.uid).then(numeroOrcamento => {
+    try {
+        const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
         const newBudget: Omit<Orcamento, "id"> = {
             userId: user.uid,
             numeroOrcamento,
-            cliente: clienteFinal,
+            cliente: { ...clientToSave, id: clientToSave.id || crypto.randomUUID() },
             itens: orcamentoItens,
-            totalVenda: totalVenda,
+            totalVenda,
             dataCriacao: new Date().toISOString(),
             status: "Pendente",
-            validadeDias: validadeDias,
+            validadeDias,
             dataAceite: null,
             dataRecusa: null,
         };
-
-        addOrcamento(newBudget);
+        
+        await addOrcamento(newBudget);
+        
         setIsWizardOpen(false);
         toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
-        setTimeout(() => fetchAllData(true), 500); 
-    }).catch(error => {
-        console.error("Erro ao salvar:", error);
-        toast({
-            title: "Erro ao salvar orçamento",
-            description: error.message,
-            variant: "destructive",
-        });
-    }).finally(() => {
-        setIsSubmitting(false);
-    });
-  };
+        
+        // Use a timeout to ensure offline writes are processed before refetching.
+        setTimeout(() => fetchAllData(true), 1000);
 
-  const handleConfirmSave = () => {
+    } catch (error: any) {
+        console.error("Erro ao salvar orçamento:", error);
+        toast({ title: "Erro ao salvar orçamento", description: error.message, variant: "destructive" });
+    } finally {
+        setIsSubmitting(false);
+    }
+};
+
+const handleConfirmSave = async () => {
     if (orcamentoItens.length === 0) {
-      toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item.", variant: "destructive" });
-      return;
+        toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item.", variant: "destructive" });
+        return;
     }
     if (!clienteData.nome) {
-      toast({ title: "Cliente não informado", description: "Preencha o nome do cliente.", variant: "destructive" });
-      return;
+        toast({ title: "Cliente não informado", description: "Preencha o nome do cliente.", variant: "destructive" });
+        return;
     }
-
+    
     const existingClient = clientes.find(c => c.nome.trim().toLowerCase() === clienteData.nome.trim().toLowerCase());
 
     if (existingClient) {
-      proceedToSaveBudget(existingClient);
-      return;
+        setClientToSave(existingClient);
+        // Use a microtask para garantir que o estado `clientToSave` seja atualizado antes de prosseguir
+        await Promise.resolve(); 
+        await proceedToSaveBudget();
+        return;
     }
 
     setClientToSave(clienteData);
     setIsConfirmSaveClientOpen(true);
-  };
-  
-  const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
+};
+
+const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
     setIsConfirmSaveClientOpen(false);
     if (!clientToSave || !user) return;
 
-    let finalClientData: ClienteData;
-
     if (shouldSave) {
-        const clientPayload = {
-            nome: clientToSave.nome,
-            cpfCnpj: clientToSave.cpfCnpj,
-            endereco: clientToSave.endereco,
-            telefone: clientToSave.telefone,
-            email: clientToSave.email,
-        };
+        const clientPayload = { ...clientToSave };
+        delete clientPayload.id; // Garante que não tenha ID ao criar
         try {
             const newClientId = await addCliente(user.uid, clientPayload);
-            finalClientData = { ...clientPayload, userId: user.uid, id: newClientId };
+            // Atualiza o clientToSave com o ID real do Firestore
+            setClientToSave(prev => ({...prev!, id: newClientId}));
             toast({ title: "Novo cliente salvo com sucesso!" });
             fetchAllData(true);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Erro ao salvar novo cliente:", error);
-            toast({ title: "Erro ao salvar novo cliente.", description: "O orçamento será salvo com um cliente temporário.", variant: "destructive" });
-            finalClientData = { ...clientPayload, userId: user.uid, id: crypto.randomUUID() };
+            toast({ title: "Erro ao salvar novo cliente.", description: "O orçamento será salvo com um ID temporário para o cliente.", variant: "destructive" });
+            // Mantém os dados, mas com um ID provisório
+            setClientToSave(prev => ({...prev!, id: crypto.randomUUID()}));
         }
     } else {
-        finalClientData = { ...clientToSave, userId: user.uid, id: crypto.randomUUID() };
+        // Apenas atribui um ID provisório se não for salvar
+        setClientToSave(prev => ({...prev!, id: crypto.randomUUID()}));
     }
     
-    proceedToSaveBudget(finalClientData);
+    // Aguarda a atualização do estado e então prossegue
+    await Promise.resolve();
+    await proceedToSaveBudget();
     setClientToSave(null);
-  };
+};
 
 
   const handleUpdateStatus = async (budgetId: string, status: 'Aceito' | 'Recusado') => {
@@ -975,45 +975,57 @@ export default function OrcamentoPage() {
                             </div>
                         </CardContent>
                         <CardFooter className="flex flex-wrap justify-end gap-2 bg-muted/50 p-4">
-                           <Button variant="outline" size="sm" onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}><Pencil className="mr-2 h-4 w-4" />Editar</Button>
-                             <AlertDialog>
-                                <AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="mr-2 h-4 w-4" />Excluir</Button></AlertDialogTrigger>
-                                <AlertDialogContent>
+                           <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}>
+                                  <Pencil className="mr-2 h-4 w-4" />Editar
+                                </DropdownMenuItem>
+                                 <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>
+                                  <FileText className="mr-2 h-4 w-4" />PDF Cliente
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>
+                                  <FileText className="mr-2 h-4 w-4" />PDF Interno
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}>
+                                  <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
+                                </DropdownMenuItem>
+                                <Separator />
+                                 <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
+                                      <Trash2 className="mr-2 h-4 w-4" />Excluir
+                                    </DropdownMenuItem>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
                                     <AlertDialogHeader>
-                                    <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                                    <AlertDialogDescription>Tem certeza que deseja excluir este orçamento permanentemente? Esta ação não pode ser desfeita.</AlertDialogDescription>
+                                      <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                      <AlertDialogDescription>Tem certeza que deseja excluir este orçamento permanentemente? Esta ação não pode ser desfeita.</AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleRemoverOrcamento(orcamento.id)}>Sim, Excluir</AlertDialogAction>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleRemoverOrcamento(orcamento.id)}>Sim, Excluir</AlertDialogAction>
                                     </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="secondary" size="sm"><FileText className="mr-2"/>Gerar PDF</Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>
-                                        Cliente
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>
-                                        Interno
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </DropdownMenuContent>
                             </DropdownMenu>
-                            <Button variant="secondary" size="sm" onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}><MessageCircle className="mr-2"/>Enviar Proposta</Button>
+
                             {orcamento.status === 'Pendente' && (
                                 <>
                                     <AlertDialog>
-                                        <AlertDialogTrigger asChild><Button variant="destructive" size="sm"><XCircle className="mr-2"/>Recusar</Button></AlertDialogTrigger>
+                                        <AlertDialogTrigger asChild><Button variant="outline" size="sm"><XCircle className="mr-2"/>Recusar</Button></AlertDialogTrigger>
                                         <AlertDialogContent>
                                             <AlertDialogHeader><AlertDialogTitle>Confirmar Recusa</AlertDialogTitle><AlertDialogDescription>Tem certeza de que deseja recusar este orçamento? Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
                                             <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleUpdateStatus(orcamento.id, 'Recusado')}>Sim, Recusar</AlertDialogAction></AlertDialogFooter>
                                         </AlertDialogContent>
                                     </AlertDialog>
                                     <AlertDialog>
-                                        <AlertDialogTrigger asChild><Button size="sm" className="bg-green-600 hover:bg-green-700 text-white"><CheckCircle2 className="mr-2"/>Aceitar</Button></AlertDialogTrigger>
+                                        <AlertDialogTrigger asChild><Button size="sm"><CheckCircle2 className="mr-2"/>Aceitar</Button></AlertDialogTrigger>
                                         <AlertDialogContent>
                                             <AlertDialogHeader><AlertDialogTitle>Confirmar Aceite</AlertDialogTitle><AlertDialogDescription>Ao aceitar, o status será atualizado e uma notificação será preparada para envio via WhatsApp para sua empresa.</AlertDialogDescription></AlertDialogHeader>
                                             <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-primary hover:bg-primary/90" onClick={() => handleUpdateStatus(orcamento.id, 'Aceito')}>Sim, Aceitar</AlertDialogAction></AlertDialogFooter>
@@ -1267,7 +1279,7 @@ export default function OrcamentoPage() {
             <AlertDialogHeader>
                 <AlertDialogTitle>Salvar Novo Cliente?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    O cliente "{clientToSave?.nome}" não foi encontrado na sua lista. Deseja salvá-lo para uso futuro?
+                    O cliente "{clientToSave?.nome}" não foi encontrado. Deseja salvá-lo para uso futuro?
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -1317,9 +1329,3 @@ export default function OrcamentoPage() {
     </div>
   );
 }
-
-
-
-
-
-    
