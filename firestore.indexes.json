@@ -42,20 +42,6 @@
           "order": "DESCENDING"
         }
       ]
-    },
-    {
-      "collectionGroup": "orcamentos",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "numeroOrcamento",
-          "order": "ASCENDING"
-        }
-      ]
     }
   ],
   "fieldOverrides": []
