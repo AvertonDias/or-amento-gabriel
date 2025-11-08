@@ -30,6 +30,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Separator } from '@/components/ui/separator';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -559,7 +560,7 @@ const proceedToSaveBudget = async (currentClient: ClienteData) => {
       toast({ title: `Orçamento ${numeroOrcamento} salvo!` });
       
       setIsWizardOpen(false);
-      setTimeout(() => fetchAllData(true), 500);
+      fetchAllData(true);
 
     } catch (error: any) {
       console.error("Erro ao salvar orçamento:", error);
@@ -594,6 +595,7 @@ const handleConfirmSave = () => {
 
 
 const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
+    setIsConfirmSaveClientOpen(false);
     if (!clientToSave || !user) return;
 
     let finalClientData: ClienteData;
@@ -605,19 +607,17 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
             const newClientId = await addCliente(user.uid, clientPayload);
             finalClientData = { ...clientToSave, id: newClientId, userId: user.uid };
             toast({ title: "Novo cliente salvo com sucesso!" });
+            proceedToSaveBudget(finalClientData);
         } catch (error: any) {
             console.error("Erro ao salvar novo cliente:", error);
             toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
-            // Se falhar ao salvar, não prosseguir com o orçamento.
-            setIsConfirmSaveClientOpen(false);
-            return;
+            // Não prossegue se falhar ao salvar cliente.
         }
     } else {
         finalClientData = { ...clientToSave, id: clientToSave.id || crypto.randomUUID(), userId: user.uid };
+        proceedToSaveBudget(finalClientData);
     }
     
-    proceedToSaveBudget(finalClientData);
-    setIsConfirmSaveClientOpen(false);
     setClientToSave(null);
 };
 
@@ -973,64 +973,104 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
                             </div>
                         </CardContent>
                         <CardFooter className="flex flex-wrap justify-end gap-2 bg-muted/50 p-4">
-                           <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}>
-                                  <Pencil className="mr-2 h-4 w-4" />Editar
-                                </DropdownMenuItem>
-                                 <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>
-                                  <FileText className="mr-2 h-4 w-4" />PDF Cliente
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>
-                                  <FileText className="mr-2 h-4 w-4" />PDF Interno
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}>
-                                  <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
-                                </DropdownMenuItem>
-                                <Separator />
-                                <AlertDialog>
+                           {/* Botões para Desktop */}
+                            <div className="hidden md:flex flex-wrap justify-end gap-2">
+                                <Button variant="outline" size="sm" onClick={() => handleGerarPDF(orcamento)}><FileText className="mr-2 h-4 w-4" />PDF Cliente</Button>
+                                <Button variant="outline" size="sm" onClick={() => handleGerarPDFInterno(orcamento)}><FileText className="mr-2 h-4 w-4" />PDF Interno</Button>
+                                <Button variant="outline" size="sm" onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}><MessageCircle className="mr-2 h-4 w-4" />Enviar</Button>
+                                <Button variant="outline" size="sm" onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}><Pencil className="mr-2 h-4 w-4" />Editar</Button>
+                                {orcamento.status === 'Pendente' && (
+                                    <>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild><Button variant="outline" size="sm"><XCircle className="mr-2"/>Recusar</Button></AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader><AlertDialogTitle>Confirmar Recusa</AlertDialogTitle><AlertDialogDescription>Tem certeza de que deseja recusar este orçamento? Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
+                                                <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleUpdateStatus(orcamento.id, 'Recusado')}>Sim, Recusar</AlertDialogAction></AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild><Button size="sm"><CheckCircle2 className="mr-2"/>Aceitar</Button></AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader><AlertDialogTitle>Confirmar Aceite</AlertDialogTitle><AlertDialogDescription>Ao aceitar, o status será atualizado e uma notificação será preparada para envio via WhatsApp para sua empresa.</AlertDialogDescription></AlertDialogHeader>
+                                                <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-primary hover:bg-primary/90" onClick={() => handleUpdateStatus(orcamento.id, 'Aceito')}>Sim, Aceitar</AlertDialogAction></AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </>
+                                )}
+                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
-                                            <Trash2 className="mr-2 h-4 w-4" />Excluir
-                                        </DropdownMenuItem>
+                                        <Button variant="destructive" size="sm"><Trash2 className="mr-2 h-4 w-4" />Excluir</Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                        <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                                        <AlertDialogDescription>Tem certeza que deseja excluir este orçamento permanentemente? Esta ação não pode ser desfeita.</AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleRemoverOrcamento(orcamento.id)}>Sim, Excluir</AlertDialogAction>
-                                        </AlertDialogFooter>
+                                        <AlertDialogHeader><AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja excluir este orçamento permanentemente? Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
+                                        <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleRemoverOrcamento(orcamento.id)}>Sim, Excluir</AlertDialogAction></AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            </div>
 
-                            {orcamento.status === 'Pendente' && (
-                                <>
+                            {/* Menu para Mobile */}
+                            <div className="md:hidden">
+                               <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}>
+                                      <Pencil className="mr-2 h-4 w-4" />Editar
+                                    </DropdownMenuItem>
+                                     <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>
+                                      <FileText className="mr-2 h-4 w-4" />PDF Cliente
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>
+                                      <FileText className="mr-2 h-4 w-4" />PDF Interno
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}>
+                                      <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                     {orcamento.status === 'Pendente' && (
+                                        <>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                                    <CheckCircle2 className="mr-2 h-4 w-4"/>Aceitar
+                                                </DropdownMenuItem>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader><AlertDialogTitle>Confirmar Aceite</AlertDialogTitle><AlertDialogDescription>Ao aceitar, o status será atualizado e uma notificação será preparada para envio via WhatsApp para sua empresa.</AlertDialogDescription></AlertDialogHeader>
+                                                <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-primary hover:bg-primary/90" onClick={() => handleUpdateStatus(orcamento.id, 'Aceito')}>Sim, Aceitar</AlertDialogAction></AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                                    <XCircle className="mr-2 h-4 w-4 text-destructive"/>Recusar
+                                                </DropdownMenuItem>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader><AlertDialogTitle>Confirmar Recusa</AlertDialogTitle><AlertDialogDescription>Tem certeza de que deseja recusar este orçamento? Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
+                                                <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleUpdateStatus(orcamento.id, 'Recusado')}>Sim, Recusar</AlertDialogAction></AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                        <DropdownMenuSeparator />
+                                        </>
+                                     )}
                                     <AlertDialog>
-                                        <AlertDialogTrigger asChild><Button variant="outline" size="sm"><XCircle className="mr-2"/>Recusar</Button></AlertDialogTrigger>
+                                        <AlertDialogTrigger asChild>
+                                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
+                                                <Trash2 className="mr-2 h-4 w-4" />Excluir
+                                            </DropdownMenuItem>
+                                        </AlertDialogTrigger>
                                         <AlertDialogContent>
-                                            <AlertDialogHeader><AlertDialogTitle>Confirmar Recusa</AlertDialogTitle><AlertDialogDescription>Tem certeza de que deseja recusar este orçamento? Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
-                                            <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleUpdateStatus(orcamento.id, 'Recusado')}>Sim, Recusar</AlertDialogAction></AlertDialogFooter>
+                                            <AlertDialogHeader><AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja excluir este orçamento permanentemente? Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
+                                            <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleRemoverOrcamento(orcamento.id)}>Sim, Excluir</AlertDialogAction></AlertDialogFooter>
                                         </AlertDialogContent>
                                     </AlertDialog>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild><Button size="sm"><CheckCircle2 className="mr-2"/>Aceitar</Button></AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader><AlertDialogTitle>Confirmar Aceite</AlertDialogTitle><AlertDialogDescription>Ao aceitar, o status será atualizado e uma notificação será preparada para envio via WhatsApp para sua empresa.</AlertDialogDescription></AlertDialogHeader>
-                                            <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-primary hover:bg-primary/90" onClick={() => handleUpdateStatus(orcamento.id, 'Aceito')}>Sim, Aceitar</AlertDialogAction></AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </>
-                            )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
                         </CardFooter>
                     </Card>
                   ))
@@ -1170,21 +1210,22 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
           )}
         </DialogContent>
       </Dialog>
-
+      
       <AlertDialog open={isConfirmSaveClientOpen} onOpenChange={setIsConfirmSaveClientOpen}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Este cliente não está na sua lista</AlertDialogTitle>
-                <AlertDialogDescription>
-                     Deseja salvá-lo para uso futuro?
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogAction onClick={() => handleConfirmSaveClientDialog(true)}>Sim, Salvar Cliente</AlertDialogAction>
-                <AlertDialogCancel onClick={() => handleConfirmSaveClientDialog(false)}>Não, Usar Apenas Desta Vez</AlertDialogCancel>
-            </AlertDialogFooter>
-        </AlertDialogContent>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Este cliente não está na sua lista</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      Deseja salvá-lo para uso futuro?
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <Button variant="outline" onClick={() => handleConfirmSaveClientDialog(false)}>Não, Usar Apenas Desta Vez</Button>
+                  <Button onClick={() => handleConfirmSaveClientDialog(true)}>Sim, Salvar Cliente</Button>
+              </AlertDialogFooter>
+          </AlertDialogContent>
       </AlertDialog>
+
 
       <AlertDialog open={isExpiredModalOpen} onOpenChange={setIsExpiredModalOpen}>
         <AlertDialogContent>
@@ -1226,3 +1267,4 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
     </div>
   );
 }
+
