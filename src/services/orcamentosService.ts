@@ -1,21 +1,22 @@
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy, writeBatch, Timestamp, getDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy, writeBatch, Timestamp, getDoc, limit } from 'firebase/firestore';
 import type { Orcamento } from '@/lib/types';
 
 const ORCAMENTOS_COLLECTION = 'orcamentos';
 
 // Add a new orcamento
-export const addOrcamento = async (orcamento: Omit<Orcamento, 'id'>): Promise<string> => {
+export const addOrcamento = (orcamento: Omit<Orcamento, 'id'>): Promise<string> => {
   console.log(`[ORCAMENTO SERVICE - addOrcamento] Tentando salvar orçamento para cliente: ${orcamento.cliente.nome}`);
-   try {
-    const docRef = await addDoc(collection(db, ORCAMENTOS_COLLECTION), orcamento);
-    console.log("[ORCAMENTO SERVICE - addOrcamento] Orçamento salvo com ID:", docRef.id);
-    return docRef.id;
-  } catch (error: any) {
-    console.error("[ORCAMENTO SERVICE - addOrcamento] Erro ao adicionar orçamento:", error.message);
-    throw error;
-  }
+  return addDoc(collection(db, ORCAMENTOS_COLLECTION), orcamento)
+    .then(docRef => {
+      console.log("[ORCAMENTO SERVICE - addOrcamento] Orçamento salvo com ID:", docRef.id);
+      return docRef.id;
+    })
+    .catch(error => {
+      console.error("[ORCAMENTO SERVICE - addOrcamento] Erro ao adicionar orçamento:", error.message);
+      throw error;
+    });
 };
 
 
@@ -59,31 +60,31 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
     const currentYear = new Date().getFullYear();
 
     try {
-        const startOfYear = new Date(currentYear, 0, 1).toISOString();
-        
         const q = query(
             collection(db, ORCAMENTOS_COLLECTION),
             where('userId', '==', userId),
-            where('dataCriacao', '>=', startOfYear)
+            orderBy('dataCriacao', 'desc'),
+            limit(1)
         );
 
         const querySnapshot = await getDocs(q);
 
         let lastSequence = 0;
-        querySnapshot.forEach(doc => {
-            const numeroOrcamento = doc.data().numeroOrcamento as string;
-            // Apenas considera números no formato ANO-XXX e do ano corrente
-            if (numeroOrcamento && numeroOrcamento.startsWith(`${currentYear}-`)) {
-                const parts = numeroOrcamento.split('-');
-                if (parts.length === 2) {
-                    const sequence = parseInt(parts[1], 10);
-                    // Garante que o número sequencial não seja um timestamp
-                    if (!isNaN(sequence) && String(sequence).length < 5 && sequence > lastSequence) {
-                        lastSequence = sequence;
-                    }
-                }
-            }
-        });
+        if (!querySnapshot.empty) {
+          const lastBudget = querySnapshot.docs[0].data() as Orcamento;
+          const numeroOrcamento = lastBudget.numeroOrcamento;
+          const budgetYear = new Date(lastBudget.dataCriacao).getFullYear();
+
+          if (numeroOrcamento && budgetYear === currentYear && numeroOrcamento.startsWith(`${currentYear}-`)) {
+              const parts = numeroOrcamento.split('-');
+              if (parts.length === 2) {
+                  const sequence = parseInt(parts[1], 10);
+                  if (!isNaN(sequence)) {
+                      lastSequence = sequence;
+                  }
+              }
+          }
+        }
         
         const newSequence = lastSequence + 1;
         const newNumeroOrcamento = `${currentYear}-${String(newSequence).padStart(3, '0')}`;
@@ -115,12 +116,10 @@ export const syncOfflineOrcamentos = async (userId: string) => {
 
         console.log(`Sincronizando ${offlineOrcamentos.length} orçamentos offline...`);
 
-        // Sort by creation date to assign sequential numbers correctly
         offlineOrcamentos.sort((a, b) => new Date(a.dataCriacao).getTime() - new Date(b.dataCriacao).getTime());
 
         let nextNumberStr = await getNextOrcamentoNumber(userId);
         
-        // Check if getNextOrcamentoNumber returned an offline fallback
         if (nextNumberStr.split('-')[1].length > 4) {
           console.warn("Não foi possível obter um número sequencial online para sincronização. Tentando novamente mais tarde.");
           return;
@@ -134,10 +133,9 @@ export const syncOfflineOrcamentos = async (userId: string) => {
         for (const orcamento of offlineOrcamentos) {
             const orcamentoYear = new Date(orcamento.dataCriacao).getFullYear();
             
-            // This is a simplification. A more robust solution would re-fetch the next number if the year changes mid-batch.
             if(orcamentoYear !== year) {
               year = orcamentoYear;
-              nextSequence = 1; // Reset for the new year
+              nextSequence = 1;
             }
             
             const newNumeroOrcamento = `${year}-${String(nextSequence).padStart(3, '0')}`;

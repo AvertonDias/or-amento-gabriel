@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, FormEvent, useRef, useCallback } from 'react';
@@ -555,11 +556,11 @@ export default function OrcamentoPage() {
         
         await addOrcamento(newBudget);
         
-        setIsWizardOpen(false);
+        setIsWizardOpen(false); // Fecha o modal
         toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
         
-        // Use a timeout to ensure offline writes are processed before refetching.
-        setTimeout(() => fetchAllData(true), 1000);
+        // Atualiza a lista de orçamentos e clientes para refletir as novas adições
+        fetchAllData(true);
 
     } catch (error: any) {
         console.error("Erro ao salvar orçamento:", error);
@@ -579,12 +580,12 @@ const handleConfirmSave = async () => {
         return;
     }
     
-    const existingClient = clientes.find(c => c.nome.trim().toLowerCase() === clienteData.nome.trim().toLowerCase());
+    // Normaliza o nome do cliente para comparação
+    const normalizedNewClientName = clienteData.nome.trim().toLowerCase();
+    const existingClient = clientes.find(c => c.nome.trim().toLowerCase() === normalizedNewClientName);
 
     if (existingClient) {
         setClientToSave(existingClient);
-        // Use a microtask para garantir que o estado `clientToSave` seja atualizado antes de prosseguir
-        await Promise.resolve(); 
         await proceedToSaveBudget();
         return;
     }
@@ -599,26 +600,20 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
 
     if (shouldSave) {
         const clientPayload = { ...clientToSave };
-        delete clientPayload.id; // Garante que não tenha ID ao criar
+        delete clientPayload.id; 
         try {
             const newClientId = await addCliente(user.uid, clientPayload);
-            // Atualiza o clientToSave com o ID real do Firestore
             setClientToSave(prev => ({...prev!, id: newClientId}));
             toast({ title: "Novo cliente salvo com sucesso!" });
-            fetchAllData(true);
         } catch (error: any) {
             console.error("Erro ao salvar novo cliente:", error);
             toast({ title: "Erro ao salvar novo cliente.", description: "O orçamento será salvo com um ID temporário para o cliente.", variant: "destructive" });
-            // Mantém os dados, mas com um ID provisório
             setClientToSave(prev => ({...prev!, id: crypto.randomUUID()}));
         }
     } else {
-        // Apenas atribui um ID provisório se não for salvar
         setClientToSave(prev => ({...prev!, id: crypto.randomUUID()}));
     }
     
-    // Aguarda a atualização do estado e então prossegue
-    await Promise.resolve();
     await proceedToSaveBudget();
     setClientToSave(null);
 };
@@ -1277,9 +1272,9 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
       <AlertDialog open={isConfirmSaveClientOpen} onOpenChange={setIsConfirmSaveClientOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Salvar Novo Cliente?</AlertDialogTitle>
+                <AlertDialogTitle>Este cliente não está na sua lista</AlertDialogTitle>
                 <AlertDialogDescription>
-                    O cliente "{clientToSave?.nome}" não foi encontrado. Deseja salvá-lo para uso futuro?
+                     Deseja salvá-lo para uso futuro?
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
