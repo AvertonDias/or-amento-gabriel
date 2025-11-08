@@ -1,8 +1,7 @@
-
 'use client';
 
 import React, { useState, FormEvent, useEffect, useCallback, useMemo } from 'react';
-import type { ClienteData } from '@/lib/types';
+import type { ClienteData, Orcamento } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -18,6 +17,7 @@ import { Loader2 } from 'lucide-react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { addCliente, deleteCliente, getClientes, updateCliente } from '@/services/clientesService';
+import { getOrcamentos } from '@/services/orcamentosService';
 import {
   Accordion,
   AccordionContent,
@@ -33,6 +33,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useRouter } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
 
 
 const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
@@ -50,10 +51,21 @@ interface SelectedContactDetails {
   address: any[];
 }
 
+type OrcamentoStatus = 'Pendente' | 'Aceito' | 'Recusado' | 'Vencido';
+
+interface BudgetCounts {
+    Pendente: number;
+    Aceito: number;
+    Recusado: number;
+    Vencido: number;
+    Total: number;
+}
+
 export default function ClientesPage() {
   const [user, loadingAuth] = useAuthState(auth);
   const router = useRouter();
   const [clientes, setClientes] = useState<ClienteData[]>([]);
+  const [orcamentos, setOrcamentos] = useState<Orcamento[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -80,16 +92,19 @@ export default function ClientesPage() {
     return validateCpfCnpj(editingClient.cpfCnpj);
   }, [editingClient?.cpfCnpj]);
 
-
-  const fetchClientes = useCallback(async () => {
+  const fetchPageData = useCallback(async () => {
     if (!user) return;
     setIsLoadingData(true);
     try {
-      const data = await getClientes(user.uid);
-      setClientes(data);
+      const [clientesData, orcamentosData] = await Promise.all([
+        getClientes(user.uid),
+        getOrcamentos(user.uid),
+      ]);
+      setClientes(clientesData);
+      setOrcamentos(orcamentosData);
     } catch (error: any) {
-      console.error("Erro ao buscar clientes:", error);
-      toast({ title: 'Erro ao carregar clientes', description: error.message, variant: 'destructive' });
+      console.error("Erro ao buscar dados:", error);
+      toast({ title: 'Erro ao carregar dados da página', description: error.message, variant: 'destructive' });
     } finally {
       setIsLoadingData(false);
     }
@@ -97,13 +112,31 @@ export default function ClientesPage() {
 
   useEffect(() => {
     if (user) {
-      fetchClientes();
+      fetchPageData();
     } else if (!loadingAuth) {
-      // User is not logged in and auth check is complete
       setClientes([]);
+      setOrcamentos([]);
       setIsLoadingData(false);
     }
-  }, [user, loadingAuth, fetchClientes]);
+  }, [user, loadingAuth, fetchPageData]);
+
+  const budgetCountsByClient = useMemo(() => {
+    const counts: Record<string, BudgetCounts> = {};
+    clientes.forEach(cliente => {
+        if (!cliente.id) return;
+        counts[cliente.id] = { Pendente: 0, Aceito: 0, Recusado: 0, Vencido: 0, Total: 0 };
+    });
+
+    orcamentos.forEach(orcamento => {
+        const clienteId = orcamento.cliente.id;
+        if (clienteId && counts[clienteId]) {
+            counts[clienteId][orcamento.status]++;
+            counts[clienteId].Total++;
+        }
+    });
+
+    return counts;
+  }, [clientes, orcamentos]);
 
   const handleNewClientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -173,7 +206,7 @@ export default function ClientesPage() {
       };
       await addCliente(user.uid, clientData);
       setNewClient(initialNewClientState);
-      await fetchClientes(); // Refresh list
+      await fetchPageData(); // Refresh list
       toast({
         title: 'Sucesso!',
         description: 'Cliente adicionado.',
@@ -189,7 +222,7 @@ export default function ClientesPage() {
   const handleRemoverCliente = async (id: string) => {
     try {
         await deleteCliente(id);
-        await fetchClientes(); // Refresh list
+        await fetchPageData(); // Refresh list
         toast({
             title: 'Cliente Removido',
             variant: 'destructive',
@@ -248,7 +281,7 @@ export default function ClientesPage() {
         await updateCliente(id, plainClientObject);
         setIsEditModalOpen(false);
         setEditingClient(null);
-        await fetchClientes(); // Refresh list
+        await fetchPageData(); // Refresh list
         toast({
             title: 'Sucesso!',
             description: 'Cliente atualizado com sucesso.',
@@ -343,6 +376,39 @@ export default function ClientesPage() {
   const handleViewBudgets = (clienteId: string) => {
     router.push(`/dashboard/orcamento?clienteId=${clienteId}`);
   };
+
+  const getStatusBadgeVariant = (status: OrcamentoStatus): "default" | "destructive" | "secondary" | "warning" => {
+    switch (status) {
+        case 'Aceito': return 'default';
+        case 'Recusado': return 'destructive';
+        case 'Vencido': return 'warning';
+        case 'Pendente': return 'secondary';
+        default: return 'secondary';
+    }
+  }
+
+  const BudgetBadges = ({ counts }: { counts: BudgetCounts | undefined }) => {
+    if (!counts || counts.Total === 0) {
+        return <p className="text-xs text-muted-foreground mt-1">Nenhum orçamento</p>;
+    }
+
+    const statusOrder: OrcamentoStatus[] = ['Pendente', 'Aceito', 'Recusado', 'Vencido'];
+
+    return (
+        <div className="flex flex-wrap items-center gap-2 mt-2">
+            {statusOrder.map(status => {
+                if (counts[status] > 0) {
+                    return (
+                        <Badge key={status} variant={getStatusBadgeVariant(status)} className="text-xs">
+                            {counts[status]} {status}
+                        </Badge>
+                    );
+                }
+                return null;
+            })}
+        </div>
+    );
+};
   
   const showSkeleton = loadingAuth || isLoadingData;
   const isCpfCnpjInvalid = newClient.cpfCnpj ? newClientCpfCnpjStatus === 'invalid' : false;
@@ -449,7 +515,7 @@ export default function ClientesPage() {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Clientes Cadastrados</h2>
-                <Button variant="ghost" size="sm" onClick={fetchClientes} disabled={isLoadingData}>
+                <Button variant="ghost" size="sm" onClick={fetchPageData} disabled={isLoadingData}>
                   <RefreshCw className={`h-4 w-4 ${isLoadingData ? 'animate-spin' : ''}`} />
                   <span className="ml-2">Atualizar</span>
                 </Button>
@@ -470,7 +536,12 @@ export default function ClientesPage() {
                   <TableBody>
                     {clientes.map(item => (
                       <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.nome}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex flex-col">
+                            <span>{item.nome}</span>
+                            <BudgetBadges counts={budgetCountsByClient[item.id!]} />
+                          </div>
+                        </TableCell>
                         <TableCell>{item.cpfCnpj}</TableCell>
                         <TableCell>{item.telefone}</TableCell>
                         <TableCell>{item.email}</TableCell>
@@ -572,6 +643,7 @@ export default function ClientesPage() {
                           {item.endereco && <p><span className="font-medium text-muted-foreground">Endereço:</span> {item.endereco}</p>}
                           {item.telefone && <p><span className="font-medium text-muted-foreground">Telefone:</span> {item.telefone}</p>}
                           {item.email && <p><span className="font-medium text-muted-foreground">Email:</span> {item.email}</p>}
+                           <BudgetBadges counts={budgetCountsByClient[item.id!]} />
                       </CardContent>
                   </Card>
                 ))}
@@ -748,3 +820,4 @@ export default function ClientesPage() {
   );
 }
 
+    
