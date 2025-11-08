@@ -536,37 +536,40 @@ export default function OrcamentoPage() {
   
 const proceedToSaveBudget = async (currentClient: ClienteData) => {
     if (!user || !currentClient.id) {
-      toast({ title: "Erro interno: dados do usuário ou ID do cliente ausentes.", variant: "destructive" });
-      return;
+        toast({ title: "Erro interno: dados do usuário ou ID do cliente ausentes.", variant: "destructive" });
+        return;
     }
 
     setIsSubmitting(true);
     try {
-      const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
-      const newBudget: Omit<Orcamento, "id"> = {
-        userId: user.uid,
-        numeroOrcamento,
-        cliente: { ...currentClient },
-        itens: orcamentoItens,
-        totalVenda,
-        dataCriacao: new Date().toISOString(),
-        status: "Pendente",
-        validadeDias,
-        dataAceite: null,
-        dataRecusa: null,
-      };
+        const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
+        const newBudget: Omit<Orcamento, "id"> = {
+            userId: user.uid,
+            numeroOrcamento,
+            cliente: { ...currentClient },
+            itens: orcamentoItens,
+            totalVenda,
+            dataCriacao: new Date().toISOString(),
+            status: "Pendente",
+            validadeDias,
+            dataAceite: null,
+            dataRecusa: null,
+        };
 
-      await addOrcamento(newBudget);
-      toast({ title: `Orçamento ${numeroOrcamento} salvo!` });
-      
-      setIsWizardOpen(false);
-      fetchAllData(true);
+        await addOrcamento(newBudget);
+        toast({ title: `Orçamento ${numeroOrcamento} salvo!` });
+        
+        // Adicionado um pequeno delay para garantir que o estado seja atualizado antes de recarregar
+        setTimeout(() => {
+          fetchAllData(true);
+        }, 100);
 
     } catch (error: any) {
-      console.error("Erro ao salvar orçamento:", error);
-      toast({ title: "Erro ao salvar orçamento", description: error.message, variant: "destructive" });
+        console.error("Erro ao salvar orçamento:", error);
+        toast({ title: "Erro ao salvar orçamento", description: error.message, variant: "destructive" });
     } finally {
-      setIsSubmitting(false);
+        setIsSubmitting(false);
+        setIsWizardOpen(false);
     }
 };
 
@@ -579,15 +582,13 @@ const handleConfirmSave = () => {
         toast({ title: "Cliente não informado", description: "Preencha o nome do cliente.", variant: "destructive" });
         return;
     }
-    
+
     const normalizedNewClientName = clienteData.nome.trim().toLowerCase();
     const existingClient = clientes.find(c => c.nome.trim().toLowerCase() === normalizedNewClientName);
 
     if (existingClient) {
-        // Cliente já existe, apenas salvar o orçamento
         proceedToSaveBudget(existingClient);
     } else {
-        // Cliente novo, perguntar se quer salvar
         setClientToSave(clienteData);
         setIsConfirmSaveClientOpen(true);
     }
@@ -611,7 +612,6 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
         } catch (error: any) {
             console.error("Erro ao salvar novo cliente:", error);
             toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
-            // Não prossegue se falhar ao salvar cliente.
         }
     } else {
         finalClientData = { ...clientToSave, id: clientToSave.id || crypto.randomUUID(), userId: user.uid };
@@ -973,7 +973,6 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
                             </div>
                         </CardContent>
                         <CardFooter className="flex flex-wrap justify-end gap-2 bg-muted/50 p-4">
-                           {/* Botões para Desktop */}
                             <div className="hidden md:flex flex-wrap justify-end gap-2">
                                 <Button variant="outline" size="sm" onClick={() => handleGerarPDF(orcamento)}><FileText className="mr-2 h-4 w-4" />PDF Cliente</Button>
                                 <Button variant="outline" size="sm" onClick={() => handleGerarPDFInterno(orcamento)}><FileText className="mr-2 h-4 w-4" />PDF Interno</Button>
@@ -1008,8 +1007,25 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
                                 </AlertDialog>
                             </div>
 
-                            {/* Menu para Mobile */}
-                            <div className="md:hidden">
+                            <div className="flex w-full items-center justify-end gap-2 md:hidden">
+                                {orcamento.status === 'Pendente' && (
+                                    <>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild><Button variant="outline" size="sm" className="flex-1"><XCircle className="mr-2 h-4 w-4"/>Recusar</Button></AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader><AlertDialogTitle>Confirmar Recusa</AlertDialogTitle><AlertDialogDescription>Tem certeza de que deseja recusar este orçamento? Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
+                                                <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleUpdateStatus(orcamento.id, 'Recusado')}>Sim, Recusar</AlertDialogAction></AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild><Button size="sm" className="flex-1"><CheckCircle2 className="mr-2 h-4 w-4"/>Aceitar</Button></AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader><AlertDialogTitle>Confirmar Aceite</AlertDialogTitle><AlertDialogDescription>Ao aceitar, o status será atualizado e uma notificação será preparada para envio via WhatsApp para sua empresa.</AlertDialogDescription></AlertDialogHeader>
+                                                <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-primary hover:bg-primary/90" onClick={() => handleUpdateStatus(orcamento.id, 'Aceito')}>Sim, Aceitar</AlertDialogAction></AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </>
+                                )}
                                <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon">
@@ -1030,33 +1046,6 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
                                       <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                     {orcamento.status === 'Pendente' && (
-                                        <>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                                    <CheckCircle2 className="mr-2 h-4 w-4"/>Aceitar
-                                                </DropdownMenuItem>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader><AlertDialogTitle>Confirmar Aceite</AlertDialogTitle><AlertDialogDescription>Ao aceitar, o status será atualizado e uma notificação será preparada para envio via WhatsApp para sua empresa.</AlertDialogDescription></AlertDialogHeader>
-                                                <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-primary hover:bg-primary/90" onClick={() => handleUpdateStatus(orcamento.id, 'Aceito')}>Sim, Aceitar</AlertDialogAction></AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                                    <XCircle className="mr-2 h-4 w-4 text-destructive"/>Recusar
-                                                </DropdownMenuItem>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader><AlertDialogTitle>Confirmar Recusa</AlertDialogTitle><AlertDialogDescription>Tem certeza de que deseja recusar este orçamento? Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
-                                                <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleUpdateStatus(orcamento.id, 'Recusado')}>Sim, Recusar</AlertDialogAction></AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                        <DropdownMenuSeparator />
-                                        </>
-                                     )}
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
                                             <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
@@ -1210,22 +1199,21 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
           )}
         </DialogContent>
       </Dialog>
-      
-      <AlertDialog open={isConfirmSaveClientOpen} onOpenChange={setIsConfirmSaveClientOpen}>
-          <AlertDialogContent>
-              <AlertDialogHeader>
-                  <AlertDialogTitle>Este cliente não está na sua lista</AlertDialogTitle>
-                  <AlertDialogDescription>
-                      Deseja salvá-lo para uso futuro?
-                  </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                  <Button variant="outline" onClick={() => handleConfirmSaveClientDialog(false)}>Não, Usar Apenas Desta Vez</Button>
-                  <Button onClick={() => handleConfirmSaveClientDialog(true)}>Sim, Salvar Cliente</Button>
-              </AlertDialogFooter>
-          </AlertDialogContent>
-      </AlertDialog>
 
+      <AlertDialog open={isConfirmSaveClientOpen} onOpenChange={setIsConfirmSaveClientOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Salvar novo cliente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O cliente &quot;{clientToSave?.nome}&quot; não está na sua lista. Deseja adicioná-lo para uso futuro?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => handleConfirmSaveClientDialog(false)}>Não, usar apenas uma vez</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleConfirmSaveClientDialog(true)}>Sim, salvar cliente</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={isExpiredModalOpen} onOpenChange={setIsExpiredModalOpen}>
         <AlertDialogContent>
@@ -1267,4 +1255,3 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
     </div>
   );
 }
-
