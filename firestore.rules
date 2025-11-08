@@ -8,17 +8,17 @@ service cloud.firestore {
       allow read, write: if request.auth.uid == userId;
     }
 
-    // Regra para as subcoleções aninhadas.
-    // Esta regra de grupo de coleção é necessária para permitir consultas
-    // em todas as subcoleções de uma vez (ex: buscar todos os orçamentos de um usuário).
+    // As regras de grupo de coleção permitem consultas em todas as subcoleções de uma vez.
+    // Garante que um usuário só possa acessar documentos em subcoleções
+    // que pertencem ao seu próprio documento de 'empresa'.
     match /{path=**}/clientes/{clienteId} {
-      allow read, write: if request.auth != null && get(path.split('/')[0,2]).data.userId == request.auth.uid;
+      allow read, write: if request.auth != null && get(/databases/$(database)/documents/empresa/$(request.auth.uid)).data.userId == request.auth.uid;
     }
     match /{path=**}/materiais/{materialId} {
-      allow read, write: if request.auth != null && get(path.split('/')[0,2]).data.userId == request.auth.uid;
+      allow read, write: if request.auth != null && get(/databases/$(database)/documents/empresa/$(request.auth.uid)).data.userId == request.auth.uid;
     }
     match /{path=**}/orcamentos/{orcamentoId} {
-      allow read, write: if request.auth != null && get(path.split('/')[0,2]).data.userId == request.auth.uid;
+      allow read, write: if request.auth != null && get(/databases/$(database)/documents/empresa/$(request.auth.uid)).data.userId == request.auth.uid;
     }
   }
 }
