@@ -249,6 +249,7 @@ export default function OrcamentoPage() {
   const { toast } = useToast();
   const pdfRef = useRef<HTMLDivElement>(null);
   const internalPdfRef = useRef<HTMLDivElement>(null);
+  const quantidadeInputRef = useRef<HTMLInputElement>(null);
   
   const [novoItem, setNovoItem] = useState({ materialId: '', quantidade: '', margemLucro: '' });
   const [quantidadeStr, setQuantidadeStr] = useState('');
@@ -431,7 +432,11 @@ export default function OrcamentoPage() {
   };
 
   const handleNovoItemChange = (field: keyof typeof novoItem, value: string) => {
-    if (field === 'quantidade') {
+    if (field === 'materialId') {
+        setNovoItem(prev => ({ ...prev, [field]: value }));
+        // Focus on a quantidade input
+        setTimeout(() => quantidadeInputRef.current?.focus(), 0);
+    } else if (field === 'quantidade') {
         const sanitizedValue = value.replace(/[^0-9,]/g, '');
         setQuantidadeStr(sanitizedValue);
         setNovoItem(prev => ({ ...prev, [field]: sanitizedValue.replace(',', '.') }));
@@ -439,8 +444,6 @@ export default function OrcamentoPage() {
         const sanitizedValue = value.replace(/[^0-9,]/g, '');
         setMargemLucroStr(sanitizedValue);
         setNovoItem(prev => ({ ...prev, [field]: sanitizedValue.replace(',', '.') }));
-    } else {
-        setNovoItem(prev => ({ ...prev, [field]: value }));
     }
   };
 
@@ -571,23 +574,30 @@ export default function OrcamentoPage() {
 
   const handleConfirmSave = () => {
     if (orcamentoItens.length === 0) {
-      toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item.", variant: "destructive" });
-      return;
+        toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item.", variant: "destructive" });
+        return;
     }
 
-    if (clienteData.id) {
-      proceedToSaveBudget(clienteData as ClienteData);
-      return;
+    if (!clienteData.nome) {
+        toast({ title: "Cliente não informado", description: "Preencha o nome do cliente.", variant: "destructive" });
+        return;
     }
 
-    const existingClient = clientes.find(
-      c => c.nome.trim().toLowerCase() === clienteData.nome.trim().toLowerCase()
-    );
+    const existingClient = clientes.find(c => c.nome.trim().toLowerCase() === clienteData.nome.trim().toLowerCase());
 
     if (existingClient) {
-      proceedToSaveBudget(existingClient);
-    } else if (!isOnline) {
-      handleConfirmSaveClientDialog(false);
+        proceedToSaveBudget(existingClient);
+        return;
+    }
+    
+    if (clienteData.id) {
+        // Isso acontece se o usuário selecionou um cliente e depois mudou o nome para um nome novo.
+        // Tratamos como um novo cliente.
+        delete clienteData.id;
+    }
+    
+    if (!isOnline) {
+        handleConfirmSaveClientDialog(false);
     } else {
       setClientToSave(clienteData);
       setIsConfirmSaveClientOpen(true);
@@ -598,29 +608,29 @@ export default function OrcamentoPage() {
     setIsConfirmSaveClientOpen(false);
     if (!clientToSave || !user) return;
 
-    let finalClientData: ClienteData = { ...clientToSave, userId: user.uid, id: clientToSave.id || crypto.randomUUID() };
+    let finalClientData: ClienteData;
 
     if (shouldSave) {
       const clientPayload = {
-        nome: finalClientData.nome,
-        cpfCnpj: finalClientData.cpfCnpj,
-        endereco: finalClientData.endereco,
-        telefone: finalClientData.telefone,
-        email: finalClientData.email,
+        nome: clientToSave.nome,
+        cpfCnpj: clientToSave.cpfCnpj,
+        endereco: clientToSave.endereco,
+        telefone: clientToSave.telefone,
+        email: clientToSave.email,
       };
 
       try {
         const newClientId = await addCliente(user.uid, clientPayload);
-        finalClientData.id = newClientId;
+        finalClientData = { ...clientToSave, userId: user.uid, id: newClientId };
         toast({ title: "Novo cliente salvo com sucesso!" });
         fetchAllData(true);
       } catch (error) {
         console.error("Erro ao salvar novo cliente:", error);
         toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
-        delete finalClientData.id;
+        finalClientData = { ...clientToSave, userId: user.uid, id: crypto.randomUUID() }; // Use um ID temporário se o salvamento falhar
       }
     } else {
-       delete finalClientData.id;
+       finalClientData = { ...clientToSave, userId: user.uid, id: crypto.randomUUID() };
     }
     
     proceedToSaveBudget(finalClientData);
@@ -1073,7 +1083,7 @@ export default function OrcamentoPage() {
 
                 <div className="relative py-2">
                     <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Ou preencha manually</span></div>
+                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Ou preencha manualmente</span></div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1103,7 +1113,7 @@ export default function OrcamentoPage() {
                 </div>
                 {selectedMaterial && (
                   <>
-                    <div><Label htmlFor="quantidade">Qtd ({selectedMaterial.unidade})</Label><Input id="quantidade" type="text" inputMode='decimal' placeholder="1,5" value={quantidadeStr} onChange={e => handleNovoItemChange('quantidade', e.target.value)} /></div>
+                    <div><Label htmlFor="quantidade">Qtd ({selectedMaterial.unidade})</Label><Input ref={quantidadeInputRef} id="quantidade" type="text" inputMode='decimal' placeholder="1,5" value={quantidadeStr} onChange={e => handleNovoItemChange('quantidade', e.target.value)} /></div>
                     <div><Label htmlFor="margem-lucro">Acréscimo (%)</Label><Input id="margem-lucro" type="text" inputMode='decimal' placeholder="10" value={margemLucroStr} onChange={e => handleNovoItemChange('margemLucro', e.target.value)} /></div>
                     <div className="lg:col-span-1"><Button onClick={addLinha} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Add</Button></div>
                   </>
@@ -1280,7 +1290,7 @@ export default function OrcamentoPage() {
             <AlertDialogHeader>
                 <AlertDialogTitle>Salvar Novo Cliente?</AlertDialogTitle>
                 <AlertDialogDescription>
-                Este cliente não está na sua lista. Deseja salvá-lo para uso futuro?
+                    O cliente "{clientToSave?.nome}" não está na sua lista. Deseja salvá-lo para uso futuro?
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -1330,4 +1340,5 @@ export default function OrcamentoPage() {
     </div>
   );
 }
+
 
