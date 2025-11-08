@@ -522,9 +522,6 @@ export default function ClientesPage() {
                           <div className="flex justify-between items-center w-full">
                              <span className="font-medium text-lg text-primary">{item.nome}</span>
                              <div className="flex items-center gap-2">
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleViewBudgets(item.id!); }}>
-                                    <History className="h-5 w-5" />
-                                </Button>
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleEditClick(item); }}>
                                     <Pencil className="h-5 w-5 text-primary" />
                                 </Button>
@@ -554,8 +551,13 @@ export default function ClientesPage() {
                           {item.email && <p className="text-sm"><span className="font-medium text-muted-foreground">Email:</span> {item.email}</p>}
                           {item.endereco && <p className="text-sm"><span className="font-medium text-muted-foreground">Endereço:</span> {item.endereco}</p>}
                           <div className="pt-2">
-                              <p className="text-sm font-medium text-muted-foreground mb-2">Histórico de Orçamentos</p>
-                              <BudgetBadges counts={budgetCountsByClient[item.id!]} />
+                            <p 
+                                className="text-sm font-medium text-muted-foreground mb-2 cursor-pointer hover:text-primary transition-colors"
+                                onClick={() => handleViewBudgets(item.id!)}
+                            >
+                                Histórico de Orçamentos
+                            </p>
+                            <BudgetBadges counts={budgetCountsByClient[item.id!]} />
                           </div>
                       </AccordionContent>
                     </AccordionItem>
