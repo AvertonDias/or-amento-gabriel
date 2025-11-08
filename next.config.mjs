@@ -1,19 +1,19 @@
 
-import nextPwa from '@ducanh2912/next-pwa';
+import withPWAInit from "@ducanh2912/next-pwa";
 
-const withPWA = nextPwa({
-  dest: 'public',
-  register: false, // Desabilitamos o registro automático
+const withPWA = withPWAInit({
+  dest: "public",
+  register: false,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
+  disable: false, // Alterado de `process.env.NODE_ENV === 'development'` para `false` para forçar a ativação
   fallbacks: {
-    document: '/_offline',
-  },
+    document: "/_offline",
+  }
 });
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  // your next config here
 };
 
 export default withPWA(nextConfig);
