@@ -41,13 +41,18 @@ export const deleteOrcamento = async (orcamentoId: string) => {
 
 // Get all orcamentos for a user
 export const getOrcamentos = async (userId: string): Promise<Orcamento[]> => {
-  const q = query(collection(db, ORCAMENTOS_COLLECTION), where('userId', '==', userId), orderBy('dataCriacao', 'desc'));
-  const querySnapshot = await getDocs(q);
-  const orcamentos: Orcamento[] = [];
-  querySnapshot.forEach((doc) => {
-    orcamentos.push({ id: doc.id, ...doc.data() } as Orcamento);
-  });
-  return orcamentos;
+  try {
+    const q = query(collection(db, ORCAMENTOS_COLLECTION), where('userId', '==', userId), orderBy('numeroOrcamento', 'desc'));
+    const querySnapshot = await getDocs(q);
+    const orcamentos: Orcamento[] = [];
+    querySnapshot.forEach((doc) => {
+      orcamentos.push({ id: doc.id, ...doc.data() } as Orcamento);
+    });
+    return orcamentos;
+  } catch(e) {
+    console.error("Error getting documents: ", e);
+    return [];
+  }
 };
 
 // Get the next sequential orcamento number for the current year
@@ -63,6 +68,8 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
         const q = query(
             collection(db, ORCAMENTOS_COLLECTION),
             where('userId', '==', userId),
+            where('numeroOrcamento', '>=', `${currentYear}-000`),
+            where('numeroOrcamento', '<', `${currentYear + 1}-000`),
             orderBy('numeroOrcamento', 'desc'),
             limit(1)
         );
