@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableTotalFooter } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, FileText, Pencil, MessageCircle, History, CheckCircle2, XCircle, Search, Loader2, RefreshCw, ArrowRight, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Trash2, FileText, Pencil, MessageCircle, History, CheckCircle2, XCircle, Search, Loader2, RefreshCw, ArrowRight, ArrowLeft, AlertTriangle, FilterX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Separator } from '@/components/ui/separator';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 
 // Componente para o layout do PDF do Cliente
@@ -281,6 +282,10 @@ export default function OrcamentoPage() {
 
   const [isOnline, setIsOnline] = useState(true);
 
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const clienteIdParam = searchParams.get('clienteId');
+
   useEffect(() => {
     const updateOnlineStatus = () => {
       setIsOnline(navigator.onLine);
@@ -382,14 +387,20 @@ export default function OrcamentoPage() {
 
 
   const filteredOrcamentos = useMemo(() => {
-    if (!searchTerm) {
-      return orcamentosSalvos;
+    let filtered = orcamentosSalvos;
+
+    if (clienteIdParam) {
+      filtered = filtered.filter(orcamento => orcamento.cliente.id === clienteIdParam);
     }
-    return orcamentosSalvos.filter(orcamento =>
-      orcamento.cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (orcamento.numeroOrcamento && orcamento.numeroOrcamento.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [orcamentosSalvos, searchTerm]);
+
+    if (searchTerm) {
+      filtered = filtered.filter(orcamento =>
+        orcamento.cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (orcamento.numeroOrcamento && orcamento.numeroOrcamento.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+    return filtered;
+  }, [orcamentosSalvos, searchTerm, clienteIdParam]);
   
   const selectedMaterial = useMemo(() => {
     return materiais.find(m => m.id === novoItem.materialId);
@@ -521,14 +532,14 @@ export default function OrcamentoPage() {
     setOrcamentoItens(prev => prev.filter(i => i.id !== id));
   };
   
-  const proceedToSaveBudget = async (clienteFinal: ClienteData) => {
+  const proceedToSaveBudget = (clienteFinal: ClienteData) => {
     if (!user) {
       toast({ title: "Usuário não autenticado", variant: "destructive" });
       return;
     }
     setIsSubmitting(true);
-    try {
-        const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
+    
+    getNextOrcamentoNumber(user.uid).then(numeroOrcamento => {
         const newBudget: Omit<Orcamento, "id"> = {
             userId: user.uid,
             numeroOrcamento,
@@ -545,44 +556,42 @@ export default function OrcamentoPage() {
         addOrcamento(newBudget);
         setIsWizardOpen(false);
         toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
-        setTimeout(() => fetchAllData(true), 1000); // Delay to allow offline write to complete
-    } catch (error: any) {
+        setTimeout(() => fetchAllData(true), 500); 
+    }).catch(error => {
         console.error("Erro ao salvar:", error);
         toast({
             title: "Erro ao salvar orçamento",
             description: error.message,
             variant: "destructive",
         });
-    } finally {
+    }).finally(() => {
         setIsSubmitting(false);
-    }
+    });
   };
 
-  const handleConfirmSaveClient = async () => {
-    // Check for existing client by name, ignoring case
+  const handleConfirmSave = () => {
+    if (orcamentoItens.length === 0) {
+      toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item.", variant: "destructive" });
+      return;
+    }
+
+    if (clienteData.id) {
+      proceedToSaveBudget(clienteData as ClienteData);
+      return;
+    }
+
     const existingClient = clientes.find(
       c => c.nome.trim().toLowerCase() === clienteData.nome.trim().toLowerCase()
     );
 
     if (existingClient) {
-      // If client exists, use their data and proceed to save budget
       proceedToSaveBudget(existingClient);
     } else if (!isOnline) {
-      // If offline and client is new, don't try to save client, just the budget
       handleConfirmSaveClientDialog(false);
     } else {
-      // If online and client is new, ask user if they want to save
       setClientToSave(clienteData);
       setIsConfirmSaveClientOpen(true);
     }
-  };
-
-  const handleConfirmSave = () => {
-    if (orcamentoItens.length === 0) {
-        toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item.", variant: "destructive" });
-        return;
-    }
-    handleConfirmSaveClient();
   };
   
   const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
@@ -592,31 +601,29 @@ export default function OrcamentoPage() {
     let finalClientData: ClienteData = { ...clientToSave, userId: user.uid, id: clientToSave.id || crypto.randomUUID() };
 
     if (shouldSave) {
-        const clientPayload = {
-            nome: finalClientData.nome,
-            cpfCnpj: finalClientData.cpfCnpj,
-            endereco: finalClientData.endereco,
-            telefone: finalClientData.telefone,
-            email: finalClientData.email,
-        };
-        
-        try {
-            const newClientId = await addCliente(user.uid, clientPayload);
-            finalClientData.id = newClientId;
-            toast({ title: "Novo cliente salvo com sucesso!" });
-            fetchAllData(true);
-        } catch (error) {
-            console.error("Erro ao salvar novo cliente:", error);
-            toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
-            delete finalClientData.id;
-        } finally {
-            proceedToSaveBudget(finalClientData);
-        }
+      const clientPayload = {
+        nome: finalClientData.nome,
+        cpfCnpj: finalClientData.cpfCnpj,
+        endereco: finalClientData.endereco,
+        telefone: finalClientData.telefone,
+        email: finalClientData.email,
+      };
+
+      try {
+        const newClientId = await addCliente(user.uid, clientPayload);
+        finalClientData.id = newClientId;
+        toast({ title: "Novo cliente salvo com sucesso!" });
+        fetchAllData(true);
+      } catch (error) {
+        console.error("Erro ao salvar novo cliente:", error);
+        toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
+        delete finalClientData.id;
+      }
     } else {
        delete finalClientData.id;
-       proceedToSaveBudget(finalClientData);
     }
     
+    proceedToSaveBudget(finalClientData);
     setClientToSave(null);
   };
 
@@ -891,13 +898,12 @@ export default function OrcamentoPage() {
             await finishUpdateBudget();
         }
     } else {
-        // Se o cliente não tem id, ele foi criado manualmente para este orçamento.
-        // A lógica de salvar este cliente é tratada na criação do orçamento, não na edição.
         await finishUpdateBudget();
     }
   };
 
   const anyLoading = loadingAuth || Object.values(isLoading).some(Boolean);
+  const clienteFiltrado = clienteIdParam ? clientes.find(c => c.id === clienteIdParam) : null;
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
@@ -913,11 +919,13 @@ export default function OrcamentoPage() {
         </CardContent>
       </Card>
       
-      {!anyLoading && (orcamentosSalvos.length > 0 || searchTerm) && (
+      {!anyLoading && (orcamentosSalvos.length > 0 || searchTerm || clienteIdParam) && (
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><History className="h-6 w-6"/> Histórico de Orçamentos</CardTitle>
-                <CardDescription>Gerencie os orçamentos salvos, aprove, recuse e envie para seus clientes.</CardDescription>
+                <CardDescription>
+                  {clienteIdParam && clienteFiltrado ? `Exibindo orçamentos para ${clienteFiltrado.nome}.` : "Gerencie os orçamentos salvos, aprove, recuse e envie para seus clientes."}
+                </CardDescription>
                 <div className="flex items-center gap-2 pt-4">
                   <div className="relative flex-grow">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -928,6 +936,12 @@ export default function OrcamentoPage() {
                       className="w-full pl-10"
                     />
                   </div>
+                  {clienteIdParam && (
+                    <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/orcamento')}>
+                        <FilterX className="mr-2 h-4 w-4" />
+                        Limpar Filtro
+                    </Button>
+                  )}
                   <Button variant="ghost" size="icon" onClick={() => fetchAllData(true)} disabled={isRefreshing}>
                     <RefreshCw className={`h-5 w-5 ${isRefreshing || isLoading.orcamentos ? 'animate-spin' : ''}`} />
                   </Button>
@@ -1024,7 +1038,9 @@ export default function OrcamentoPage() {
                     </Card>
                   ))
                 ) : (
-                    <p className="text-center text-muted-foreground py-4">Nenhum orçamento encontrado para sua busca.</p>
+                    <p className="text-center text-muted-foreground py-4">
+                      {clienteIdParam ? `Nenhum orçamento encontrado para ${clienteFiltrado?.nome}.` : "Nenhum orçamento encontrado para sua busca."}
+                    </p>
                 )}
             </CardContent>
         </Card>
@@ -1264,7 +1280,7 @@ export default function OrcamentoPage() {
             <AlertDialogHeader>
                 <AlertDialogTitle>Salvar Novo Cliente?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Este cliente não está na sua lista. Deseja salvá-lo para uso futuro?
+                Este cliente não está na sua lista. Deseja salvá-lo para uso futuro?
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -1314,3 +1330,4 @@ export default function OrcamentoPage() {
     </div>
   );
 }
+

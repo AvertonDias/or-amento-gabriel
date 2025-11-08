@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Users, PlusCircle, Pencil, Contact, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
+import { Trash2, Users, PlusCircle, Pencil, Contact, RefreshCw, CheckCircle, XCircle, MoreVertical, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
@@ -26,6 +26,13 @@ import {
 } from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useRouter } from 'next/navigation';
 
 
 const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
@@ -45,6 +52,7 @@ interface SelectedContactDetails {
 
 export default function ClientesPage() {
   const [user, loadingAuth] = useAuthState(auth);
+  const router = useRouter();
   const [clientes, setClientes] = useState<ClienteData[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -331,6 +339,10 @@ export default function ClientesPage() {
       description: 'Os dados selecionados foram preenchidos no formulário.',
     });
   };
+
+  const handleViewBudgets = (clienteId: string) => {
+    router.push(`/dashboard/orcamento?clienteId=${clienteId}`);
+  };
   
   const showSkeleton = loadingAuth || isLoadingData;
   const isCpfCnpjInvalid = newClient.cpfCnpj ? newClientCpfCnpjStatus === 'invalid' : false;
@@ -487,6 +499,19 @@ export default function ClientesPage() {
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
+                           <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent>
+                                <DropdownMenuItem onClick={() => handleViewBudgets(item.id!)}>
+                                  <FileText className="mr-2 h-4 w-4" />
+                                  <span>Ver Orçamentos</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -528,6 +553,19 @@ export default function ClientesPage() {
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
                               </AlertDialog>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                  <DropdownMenuItem onClick={() => handleViewBudgets(item.id!)}>
+                                    <FileText className="mr-2 h-4 w-4" />
+                                    <span>Ver Orçamentos</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                           </div>
                       </CardHeader>
                       <CardContent className="p-4 pt-2 text-sm space-y-2">
@@ -709,3 +747,4 @@ export default function ClientesPage() {
     </div>
   );
 }
+
