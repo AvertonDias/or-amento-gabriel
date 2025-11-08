@@ -309,10 +309,9 @@ export default function OrcamentoPage() {
   
   useEffect(() => {
     if (user) {
-      fetchAllData();
-       // Sincroniza orçamentos offline quando o app carrega (e tem internet)
+      // Sincroniza orçamentos offline e depois busca todos os dados
       syncOfflineOrcamentos(user.uid).then(() => {
-          fetchOrcamentos(); // Re-busca orçamentos para ter os números atualizados
+          fetchAllData();
       });
     } else if (!loadingAuth) {
       setMateriais([]);
@@ -544,7 +543,7 @@ export default function OrcamentoPage() {
             dataRecusa: null,
         };
         
-        addOrcamento(newBudget);
+        await addOrcamento(newBudget);
 
         setIsSubmitting(false);
         setIsWizardOpen(false);
