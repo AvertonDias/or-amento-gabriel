@@ -279,7 +279,7 @@ export default function OrcamentoPage() {
   const [isExpiredModalOpen, setIsExpiredModalOpen] = useState(false);
   
   const [isConfirmSaveClientOpen, setIsConfirmSaveClientOpen] = useState(false);
-  const [clientToSave, setClientToSave] = useState<Omit<ClienteData, 'id' | 'userId'> | null>(null);
+  const [clientToSave, setClientToSave] = useState<Omit<ClienteData, 'id' | 'userId'> & { id?: string } | null>(null);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -535,42 +535,45 @@ export default function OrcamentoPage() {
   
   const proceedToSaveBudget = async () => {
     if (!user || !clientToSave) {
-        toast({ title: "Erro interno: dados do usuário ou cliente ausentes.", variant: "destructive" });
-        return;
+      toast({ title: "Erro interno: dados do usuário ou cliente ausentes.", variant: "destructive" });
+      return;
     }
+
     setIsSubmitting(true);
     try {
-        const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
-        const newBudget: Omit<Orcamento, "id"> = {
-            userId: user.uid,
-            numeroOrcamento,
-            cliente: { ...clientToSave, id: clientToSave.id || crypto.randomUUID() },
-            itens: orcamentoItens,
-            totalVenda,
-            dataCriacao: new Date().toISOString(),
-            status: "Pendente",
-            validadeDias,
-            dataAceite: null,
-            dataRecusa: null,
-        };
-        
-        await addOrcamento(newBudget);
-        
-        setIsWizardOpen(false); // Fecha o modal
-        toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
-        
-        // Atualiza a lista de orçamentos e clientes para refletir as novas adições
-        fetchAllData(true);
+      const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
+      
+      const newBudget: Omit<Orcamento, "id"> = {
+        userId: user.uid,
+        numeroOrcamento,
+        cliente: { ...clientToSave, id: clientToSave.id || crypto.randomUUID() },
+        itens: orcamentoItens,
+        totalVenda,
+        dataCriacao: new Date().toISOString(),
+        status: "Pendente",
+        validadeDias,
+        dataAceite: null,
+        dataRecusa: null,
+      };
+
+      addOrcamento(newBudget);
+
+      setIsWizardOpen(false);
+      toast({ title: `Orçamento ${numeroOrcamento} salvo!` });
+      
+      // Atualiza a lista de orçamentos e clientes para refletir as novas adições
+      // Usamos um pequeno delay para dar tempo do firebase processar a escrita local
+      setTimeout(() => fetchAllData(true), 500);
 
     } catch (error: any) {
-        console.error("Erro ao salvar orçamento:", error);
-        toast({ title: "Erro ao salvar orçamento", description: error.message, variant: "destructive" });
+      console.error("Erro ao salvar orçamento:", error);
+      toast({ title: "Erro ao salvar orçamento", description: error.message, variant: "destructive" });
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
 };
 
-const handleConfirmSave = async () => {
+  const handleConfirmSave = async () => {
     if (orcamentoItens.length === 0) {
         toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item.", variant: "destructive" });
         return;
@@ -580,7 +583,6 @@ const handleConfirmSave = async () => {
         return;
     }
     
-    // Normaliza o nome do cliente para comparação
     const normalizedNewClientName = clienteData.nome.trim().toLowerCase();
     const existingClient = clientes.find(c => c.nome.trim().toLowerCase() === normalizedNewClientName);
 
@@ -602,9 +604,11 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
         const clientPayload = { ...clientToSave };
         delete clientPayload.id; 
         try {
-            const newClientId = await addCliente(user.uid, clientPayload);
-            setClientToSave(prev => ({...prev!, id: newClientId}));
+            // Não usamos await para não bloquear a UI, especialmente offline
+            addCliente(user.uid, clientPayload);
             toast({ title: "Novo cliente salvo com sucesso!" });
+            // O ID será gerado pelo firebase, para o orçamento usamos um temporario
+            setClientToSave(prev => ({...prev!, id: crypto.randomUUID()}));
         } catch (error: any) {
             console.error("Erro ao salvar novo cliente:", error);
             toast({ title: "Erro ao salvar novo cliente.", description: "O orçamento será salvo com um ID temporário para o cliente.", variant: "destructive" });
@@ -1164,112 +1168,7 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isEditBudgetModalOpen} onOpenChange={setIsEditBudgetModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-            <DialogHeader>
-                <DialogTitle>Editar Orçamento #{editingBudget?.numeroOrcamento}</DialogTitle>
-                <DialogDescription>
-                    Ajuste os dados do cliente e os itens do orçamento.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="flex-grow overflow-y-auto p-1 pr-4 space-y-6">
-                
-                {/* Client Info Form */}
-                {editingBudget && (
-                  <div className="space-y-4 p-4 border rounded-lg">
-                    <h3 className="font-semibold text-lg">Dados do Cliente</h3>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="edit-cliente-nome">Nome</Label>
-                            <Input id="edit-cliente-nome" name="nome" value={editingBudget.cliente.nome} disabled/>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="edit-cliente-telefone">Telefone</Label>
-                            <Input id="edit-cliente-telefone" name="telefone" value={editingBudget.cliente.telefone} onChange={handleEditingBudgetClientChange} />
-                        </div>
-                        <div className="space-y-2 md:col-span-2">
-                            <Label htmlFor="edit-cliente-endereco">Endereço</Label>
-                            <Input id="edit-cliente-endereco" name="endereco" value={editingBudget.cliente.endereco} onChange={handleEditingBudgetClientChange} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="edit-cliente-email">Email</Label>
-                            <Input id="edit-cliente-email" name="email" type="email" value={editingBudget.cliente.email || ''} disabled />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="edit-cliente-cpfCnpj">CPF/CNPJ</Label>
-                            <Input id="edit-cliente-cpfCnpj" name="cpfCnpj" value={editingBudget.cliente.cpfCnpj || ''} disabled />
-                        </div>
-                    </div>
-                  </div>
-                )}
-                
-                <Separator />
-
-                {/* Items Info */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Itens do Orçamento</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border rounded-lg items-end">
-                    <div className="sm:col-span-2">
-                      <Label htmlFor="edit-material-select">Adicionar Item / Serviço</Label>
-                      <Select value={newItemForEdit.materialId} onValueChange={(val) => handleNewItemForEditChange('materialId', val)}>
-                        <SelectTrigger id="edit-material-select"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                        <SelectContent>
-                          {materiais.map(mat => (<SelectItem key={mat.id} value={mat.id}>{`${mat.descricao} (${formatCurrency(mat.precoUnitario)}/${mat.unidade})`}</SelectItem>))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {selectedMaterialForEdit && (
-                      <>
-                        <div><Label htmlFor="edit-quantidade">Qtd ({selectedMaterialForEdit.unidade})</Label><Input id="edit-quantidade" type="text" inputMode='decimal' placeholder="1,5" value={newItemQtyStr} onChange={e => handleNewItemForEditChange('quantidade', e.target.value)} /></div>
-                        <div><Label htmlFor="edit-margem-lucro">Acréscimo (%)</Label><Input id="edit-margem-lucro" type="text" inputMode='decimal' placeholder="10" value={newItemMarginStr} onChange={e => handleNewItemForEditChange('margemLucro', e.target.value)} /></div>
-                        <div className="lg:col-span-1"><Button onClick={handleAddItemToEditBudget} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Adicionar</Button></div>
-                      </>
-                    )}
-                  </div>
-
-                  <Table>
-                      <TableHeader>
-                          <TableRow>
-                              <TableHead>Item</TableHead>
-                              <TableHead className="text-right">Qtd.</TableHead>
-                              <TableHead className="text-right">Venda</TableHead>
-                              <TableHead className="text-center">Ações</TableHead>
-                          </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                          {editingBudgetItens.map(item => (
-                              <TableRow key={item.id}>
-                                  <TableCell>{item.materialNome}</TableCell>
-                                  <TableCell className="text-right">{formatNumber(item.quantidade, 2)}</TableCell>
-                                  <TableCell className="text-right font-bold text-primary">{formatCurrency(item.precoVenda)}</TableCell>
-                                  <TableCell className="flex justify-center gap-1">
-                                      <Button variant="ghost" size="icon" onClick={() => handleEditItemClick(item, 'modal')}><Pencil className="h-4 w-4 text-primary" /></Button>
-                                      <Button variant="ghost" size="icon" onClick={() => handleRemoveItemFromEditBudget(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                  </TableCell>
-                              </TableRow>
-                          ))}
-                      </TableBody>
-                      <TableTotalFooter>
-                          <TableRow className="bg-muted/50 font-bold text-base">
-                              <TableCell colSpan={2}>TOTAL</TableCell>
-                              <TableCell className="text-right text-primary">{formatCurrency(editingBudgetItens.reduce((acc, item) => acc + item.precoVenda, 0))}</TableCell>
-                              <TableCell></TableCell>
-                          </TableRow>
-                      </TableTotalFooter>
-                  </Table>
-                </div>
-            </div>
-            <DialogFooter className="pt-4 border-t">
-                <DialogClose asChild><Button variant="outline" disabled={isSubmitting}>Cancelar</Button></DialogClose>
-                <Button onClick={handleUpdateBudget} disabled={isSubmitting}>
-                  {isSubmitting ? <Loader2 className="mr-2 animate-spin" /> : <FileText className="mr-2"/>}
-                  Salvar Alterações
-                </Button>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <AlertDialog open={isConfirmSaveClientOpen} onOpenChange={setIsConfirmSaveClientOpen}>
+      <Dialog open={isConfirmSaveClientOpen} onOpenChange={setIsConfirmSaveClientOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>Este cliente não está na sua lista</AlertDialogTitle>
@@ -1282,7 +1181,7 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
                 <Button onClick={() => handleConfirmSaveClientDialog(true)}>Sim, Salvar Cliente</Button>
             </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
+      </Dialog>
 
       <AlertDialog open={isExpiredModalOpen} onOpenChange={setIsExpiredModalOpen}>
         <AlertDialogContent>
