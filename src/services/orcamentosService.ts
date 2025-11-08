@@ -3,46 +3,48 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy, writeBatch, Timestamp, getDoc, limit, serverTimestamp } from 'firebase/firestore';
 import type { Orcamento } from '@/lib/types';
 
-const ORCAMENTOS_COLLECTION = 'orcamentos';
+const getOrcamentosCollection = (userId: string) => {
+  return collection(db, 'empresa', userId, 'orcamentos');
+};
 
 // Add a new orcamento
-export const addOrcamento = async (orcamento: Omit<Orcamento, 'id'>) => {
+export const addOrcamento = async (userId: string, orcamento: Omit<Orcamento, 'id' | 'userId'>) => {
   console.log(`[ORCAMENTO SERVICE - addOrcamento] Tentando salvar orçamento para cliente: ${orcamento.cliente.nome}`);
-  
+  const orcamentosCollection = getOrcamentosCollection(userId);
   try {
-    const docRef = await addDoc(collection(db, ORCAMENTOS_COLLECTION), orcamento);
+    const docRef = await addDoc(orcamentosCollection, { ...orcamento, userId });
     console.log("[ORCAMENTO SERVICE - addOrcamento] Orçamento adicionado com ID:", docRef.id);
   } catch (error) {
       console.error("[ORCAMENTO SERVICE - addOrcamento] Erro ao adicionar orçamento:", error);
-      // Re-throw the error to be handled by the caller
       throw error;
   }
 };
 
 
 // Update an existing orcamento
-export const updateOrcamento = async (orcamentoId: string, orcamento: Partial<Orcamento>) => {
-  const orcamentoDoc = doc(db, ORCAMENTOS_COLLECTION, orcamentoId);
+export const updateOrcamento = async (userId: string, orcamentoId: string, orcamento: Partial<Orcamento>) => {
+  const orcamentoDoc = doc(db, 'empresa', userId, 'orcamentos', orcamentoId);
   await updateDoc(orcamentoDoc, orcamento);
 };
 
 
 // Update an orcamento status
-export const updateOrcamentoStatus = async (orcamentoId: string, status: Orcamento['status'], payload: object) => {
-  const orcamentoDoc = doc(db, ORCAMENTOS_COLLECTION, orcamentoId);
+export const updateOrcamentoStatus = async (userId: string, orcamentoId: string, status: Orcamento['status'], payload: object) => {
+  const orcamentoDoc = doc(db, 'empresa', userId, 'orcamentos', orcamentoId);
   await updateDoc(orcamentoDoc, { status, ...payload });
 };
 
 // Delete an orcamento
-export const deleteOrcamento = async (orcamentoId: string) => {
-  const orcamentoDoc = doc(db, ORCAMENTOS_COLLECTION, orcamentoId);
+export const deleteOrcamento = async (userId: string, orcamentoId: string) => {
+  const orcamentoDoc = doc(db, 'empresa', userId, 'orcamentos', orcamentoId);
   await deleteDoc(orcamentoDoc);
 };
 
 // Get all orcamentos for a user
 export const getOrcamentos = async (userId: string): Promise<Orcamento[]> => {
   try {
-    const q = query(collection(db, ORCAMENTOS_COLLECTION), where('userId', '==', userId), orderBy('numeroOrcamento', 'desc'));
+    const orcamentosCollection = getOrcamentosCollection(userId);
+    const q = query(orcamentosCollection, where('userId', '==', userId), orderBy('numeroOrcamento', 'desc'));
     const querySnapshot = await getDocs(q);
     const orcamentos: Orcamento[] = [];
     querySnapshot.forEach((doc) => {
@@ -62,19 +64,21 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
     }
     
     console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Chamado com userId: ${userId}`);
-    const currentYear = new Date().getFullYear();
-
+    
     try {
+        const orcamentosCollection = getOrcamentosCollection(userId);
         const q = query(
-            collection(db, ORCAMENTOS_COLLECTION),
+            orcamentosCollection,
             where('userId', '==', userId),
             orderBy('numeroOrcamento', 'desc'),
             limit(1)
         );
 
         const querySnapshot = await getDocs(q);
-
+        
+        const currentYear = new Date().getFullYear();
         let lastSequence = 0;
+
         if (!querySnapshot.empty) {
           const lastBudget = querySnapshot.docs[0].data() as Orcamento;
           const numeroOrcamento = lastBudget.numeroOrcamento;
@@ -97,7 +101,7 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
 
     } catch (error: any) {
         console.warn("Falha ao buscar número sequencial online (provavelmente offline), usando fallback:", error.message);
-        const offlineNumber = `${currentYear}-TEMP-${Date.now()}`;
+        const offlineNumber = `${new Date().getFullYear()}-TEMP-${Date.now()}`;
         console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Gerando número de fallback offline: ${offlineNumber}`);
         return offlineNumber;
     }
@@ -110,7 +114,8 @@ export const syncOfflineOrcamentos = async (userId: string) => {
     }
 
     try {
-        const q = query(collection(db, ORCAMENTOS_COLLECTION), where('userId', '==', userId), where('numeroOrcamento', '>=', '0-TEMP-'), where('numeroOrcamento', '<=', '9-TEMP-~'));
+        const orcamentosCollection = getOrcamentosCollection(userId);
+        const q = query(orcamentosCollection, where('userId', '==', userId), where('numeroOrcamento', '>=', '0-TEMP-'), where('numeroOrcamento', '<=', '9-TEMP-~'));
         const querySnapshot = await getDocs(q);
         
         const offlineOrcamentos = querySnapshot.docs
@@ -124,7 +129,6 @@ export const syncOfflineOrcamentos = async (userId: string) => {
 
         console.log(`Sincronizando ${offlineOrcamentos.length} orçamentos offline...`);
 
-        // Ordena para processar os mais antigos primeiro
         offlineOrcamentos.sort((a, b) => {
             const timeA = parseInt(a.numeroOrcamento.split('-').pop() || '0');
             const timeB = parseInt(b.numeroOrcamento.split('-').pop() || '0');
@@ -139,7 +143,7 @@ export const syncOfflineOrcamentos = async (userId: string) => {
                     return; 
                 }
                 
-                const docRef = doc(db, ORCAMENTOS_COLLECTION, orcamento.id);
+                const docRef = doc(db, 'empresa', userId, 'orcamentos', orcamento.id);
                 await updateDoc(docRef, { numeroOrcamento: newNumeroOrcamento });
                 console.log(`Atualizando orçamento ${orcamento.numeroOrcamento} para ${newNumeroOrcamento}`);
             } catch(e) {

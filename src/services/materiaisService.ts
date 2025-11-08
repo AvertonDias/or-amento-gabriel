@@ -3,25 +3,28 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy, runTransaction, getDoc } from 'firebase/firestore';
 import type { MaterialItem } from '@/lib/types';
 
-const MATERIAIS_COLLECTION = 'materiais';
+const getMateriaisCollection = (userId: string) => {
+  return collection(db, 'empresa', userId, 'materiais');
+};
 
 // Add a new material
 export const addMaterial = async (userId: string, material: Omit<MaterialItem, 'id' | 'userId'>) => {
-  await addDoc(collection(db, MATERIAIS_COLLECTION), {
+  const materiaisCollection = getMateriaisCollection(userId);
+  await addDoc(materiaisCollection, {
     ...material,
     userId,
   });
 };
 
 // Update an existing material
-export const updateMaterial = async (materialId: string, material: Partial<Omit<MaterialItem, 'id' | 'userId'>>) => {
-  const materialDoc = doc(db, MATERIAIS_COLLECTION, materialId);
+export const updateMaterial = async (userId: string, materialId: string, material: Partial<Omit<MaterialItem, 'id' | 'userId'>>) => {
+  const materialDoc = doc(db, 'empresa', userId, 'materiais', materialId);
   await updateDoc(materialDoc, material);
 };
 
 // Update stock for a material
 export const updateEstoque = async (userId: string, materialId: string, quantidadeUtilizada: number) => {
-  const materialDocRef = doc(db, MATERIAIS_COLLECTION, materialId);
+  const materialDocRef = doc(db, 'empresa', userId, 'materiais', materialId);
 
   try {
     await runTransaction(db, async (transaction) => {
@@ -32,10 +35,9 @@ export const updateEstoque = async (userId: string, materialId: string, quantida
 
       const materialData = materialDoc.data() as MaterialItem;
 
-      // Ensure it's an item and has a quantity
       if (materialData.tipo !== 'item' || materialData.quantidade === null || materialData.quantidade === undefined) {
          console.log(`Material ${materialId} não é um item de estoque, pulando atualização.`);
-         return; // Not an error, just skip
+         return; 
       }
       
       const novaQuantidade = materialData.quantidade - quantidadeUtilizada;
@@ -50,14 +52,15 @@ export const updateEstoque = async (userId: string, materialId: string, quantida
 
 
 // Delete a material
-export const deleteMaterial = async (materialId: string) => {
-  const materialDoc = doc(db, MATERIAIS_COLLECTION, materialId);
+export const deleteMaterial = async (userId: string, materialId: string) => {
+  const materialDoc = doc(db, 'empresa', userId, 'materiais', materialId);
   await deleteDoc(materialDoc);
 };
 
 // Get all materials for a user
 export const getMateriais = async (userId: string): Promise<MaterialItem[]> => {
-  const q = query(collection(db, MATERIAIS_COLLECTION), where('userId', '==', userId), orderBy('descricao', 'asc'));
+  const materiaisCollection = getMateriaisCollection(userId);
+  const q = query(materiaisCollection, where('userId', '==', userId), orderBy('descricao', 'asc'));
   const querySnapshot = await getDocs(q);
   const materiais: MaterialItem[] = [];
   querySnapshot.forEach((doc) => {

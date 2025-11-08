@@ -3,28 +3,21 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Regras de Segurança da Empresa
+    // A coleção 'empresa' contém um documento por usuário, com o ID do usuário.
     match /empresa/{userId} {
+      // O usuário pode ler e escrever no seu próprio documento de empresa.
       allow read, write: if request.auth.uid == userId;
-    }
 
-    // Regras de Segurança dos Clientes
-    match /clientes/{clienteId} {
-      allow read, write: if request.auth.uid == resource.data.userId;
-      allow create: if request.auth.uid == request.resource.data.userId;
-    }
-
-    // Regras de Segurança dos Materiais
-    match /materiais/{materialId} {
-       allow read, write: if request.auth.uid == resource.data.userId;
-       allow create: if request.auth.uid == request.resource.data.userId;
-    }
-
-    // Regras de Segurança dos Orçamentos
-    match /orcamentos/{orcamentoId} {
-      allow read, write: if request.auth.uid == resource.data.userId;
-      allow create: if request.auth.uid == request.resource.data.userId;
+      // Regras para as subcoleções aninhadas
+      match /clientes/{clienteId} {
+        allow read, write: if request.auth.uid == userId;
+      }
+      match /materiais/{materialId} {
+        allow read, write: if request.auth.uid == userId;
+      }
+      match /orcamentos/{orcamentoId} {
+        allow read, write: if request.auth.uid == userId;
+      }
     }
   }
 }

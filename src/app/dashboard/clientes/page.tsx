@@ -221,8 +221,9 @@ export default function ClientesPage() {
   };
 
   const handleRemoverCliente = async (id: string) => {
+    if (!user) return;
     try {
-        await deleteCliente(id);
+        await deleteCliente(user.uid, id);
         await fetchPageData(); // Refresh list
         toast({
             title: 'Cliente Removido',
@@ -252,7 +253,7 @@ export default function ClientesPage() {
 
   const handleSalvarEdicao = async (e: FormEvent) => {
     e.preventDefault();
-    if (!editingClient || !editingClient.id) return;
+    if (!editingClient || !editingClient.id || !user) return;
 
     if (!editingClient.nome) {
       toast({
@@ -279,7 +280,7 @@ export default function ClientesPage() {
             email: clientToUpdate.email,
         };
 
-        await updateCliente(id, plainClientObject);
+        await updateCliente(user.uid, id, plainClientObject);
         setIsEditModalOpen(false);
         setEditingClient(null);
         await fetchPageData(); // Refresh list

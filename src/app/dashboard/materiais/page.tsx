@@ -197,7 +197,7 @@ export default function MateriaisPage() {
         })
       };
 
-      await updateMaterial(id, updatedPayload);
+      await updateMaterial(user.uid, id, updatedPayload);
       setNewItem({ ...initialNewItemState, tipo: activeTab, unidade: activeTab === 'servico' ? 'serv' : 'un' });
       setPrecoUnitarioStr('');
       setQuantidadeStr('');
@@ -257,8 +257,9 @@ export default function MateriaisPage() {
 
 
   const handleRemoverMaterial = async (id: string) => {
+    if (!user) return;
     try {
-        await deleteMaterial(id);
+        await deleteMaterial(user.uid, id);
         await fetchMateriais(); // Refresh list
         toast({
             title: "Item Removido",
@@ -314,7 +315,7 @@ export default function MateriaisPage() {
   
   const handleSalvarEdicao = async (e: FormEvent) => {
     e.preventDefault();
-    if (!editingMaterial || !editingMaterial.id) return;
+    if (!editingMaterial || !editingMaterial.id || !user) return;
 
     if(!editingMaterial.descricao || editingMaterial.precoUnitario === null || isNaN(editingMaterial.precoUnitario)) {
       toast({
@@ -328,7 +329,7 @@ export default function MateriaisPage() {
     setIsSubmitting(true);
     try {
         const { id, userId, ...materialToUpdate } = editingMaterial;
-        await updateMaterial(id, materialToUpdate);
+        await updateMaterial(user.uid, id, materialToUpdate);
         setIsEditModalOpen(false);
         setEditingMaterial(null);
         await fetchMateriais(); // Refresh list
