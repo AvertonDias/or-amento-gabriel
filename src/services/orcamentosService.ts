@@ -113,12 +113,27 @@ export const syncOfflineOrcamentos = async (userId: string) => {
         offlineOrcamentos.sort((a, b) => new Date(a.dataCriacao).getTime() - new Date(b.dataCriacao).getTime());
 
         let nextNumberStr = await getNextOrcamentoNumber(userId);
-        let year = new Date().getFullYear();
+        
+        // Verifica se o fallback de offline foi usado
+        if (nextNumberStr.split('-')[1].length > 4) {
+          console.warn("Não foi possível obter um número sequencial online para sincronização. Tentando novamente mais tarde.");
+          return;
+        }
+        
+        let year = parseInt(nextNumberStr.split('-')[0], 10);
         let nextSequence = parseInt(nextNumberStr.split('-')[1], 10);
         
         const batch = writeBatch(db);
 
         for (const orcamento of offlineOrcamentos) {
+            const orcamentoYear = new Date(orcamento.dataCriacao).getFullYear();
+            if(orcamentoYear !== year) {
+              // Se o ano mudou, reinicia a contagem. Esta é uma simplificação.
+              // Para uma solução mais robusta, seria necessário buscar o último número para cada ano.
+              year = orcamentoYear;
+              nextSequence = 1;
+            }
+            
             const newNumeroOrcamento = `${year}-${String(nextSequence).padStart(3, '0')}`;
             const docRef = doc(db, ORCAMENTOS_COLLECTION, orcamento.id);
             batch.update(docRef, { numeroOrcamento: newNumeroOrcamento });
@@ -133,3 +148,4 @@ export const syncOfflineOrcamentos = async (userId: string) => {
         console.error("Erro ao sincronizar orçamentos offline:", error);
     }
 };
+
