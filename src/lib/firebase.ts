@@ -1,7 +1,7 @@
 
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { initializeFirestore, CACHE_SIZE_UNLIMITED } from "firebase/firestore";
+import { initializeFirestore, CACHE_SIZE_UNLIMITED, enableIndexedDbPersistence } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -21,6 +21,19 @@ const auth = getAuth(app);
 const db = initializeFirestore(app, {
   cacheSizeBytes: CACHE_SIZE_UNLIMITED,
 });
+
+// Enable offline persistence
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code == 'failed-precondition') {
+    // Multiple tabs open, persistence can only be enabled in one tab at a time.
+    console.warn('Firestore offline persistence failed: multiple tabs open.');
+  } else if (err.code == 'unimplemented') {
+    // The current browser does not support all of the
+    // features required to enable persistence
+    console.warn('Firestore offline persistence is not available in this browser.');
+  }
+});
+
 
 const storage = getStorage(app);
 
