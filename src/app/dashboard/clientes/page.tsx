@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Users, PlusCircle, Pencil, Contact, RefreshCw, CheckCircle, XCircle, MoreVertical, FileText } from 'lucide-react';
+import { Trash2, Users, PlusCircle, Pencil, Contact, RefreshCw, CheckCircle, XCircle, History, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
@@ -26,12 +26,6 @@ import {
 } from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 
@@ -512,7 +506,7 @@ export default function ClientesPage() {
               </div>
             </div>
           ) : clientes.length > 0 ? (
-            <div>
+            <div className="space-y-4">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Clientes Cadastrados</h2>
                 <Button variant="ghost" size="sm" onClick={fetchPageData} disabled={isLoadingData}>
@@ -521,133 +515,52 @@ export default function ClientesPage() {
                 </Button>
               </div>
 
-              {/* Desktop Table */}
-              <div className="hidden md:block overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>CPF/CNPJ</TableHead>
-                      <TableHead>Telefone</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {clientes.map(item => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex flex-col">
-                            <span>{item.nome}</span>
-                            <BudgetBadges counts={budgetCountsByClient[item.id!]} />
-                          </div>
-                        </TableCell>
-                        <TableCell>{item.cpfCnpj}</TableCell>
-                        <TableCell>{item.telefone}</TableCell>
-                        <TableCell>{item.email}</TableCell>
-                        <TableCell className="flex gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => handleEditClick(item)}>
-                            <Pencil className="h-4 w-4 text-primary" />
-                          </Button>
-                           <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <Trash2 className="h-4 w-4 text-destructive" />
+               <Accordion type="multiple" className="w-full">
+                  {clientes.map(item => (
+                    <AccordionItem value={item.id!} key={item.id} className="border-b">
+                      <AccordionTrigger className="hover:no-underline py-3 px-2 rounded-t-lg data-[state=open]:bg-muted/50">
+                          <div className="flex justify-between items-center w-full">
+                             <span className="font-medium text-lg text-primary">{item.nome}</span>
+                             <div className="flex items-center gap-2">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleViewBudgets(item.id!); }}>
+                                    <History className="h-5 w-5" />
                                 </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Esta ação não pode ser desfeita. Isso excluirá permanentemente o cliente e todos os dados associados a ele.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleRemoverCliente(item.id!)}>
-                                    Sim, Excluir
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                           <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="h-4 w-4" />
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleEditClick(item); }}>
+                                    <Pencil className="h-5 w-5 text-primary" />
                                 </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent>
-                                <DropdownMenuItem onClick={() => handleViewBudgets(item.id!)}>
-                                  <FileText className="mr-2 h-4 w-4" />
-                                  <span>Ver Orçamentos</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Mobile Cards */}
-              <div className="md:hidden grid grid-cols-1 gap-4">
-                {clientes.map(item => (
-                  <Card key={item.id} className="p-0">
-                      <CardHeader className="flex flex-row items-start justify-between p-4 pb-2">
-                          <div className="flex-1 pr-2">
-                              <CardTitle className="text-lg leading-tight">{item.nome}</CardTitle>
-                              {item.cpfCnpj && <CardDescription className="mt-1">CPF/CNPJ: {item.cpfCnpj}</CardDescription>}
+                                <AlertDialog onOpenChange={(open) => !open && (event?.stopPropagation())}>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                                            <Trash2 className="h-5 w-5 text-destructive" />
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                            <AlertDialogDescription>Esta ação não pode ser desfeita. Isso excluirá permanentemente o cliente.</AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleRemoverCliente(item.id!)}>Sim, Excluir</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                             </div>
                           </div>
-                          <div className="flex">
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditClick(item)}>
-                                  <Pencil className="h-4 w-4 text-primary" />
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Esta ação não pode ser desfeita. Isso excluirá permanentemente o cliente.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleRemoverCliente(item.id!)}>
-                                      Sim, Excluir
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                  <DropdownMenuItem onClick={() => handleViewBudgets(item.id!)}>
-                                    <FileText className="mr-2 h-4 w-4" />
-                                    <span>Ver Orçamentos</span>
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                      </AccordionTrigger>
+                      <AccordionContent className="p-4 space-y-3">
+                          {item.cpfCnpj && <p className="text-sm"><span className="font-medium text-muted-foreground">CPF/CNPJ:</span> {item.cpfCnpj}</p>}
+                          {item.telefone && <p className="text-sm"><span className="font-medium text-muted-foreground">Telefone:</span> {item.telefone}</p>}
+                          {item.email && <p className="text-sm"><span className="font-medium text-muted-foreground">Email:</span> {item.email}</p>}
+                          {item.endereco && <p className="text-sm"><span className="font-medium text-muted-foreground">Endereço:</span> {item.endereco}</p>}
+                          <div className="pt-2">
+                              <p className="text-sm font-medium text-muted-foreground mb-2">Histórico de Orçamentos</p>
+                              <BudgetBadges counts={budgetCountsByClient[item.id!]} />
                           </div>
-                      </CardHeader>
-                      <CardContent className="p-4 pt-2 text-sm space-y-2">
-                          {item.endereco && <p><span className="font-medium text-muted-foreground">Endereço:</span> {item.endereco}</p>}
-                          {item.telefone && <p><span className="font-medium text-muted-foreground">Telefone:</span> {item.telefone}</p>}
-                          {item.email && <p><span className="font-medium text-muted-foreground">Email:</span> {item.email}</p>}
-                           <BudgetBadges counts={budgetCountsByClient[item.id!]} />
-                      </CardContent>
-                  </Card>
-                ))}
-              </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+              </Accordion>
             </div>
           ) : (
              <p className="text-center text-muted-foreground py-8">Nenhum cliente cadastrado ainda. Se você já cadastrou, pode ser necessário criar um índice no Firestore. Verifique o console para erros.</p>
@@ -819,5 +732,3 @@ export default function ClientesPage() {
     </div>
   );
 }
-
-    
