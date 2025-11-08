@@ -506,59 +506,70 @@ export default function OrcamentoPage() {
   
   const handleConfirmSave = async () => {
     if (!user) {
-        toast({ title: "Usuário não autenticado", variant: "destructive" });
-        return;
+      toast({ title: "Usuário não autenticado", variant: "destructive" });
+      return;
     }
     if (orcamentoItens.length === 0) {
-        toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item ao orçamento.", variant: "destructive" });
-        return;
+      toast({
+        title: "Orçamento vazio",
+        description: "Adicione pelo menos um item ao orçamento.",
+        variant: "destructive",
+      });
+      return;
     }
 
     setIsSubmitting(true);
 
     try {
-        const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
+      const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
 
-        const finalClienteData: Partial<ClienteData> = { ...clienteData };
-        if (finalClienteData.id === undefined) {
-            delete finalClienteData.id;
-        }
+      const finalClienteData: Partial<ClienteData> = { ...clienteData };
+      if (finalClienteData.id === undefined) {
+        delete finalClienteData.id;
+      }
 
-        const newBudget: Omit<Orcamento, 'id'> = {
-            userId: user.uid,
-            numeroOrcamento,
-            cliente: { ...(finalClienteData as Omit<ClienteData, 'id'>), userId: user.uid },
-            itens: orcamentoItens,
-            totalVenda: totalVenda,
-            dataCriacao: new Date().toISOString(),
-            status: 'Pendente',
-            validadeDias: validadeDias,
-            dataAceite: null,
-            dataRecusa: null,
-        };
+      const newBudget: Omit<Orcamento, "id"> = {
+        userId: user.uid,
+        numeroOrcamento,
+        cliente: {
+          ...(finalClienteData as Omit<ClienteData, "id">),
+          userId: user.uid,
+        },
+        itens: orcamentoItens,
+        totalVenda: totalVenda,
+        dataCriacao: new Date().toISOString(),
+        status: "Pendente",
+        validadeDias: validadeDias,
+        dataAceite: null,
+        dataRecusa: null,
+      };
 
-        // Fire-and-forget: don't await the result
-        addOrcamento(newBudget);
+      // Fire-and-forget: don't await the result
+      addOrcamento(newBudget);
 
-        // Optimistically update UI
-        setIsSubmitting(false);
-        setIsWizardOpen(false);
-        toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
-        
-        // Fetch in the background to update the list
-        fetchOrcamentos();
+      // Optimistically update UI
+      setIsSubmitting(false);
+      setIsWizardOpen(false);
+      toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
+
+      // Fetch in the background to update the list
+      fetchOrcamentos();
 
     } catch (error: any) {
-        console.error("Erro ao salvar:", error);
-        toast({ title: "Erro ao salvar orçamento", description: error.message, variant: "destructive" });
-        setIsSubmitting(false);
+      console.error("Erro ao salvar:", error);
+      toast({
+        title: "Erro ao salvar orçamento",
+        description: error.message,
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
     }
   };
   
   const handleUpdateStatus = async (budgetId: string, status: 'Aceito' | 'Recusado') => {
     if (!user) return;
     try {
-        let updatePayload: { dataAceite?: string | null, dataRecusa?: string | null} = {};
+        let updatePayload: { dataAceite?: string | null, dataRecusa?: string | null, status: 'Aceito' | 'Recusado' } = { status: status };
         
         if (status === 'Aceito') {
             updatePayload.dataAceite = new Date().toISOString();
@@ -568,7 +579,7 @@ export default function OrcamentoPage() {
             updatePayload.dataAceite = null;
         }
 
-        await updateOrcamentoStatus(budgetId, status, payload);
+        await updateOrcamentoStatus(budgetId, status, updatePayload);
         
         const acceptedBudget = orcamentosSalvos.find(b => b.id === budgetId);
         if (status === 'Aceito' && acceptedBudget) {
@@ -583,7 +594,7 @@ export default function OrcamentoPage() {
         await fetchOrcamentos();
         toast({ title: `Orçamento ${status.toLowerCase()}!` });
         if (status === 'Aceito' && acceptedBudget) { 
-            const updatedBudget = { ...acceptedBudget, ...updatePayload, status: 'Aceito' };
+            const updatedBudget = { ...acceptedBudget, ...updatePayload };
             handleSendAcceptanceWhatsApp(updatedBudget); 
         }
     } catch(error) {
