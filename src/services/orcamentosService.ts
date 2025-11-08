@@ -61,34 +61,8 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
     
     const currentYear = new Date().getFullYear();
 
-    try {
-        const q = query(collection(db, ORCAMENTOS_COLLECTION), where('userId', '==', userId));
-        const querySnapshot = await getDocs(q);
-        
-        const orcamentosDoAno = querySnapshot.docs
-            .map(doc => doc.data().numeroOrcamento as string)
-            .filter(num => num && num.startsWith(`${currentYear}-`));
-
-        let lastSequence = 0;
-        if (orcamentosDoAno.length > 0) {
-            orcamentosDoAno.forEach(num => {
-                const sequencePart = num.split('-')[1];
-                if (sequencePart) {
-                    const sequence = parseInt(sequencePart, 10);
-                    if (sequence > lastSequence) {
-                        lastSequence = sequence;
-                    }
-                }
-            });
-        }
-        
-        const newSequenceNumber = lastSequence + 1;
-        console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Última sequência para ${currentYear}: ${lastSequence}. Nova sequência: ${newSequenceNumber}`);
-        return `${currentYear}-${String(newSequenceNumber).padStart(3, '0')}`;
-
-    } catch (e: any) {
-        console.error("[ORCAMENTO SERVICE - getNextOrcamentoNumber] Erro ao obter próximo número:", e.message);
-        // Fallback robusto em caso de erro na consulta, usando timestamp
-        return `${currentYear}-${Date.now().toString().slice(-5)}`;
-    }
+    // Fallback robusto que funciona offline, usando timestamp
+    const offlineNumber = `${currentYear}-${Date.now().toString()}`;
+    console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Gerando número de fallback offline: ${offlineNumber}`);
+    return offlineNumber;
 };
