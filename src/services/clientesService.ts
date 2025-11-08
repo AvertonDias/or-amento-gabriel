@@ -4,12 +4,13 @@ import type { ClienteData } from '@/lib/types';
 
 const CLIENTES_COLLECTION = 'clientes';
 
-// Add a new client
-export const addCliente = async (userId: string, cliente: Omit<ClienteData, 'id' | 'userId'>) => {
-  await addDoc(collection(db, CLIENTES_COLLECTION), {
+// Add a new client and return its ID
+export const addCliente = async (userId: string, cliente: Omit<ClienteData, 'id' | 'userId'>): Promise<string> => {
+  const docRef = await addDoc(collection(db, CLIENTES_COLLECTION), {
     ...cliente,
     userId,
   });
+  return docRef.id;
 };
 
 // Update an existing client

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, FormEvent, useRef, useCallback } from 'react';
@@ -279,7 +278,6 @@ export default function OrcamentoPage() {
   const [isConfirmSaveClientOpen, setIsConfirmSaveClientOpen] = useState(false);
   const [clientToSave, setClientToSave] = useState<ClienteData | null>(null);
 
-
   const fetchAllData = useCallback(async (isRefresh = false) => {
     if (!user) return;
     
@@ -507,59 +505,92 @@ export default function OrcamentoPage() {
     setOrcamentoItens(prev => prev.filter(i => i.id !== id));
   };
   
-  const handleConfirmSave = async () => {
+  const proceedToSaveBudget = async (clienteFinal: ClienteData) => {
     if (!user) {
       toast({ title: "Usuário não autenticado", variant: "destructive" });
       return;
     }
-    if (orcamentoItens.length === 0) {
-      toast({
-        title: "Orçamento vazio",
-        description: "Adicione pelo menos um item ao orçamento.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsSubmitting(true);
     try {
-        const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
+      const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
+      const newBudget: Omit<Orcamento, "id"> = {
+        userId: user.uid,
+        numeroOrcamento,
+        cliente: clienteFinal,
+        itens: orcamentoItens,
+        totalVenda: totalVenda,
+        dataCriacao: new Date().toISOString(),
+        status: "Pendente",
+        validadeDias: validadeDias,
+        dataAceite: null,
+        dataRecusa: null,
+      };
 
-        const finalClienteData: Partial<ClienteData> = { ...clienteData };
-        if (finalClienteData.id === undefined) {
-            delete finalClienteData.id;
-        }
-
-        const newBudget: Omit<Orcamento, "id"> = {
-            userId: user.uid,
-            numeroOrcamento,
-            cliente: finalClienteData as ClienteData,
-            itens: orcamentoItens,
-            totalVenda: totalVenda,
-            dataCriacao: new Date().toISOString(),
-            status: "Pendente",
-            validadeDias: validadeDias,
-            dataAceite: null,
-            dataRecusa: null,
-        };
-        
-        await addOrcamento(newBudget);
-
-        setIsSubmitting(false);
-        setIsWizardOpen(false);
-        toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
-        fetchOrcamentos();
+      addOrcamento(newBudget); // Fire-and-forget
+      
+      setIsWizardOpen(false);
+      toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
+      // Fetch data after a short delay to allow offline write to complete
+      setTimeout(() => fetchAllData(true), 500);
 
     } catch (error: any) {
-        console.error("Erro ao salvar:", error);
-        toast({
-            title: "Erro ao salvar orçamento",
-            description: error.message,
-            variant: "destructive",
-        });
-        setIsSubmitting(false);
+      console.error("Erro ao salvar:", error);
+      toast({
+        title: "Erro ao salvar orçamento",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-};
+  };
+
+  const handleConfirmSave = async () => {
+    if (orcamentoItens.length === 0) {
+      toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item.", variant: "destructive" });
+      return;
+    }
+    // Se o cliente foi selecionado da lista, já tem ID. Se foi digitado, não tem.
+    if (!clienteData.id) {
+        setClientToSave(clienteData as ClienteData); // Cast because we know it's a new client object
+        setIsConfirmSaveClientOpen(true);
+    } else {
+        await proceedToSaveBudget(clienteData as ClienteData);
+    }
+  };
+  
+  const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
+    setIsConfirmSaveClientOpen(false);
+    if (!clientToSave || !user) return;
+
+    let finalClientData = { ...clientToSave };
+
+    if (shouldSave) {
+        try {
+            const clientPayload = {
+                nome: finalClientData.nome,
+                cpfCnpj: finalClientData.cpfCnpj,
+                endereco: finalClientData.endereco,
+                telefone: finalClientData.telefone,
+                email: finalClientData.email,
+            };
+            const newClientId = await addCliente(user.uid, clientPayload);
+            finalClientData.id = newClientId; // Add the new ID to the client data for the budget
+            toast({ title: "Novo cliente salvo com sucesso!" });
+            fetchOrcamentos(); // Fetch clients again
+        } catch (error) {
+            toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
+            // continue to save the budget anyway, but without the client ID
+            delete finalClientData.id;
+        }
+    } else {
+        delete finalClientData.id;
+    }
+    
+    await proceedToSaveBudget(finalClientData as ClienteData);
+    setClientToSave(null);
+  };
+
 
   
   const handleUpdateStatus = async (budgetId: string, status: 'Aceito' | 'Recusado') => {
@@ -1120,26 +1151,26 @@ export default function OrcamentoPage() {
                   <div className="space-y-4 p-4 border rounded-lg">
                     <h3 className="font-semibold text-lg">Dados do Cliente</h3>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-cliente-nome">Nome</Label>
-                        <Input id="edit-cliente-nome" name="nome" value={editingBudget.cliente.nome} disabled/>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-cliente-telefone">Telefone</Label>
-                        <Input id="edit-cliente-telefone" name="telefone" value={editingBudget.cliente.telefone} onChange={handleEditingBudgetClientChange} />
-                      </div>
-                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="edit-cliente-endereco">Endereço</Label>
-                        <Input id="edit-cliente-endereco" name="endereco" value={editingBudget.cliente.endereco} onChange={handleEditingBudgetClientChange} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-cliente-email">Email</Label>
-                        <Input id="edit-cliente-email" name="email" type="email" value={editingBudget.cliente.email || ''} disabled />
-                      </div>
-                       <div className="space-y-2">
-                        <Label htmlFor="edit-cliente-cpfCnpj">CPF/CNPJ</Label>
-                        <Input id="edit-cliente-cpfCnpj" name="cpfCnpj" value={editingBudget.cliente.cpfCnpj || ''} disabled />
-                      </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-cliente-nome">Nome</Label>
+                            <Input id="edit-cliente-nome" name="nome" value={editingBudget.cliente.nome} disabled/>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-cliente-telefone">Telefone</Label>
+                            <Input id="edit-cliente-telefone" name="telefone" value={editingBudget.cliente.telefone} onChange={handleEditingBudgetClientChange} />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="edit-cliente-endereco">Endereço</Label>
+                            <Input id="edit-cliente-endereco" name="endereco" value={editingBudget.cliente.endereco} onChange={handleEditingBudgetClientChange} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-cliente-email">Email</Label>
+                            <Input id="edit-cliente-email" name="email" type="email" value={editingBudget.cliente.email || ''} disabled />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-cliente-cpfCnpj">CPF/CNPJ</Label>
+                            <Input id="edit-cliente-cpfCnpj" name="cpfCnpj" value={editingBudget.cliente.cpfCnpj || ''} disabled />
+                        </div>
                     </div>
                   </div>
                 )}
@@ -1219,8 +1250,8 @@ export default function OrcamentoPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => handleConfirmSaveClient(true)}>Sim, Salvar Cliente</AlertDialogAction>
-            <AlertDialogCancel onClick={() => handleConfirmSaveClient(false)}>Não, Apenas no Orçamento</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleConfirmSaveClientDialog(true)}>Sim, Salvar Cliente</AlertDialogAction>
+            <AlertDialogCancel onClick={() => handleConfirmSaveClientDialog(false)}>Não, Apenas no Orçamento</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
