@@ -301,7 +301,9 @@ export default function OrcamentoPage() {
     else setIsLoading(prev => ({...prev, materiais: true, clientes: true, empresa: true, orcamentos: true}));
 
     try {
-        await syncOfflineOrcamentos(user.uid);
+        if(isOnline) {
+          await syncOfflineOrcamentos(user.uid);
+        }
         const [materiaisData, clientesData, empresaData, orcamentosData] = await Promise.all([
             getMateriais(user.uid),
             getClientes(user.uid),
@@ -319,7 +321,7 @@ export default function OrcamentoPage() {
         setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
         if (isRefresh) setIsRefreshing(false);
     }
-}, [user, toast]);
+}, [user, toast, isOnline]);
 
   
   useEffect(() => {
@@ -333,7 +335,7 @@ export default function OrcamentoPage() {
       setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, loadingAuth]);
+  }, [user, loadingAuth, isOnline]);
   
   useEffect(() => {
     if (orcamentosSalvos.length > 0) {
@@ -556,14 +558,22 @@ export default function OrcamentoPage() {
     }
   };
 
-  const handleConfirmSaveClient = () => {
-    if (!isOnline) {
-      handleConfirmSaveClientDialog(false); // Do not save client if offline
-    } else if (!clienteData.id) { // New client and online
+  const handleConfirmSaveClient = async () => {
+    // Check for existing client by name, ignoring case
+    const existingClient = clientes.find(
+      c => c.nome.trim().toLowerCase() === clienteData.nome.trim().toLowerCase()
+    );
+
+    if (existingClient) {
+      // If client exists, use their data and proceed to save budget
+      proceedToSaveBudget(existingClient);
+    } else if (!isOnline) {
+      // If offline and client is new, don't try to save client, just the budget
+      handleConfirmSaveClientDialog(false);
+    } else {
+      // If online and client is new, ask user if they want to save
       setClientToSave(clienteData);
       setIsConfirmSaveClientOpen(true);
-    } else { // Existing client
-      proceedToSaveBudget(clienteData as ClienteData);
     }
   };
 
@@ -575,42 +585,39 @@ export default function OrcamentoPage() {
     handleConfirmSaveClient();
   };
   
-  const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
-      setIsConfirmSaveClientOpen(false);
-      if (!clientToSave || !user) return;
-  
-      let finalClientData: ClienteData = { ...clientToSave, userId: user.uid, id: clientToSave.id || crypto.randomUUID() };
-  
-      if (shouldSave) {
-          const clientPayload = {
-              nome: finalClientData.nome,
-              cpfCnpj: finalClientData.cpfCnpj,
-              endereco: finalClientData.endereco,
-              telefone: finalClientData.telefone,
-              email: finalClientData.email,
-          };
-          
-          addCliente(user.uid, clientPayload)
-              .then(newClientId => {
-                  finalClientData.id = newClientId;
-                  toast({ title: "Novo cliente salvo com sucesso!" });
-                  fetchAllData(true);
-                  proceedToSaveBudget(finalClientData);
-              })
-              .catch(error => {
-                  console.error("Erro ao salvar novo cliente:", error);
-                  toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
-                  // If it fails, proceed to save the budget with the data we have, but without an ID.
-                  delete finalClientData.id;
-                  proceedToSaveBudget(finalClientData);
-              });
-      } else {
-         // Don't save the client, but the budget still needs a ClienteData object
-         delete finalClientData.id;
-         proceedToSaveBudget(finalClientData);
-      }
-      
-      setClientToSave(null);
+  const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
+    setIsConfirmSaveClientOpen(false);
+    if (!clientToSave || !user) return;
+
+    let finalClientData: ClienteData = { ...clientToSave, userId: user.uid, id: clientToSave.id || crypto.randomUUID() };
+
+    if (shouldSave) {
+        const clientPayload = {
+            nome: finalClientData.nome,
+            cpfCnpj: finalClientData.cpfCnpj,
+            endereco: finalClientData.endereco,
+            telefone: finalClientData.telefone,
+            email: finalClientData.email,
+        };
+        
+        try {
+            const newClientId = await addCliente(user.uid, clientPayload);
+            finalClientData.id = newClientId;
+            toast({ title: "Novo cliente salvo com sucesso!" });
+            fetchAllData(true);
+        } catch (error) {
+            console.error("Erro ao salvar novo cliente:", error);
+            toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
+            delete finalClientData.id;
+        } finally {
+            proceedToSaveBudget(finalClientData);
+        }
+    } else {
+       delete finalClientData.id;
+       proceedToSaveBudget(finalClientData);
+    }
+    
+    setClientToSave(null);
   };
 
 
@@ -1307,6 +1314,3 @@ export default function OrcamentoPage() {
     </div>
   );
 }
-
-
-    
