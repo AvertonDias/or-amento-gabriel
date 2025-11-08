@@ -533,8 +533,8 @@ export default function OrcamentoPage() {
     setOrcamentoItens(prev => prev.filter(i => i.id !== id));
   };
   
-  const proceedToSaveBudget = async () => {
-    if (!user || !clientToSave) {
+const proceedToSaveBudget = async (currentClient: ClienteData) => {
+    if (!user || !currentClient) {
         toast({ title: "Erro interno: dados do usuário ou cliente ausentes.", variant: "destructive" });
         return;
     }
@@ -546,7 +546,7 @@ export default function OrcamentoPage() {
         const newBudget: Omit<Orcamento, "id"> = {
             userId: user.uid,
             numeroOrcamento,
-            cliente: { ...clientToSave, id: clientToSave.id || crypto.randomUUID() },
+            cliente: { ...currentClient },
             itens: orcamentoItens,
             totalVenda,
             dataCriacao: new Date().toISOString(),
@@ -586,22 +586,18 @@ const handleConfirmSave = async () => {
     const existingClient = clientes.find(c => c.nome.trim().toLowerCase() === normalizedNewClientName);
 
     if (existingClient) {
-        setClientToSave(existingClient);
-        // Usamos um timeout para garantir que o estado seja atualizado antes de prosseguir
-        setTimeout(() => proceedToSaveBudget(), 0);
-        return;
+        proceedToSaveBudget(existingClient);
+    } else {
+        setClientToSave(clienteData);
+        setIsConfirmSaveClientOpen(true);
     }
-
-    // Se o cliente não existe, abre o dialog de confirmação
-    setClientToSave(clienteData);
-    setIsConfirmSaveClientOpen(true);
 };
 
 
 const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
-    if (!clientToSave || !user) return;
+    if (!clientToSave) return;
 
-    if (shouldSave) {
+    if (shouldSave && user) {
         const clientPayload = { ...clientToSave };
         delete clientPayload.id;
         try {
@@ -614,9 +610,8 @@ const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
         }
     }
     
-    // Independentemente de salvar ou não o novo cliente, prosseguimos para salvar o orçamento.
-    // Usamos um timeout para garantir que o estado do diálogo feche antes de prosseguir.
-    setTimeout(() => proceedToSaveBudget(), 0);
+    const finalClientData = { ...clientToSave, id: clientToSave.id || crypto.randomUUID() };
+    proceedToSaveBudget(finalClientData);
     setIsConfirmSaveClientOpen(false);
     setClientToSave(null);
 };
@@ -993,22 +988,22 @@ const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
                                   <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
                                 </DropdownMenuItem>
                                 <Separator />
-                                 <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
-                                      <Trash2 className="mr-2 h-4 w-4" />Excluir
-                                    </DropdownMenuItem>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                                      <AlertDialogDescription>Tem certeza que deseja excluir este orçamento permanentemente? Esta ação não pode ser desfeita.</AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                      <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleRemoverOrcamento(orcamento.id)}>Sim, Excluir</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
+                                            <Trash2 className="mr-2 h-4 w-4" />Excluir
+                                        </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                        <AlertDialogDescription>Tem certeza que deseja excluir este orçamento permanentemente? Esta ação não pode ser desfeita.</AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleRemoverOrcamento(orcamento.id)}>Sim, Excluir</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
                                 </AlertDialog>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -1142,7 +1137,11 @@ const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
             {wizardStep > 1 && <Button variant="outline" onClick={() => setWizardStep(wizardStep - 1)}><ArrowLeft className="mr-2" /> Voltar</Button>}
             <div className="flex-grow"></div>
             {wizardStep === 1 && <Button onClick={() => setWizardStep(2)} disabled={!clienteData.nome}><ArrowRight className="mr-2" /> Próximo</Button>}
-            {wizardStep === 2 && <Button onClick={handleConfirmSave} disabled={isSubmitting || orcamentoItens.length === 0}>{isSubmitting ? <Loader2 className="mr-2 animate-spin" /> : <FileText className="mr-2"/>} Salvar Orçamento</Button>}
+            {wizardStep === 2 && (
+                <Button onClick={handleConfirmSave} disabled={isSubmitting || orcamentoItens.length === 0}>
+                    {isSubmitting ? <Loader2 className="mr-2 animate-spin" /> : <FileText className="mr-2"/>} Salvar Orçamento
+                </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1176,8 +1175,8 @@ const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => handleConfirmSaveClientDialog(false)}>Não, Usar Apenas Desta Vez</AlertDialogCancel>
                 <AlertDialogAction onClick={() => handleConfirmSaveClientDialog(true)}>Sim, Salvar Cliente</AlertDialogAction>
+                <AlertDialogCancel onClick={() => handleConfirmSaveClientDialog(false)}>Não, Usar Apenas Desta Vez</AlertDialogCancel>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1222,5 +1221,3 @@ const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
     </div>
   );
 }
-
-    
