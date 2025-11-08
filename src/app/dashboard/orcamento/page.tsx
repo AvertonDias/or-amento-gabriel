@@ -279,6 +279,21 @@ export default function OrcamentoPage() {
   const [isConfirmSaveClientOpen, setIsConfirmSaveClientOpen] = useState(false);
   const [clientToSave, setClientToSave] = useState<Omit<ClienteData, 'id' | 'userId'> | null>(null);
 
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    const updateOnlineStatus = () => {
+      setIsOnline(navigator.onLine);
+    };
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    updateOnlineStatus(); // Set initial status
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus);
+      window.removeEventListener('offline', updateOnlineStatus);
+    };
+  }, []);
+
  const fetchAllData = useCallback(async (isRefresh = false) => {
     if (!user) return;
     
@@ -541,17 +556,23 @@ export default function OrcamentoPage() {
     }
   };
 
+  const handleConfirmSaveClient = () => {
+    if (!isOnline) {
+      handleConfirmSaveClientDialog(false); // Do not save client if offline
+    } else if (!clienteData.id) { // New client and online
+      setClientToSave(clienteData);
+      setIsConfirmSaveClientOpen(true);
+    } else { // Existing client
+      proceedToSaveBudget(clienteData as ClienteData);
+    }
+  };
+
   const handleConfirmSave = () => {
     if (orcamentoItens.length === 0) {
         toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item.", variant: "destructive" });
         return;
     }
-    if (!clienteData.id) { // Se não tem ID, é um cliente novo
-        setClientToSave(clienteData); 
-        setIsConfirmSaveClientOpen(true);
-    } else {
-        proceedToSaveBudget(clienteData as ClienteData);
-    }
+    handleConfirmSaveClient();
   };
   
   const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
@@ -579,12 +600,12 @@ export default function OrcamentoPage() {
               .catch(error => {
                   console.error("Erro ao salvar novo cliente:", error);
                   toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
-                  // Se falhar ao salvar, continua para salvar o orçamento com os dados que temos, mas sem ID
+                  // If it fails, proceed to save the budget with the data we have, but without an ID.
                   delete finalClientData.id;
                   proceedToSaveBudget(finalClientData);
               });
       } else {
-         // Não salva o cliente, mas o orçamento ainda precisa de um objeto ClienteData
+         // Don't save the client, but the budget still needs a ClienteData object
          delete finalClientData.id;
          proceedToSaveBudget(finalClientData);
       }
@@ -1286,3 +1307,6 @@ export default function OrcamentoPage() {
     </div>
   );
 }
+
+
+    
