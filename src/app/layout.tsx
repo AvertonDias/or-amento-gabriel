@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { UnifiedThemeProvider } from "@/contexts/unified-theme-provider";
+import PwaRegistry from '@/components/PwaRegistry';
 
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -30,6 +31,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.jpg" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <PwaRegistry />
       </head>
       <body className={`${inter.variable} font-body antialiased`}>
         <UnifiedThemeProvider>
