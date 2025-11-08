@@ -68,8 +68,6 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
         const q = query(
             collection(db, ORCAMENTOS_COLLECTION),
             where('userId', '==', userId),
-            where('numeroOrcamento', '>=', `${currentYear}-000`),
-            where('numeroOrcamento', '<', `${currentYear + 1}-000`),
             orderBy('numeroOrcamento', 'desc'),
             limit(1)
         );
@@ -106,10 +104,13 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
 };
 
 export const syncOfflineOrcamentos = async (userId: string) => {
-    if (!userId) return;
+    if (!navigator.onLine || !userId) {
+        console.log("Offline ou sem usuário, pulando sincronização.");
+        return;
+    }
 
     try {
-        const q = query(collection(db, ORCAMENTOS_COLLECTION), where('userId', '==', userId));
+        const q = query(collection(db, ORCAMENTOS_COLLECTION), where('userId', '==', userId), where('numeroOrcamento', '>=', '0-TEMP-'), where('numeroOrcamento', '<=', '9-TEMP-~'));
         const querySnapshot = await getDocs(q);
         
         const offlineOrcamentos = querySnapshot.docs
@@ -133,14 +134,12 @@ export const syncOfflineOrcamentos = async (userId: string) => {
         for (const orcamento of offlineOrcamentos) {
             try {
                 const newNumeroOrcamento = await getNextOrcamentoNumber(userId);
-                // Se ainda estivermos offline, o número conterá TEMP, então abortamos a sincronização.
                 if (newNumeroOrcamento.includes('TEMP')) {
                     console.log("Ainda offline, não é possível sincronizar os números dos orçamentos.");
                     return; 
                 }
                 
                 const docRef = doc(db, ORCAMENTOS_COLLECTION, orcamento.id);
-                // Usamos updateDoc para atualizar apenas o campo necessário.
                 await updateDoc(docRef, { numeroOrcamento: newNumeroOrcamento });
                 console.log(`Atualizando orçamento ${orcamento.numeroOrcamento} para ${newNumeroOrcamento}`);
             } catch(e) {
