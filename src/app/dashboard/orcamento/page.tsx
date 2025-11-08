@@ -281,24 +281,9 @@ export default function OrcamentoPage() {
   const [isConfirmSaveClientOpen, setIsConfirmSaveClientOpen] = useState(false);
   const [clientToSave, setClientToSave] = useState<Omit<ClienteData, 'id' | 'userId'> | null>(null);
 
-  const [isOnline, setIsOnline] = useState(true);
-
   const searchParams = useSearchParams();
   const router = useRouter();
   const clienteIdParam = searchParams.get('clienteId');
-
-  useEffect(() => {
-    const updateOnlineStatus = () => {
-      setIsOnline(navigator.onLine);
-    };
-    window.addEventListener('online', updateOnlineStatus);
-    window.addEventListener('offline', updateOnlineStatus);
-    updateOnlineStatus(); // Set initial status
-    return () => {
-      window.removeEventListener('online', updateOnlineStatus);
-      window.removeEventListener('offline', updateOnlineStatus);
-    };
-  }, []);
 
  const fetchAllData = useCallback(async (isRefresh = false) => {
     if (!user) return;
@@ -307,9 +292,8 @@ export default function OrcamentoPage() {
     else setIsLoading(prev => ({...prev, materiais: true, clientes: true, empresa: true, orcamentos: true}));
 
     try {
-        if(isOnline) {
-          await syncOfflineOrcamentos(user.uid);
-        }
+        await syncOfflineOrcamentos(user.uid);
+
         const [materiaisData, clientesData, empresaData, orcamentosData] = await Promise.all([
             getMateriais(user.uid),
             getClientes(user.uid),
@@ -327,7 +311,7 @@ export default function OrcamentoPage() {
         setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
         if (isRefresh) setIsRefreshing(false);
     }
-}, [user, toast, isOnline]);
+}, [user, toast]);
 
   
   useEffect(() => {
@@ -344,13 +328,18 @@ export default function OrcamentoPage() {
   }, [user, loadingAuth]);
   
   useEffect(() => {
-    if (isOnline && user) {
-      syncOfflineOrcamentos(user.uid).then(() => {
-        fetchAllData(true);
-      });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOnline, user]);
+    const handleOnline = () => {
+      if (user) {
+        toast({title: 'Você está online.', description: 'Sincronizando dados...'});
+        syncOfflineOrcamentos(user.uid).then(() => {
+          fetchAllData(true);
+        });
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [user, fetchAllData, toast]);
   
   useEffect(() => {
     if (orcamentosSalvos.length > 0) {
@@ -583,62 +572,51 @@ export default function OrcamentoPage() {
 
   const handleConfirmSave = () => {
     if (orcamentoItens.length === 0) {
-        toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item.", variant: "destructive" });
-        return;
+      toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item.", variant: "destructive" });
+      return;
     }
-
     if (!clienteData.nome) {
-        toast({ title: "Cliente não informado", description: "Preencha o nome do cliente.", variant: "destructive" });
-        return;
+      toast({ title: "Cliente não informado", description: "Preencha o nome do cliente.", variant: "destructive" });
+      return;
     }
 
     const existingClient = clientes.find(c => c.nome.trim().toLowerCase() === clienteData.nome.trim().toLowerCase());
 
     if (existingClient) {
-        proceedToSaveBudget(existingClient);
-        return;
+      proceedToSaveBudget(existingClient);
+      return;
     }
-    
-    if (clienteData.id) {
-        delete clienteData.id;
-    }
-    
-    if (!isOnline) {
-        handleConfirmSaveClientDialog(false);
-    } else {
-      setClientToSave(clienteData);
-      setIsConfirmSaveClientOpen(true);
-    }
+
+    setClientToSave(clienteData);
+    setIsConfirmSaveClientOpen(true);
   };
   
   const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
     setIsConfirmSaveClientOpen(false);
     if (!clientToSave || !user) return;
-  
+
     let finalClientData: ClienteData;
-  
+
     if (shouldSave) {
-      const clientPayload = {
-        nome: clientToSave.nome,
-        cpfCnpj: clientToSave.cpfCnpj,
-        endereco: clientToSave.endereco,
-        telefone: clientToSave.telefone,
-        email: clientToSave.email,
-      };
-  
-      try {
-        const newClientId = await addCliente(user.uid, clientPayload);
-        finalClientData = { ...clientPayload, userId: user.uid, id: newClientId };
-        toast({ title: "Novo cliente salvo com sucesso!" });
-        fetchAllData(true); 
-      } catch (error) {
-        console.error("Erro ao salvar novo cliente:", error);
-        toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
-        // Em caso de erro, prossegue com um ID temporário para não bloquear o usuário
-        finalClientData = { ...clientPayload, userId: user.uid, id: crypto.randomUUID() };
-      }
+        const clientPayload = {
+            nome: clientToSave.nome,
+            cpfCnpj: clientToSave.cpfCnpj,
+            endereco: clientToSave.endereco,
+            telefone: clientToSave.telefone,
+            email: clientToSave.email,
+        };
+        try {
+            const newClientId = await addCliente(user.uid, clientPayload);
+            finalClientData = { ...clientPayload, userId: user.uid, id: newClientId };
+            toast({ title: "Novo cliente salvo com sucesso!" });
+            fetchAllData(true);
+        } catch (error) {
+            console.error("Erro ao salvar novo cliente:", error);
+            toast({ title: "Erro ao salvar novo cliente.", description: "O orçamento será salvo com um cliente temporário.", variant: "destructive" });
+            finalClientData = { ...clientPayload, userId: user.uid, id: crypto.randomUUID() };
+        }
     } else {
-      finalClientData = { ...clientToSave, userId: user.uid, id: crypto.randomUUID() };
+        finalClientData = { ...clientToSave, userId: user.uid, id: crypto.randomUUID() };
     }
     
     proceedToSaveBudget(finalClientData);
@@ -646,15 +624,6 @@ export default function OrcamentoPage() {
   };
 
 
-  const fetchClientes = useCallback(async (uid: string) => {
-    try {
-        return await getClientes(uid);
-    } catch(e) {
-        console.error(e);
-        return [];
-    }
-  },[]);
-  
   const handleUpdateStatus = async (budgetId: string, status: 'Aceito' | 'Recusado') => {
     if (!user) return;
     try {
@@ -1298,7 +1267,7 @@ export default function OrcamentoPage() {
             <AlertDialogHeader>
                 <AlertDialogTitle>Salvar Novo Cliente?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    O cliente "{clientToSave?.nome}" não foi encontrado. Deseja salvá-lo para uso futuro?
+                    O cliente "{clientToSave?.nome}" não foi encontrado na sua lista. Deseja salvá-lo para uso futuro?
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -1351,3 +1320,6 @@ export default function OrcamentoPage() {
 
 
 
+
+
+    
