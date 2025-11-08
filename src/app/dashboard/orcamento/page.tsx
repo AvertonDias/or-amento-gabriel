@@ -31,6 +31,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Separator } from '@/components/ui/separator';
 
 
 // Componente para o layout do PDF do Cliente
@@ -519,57 +520,50 @@ export default function OrcamentoPage() {
     }
 
     setIsSubmitting(true);
-
     try {
-      const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
+        const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
 
-      const finalClienteData: Partial<ClienteData> = { ...clienteData };
-      if (finalClienteData.id === undefined) {
-        delete finalClienteData.id;
-      }
+        const finalClienteData: Partial<ClienteData> = { ...clienteData };
+        if (finalClienteData.id === undefined) {
+            delete finalClienteData.id;
+        }
 
-      const newBudget: Omit<Orcamento, "id"> = {
-        userId: user.uid,
-        numeroOrcamento,
-        cliente: {
-          ...(finalClienteData as Omit<ClienteData, "id">),
-          userId: user.uid,
-        },
-        itens: orcamentoItens,
-        totalVenda: totalVenda,
-        dataCriacao: new Date().toISOString(),
-        status: "Pendente",
-        validadeDias: validadeDias,
-        dataAceite: null,
-        dataRecusa: null,
-      };
+        const newBudget: Omit<Orcamento, "id"> = {
+            userId: user.uid,
+            numeroOrcamento,
+            cliente: finalClienteData as ClienteData,
+            itens: orcamentoItens,
+            totalVenda: totalVenda,
+            dataCriacao: new Date().toISOString(),
+            status: "Pendente",
+            validadeDias: validadeDias,
+            dataAceite: null,
+            dataRecusa: null,
+        };
+        
+        addOrcamento(newBudget);
 
-      // Fire-and-forget: don't await the result
-      addOrcamento(newBudget);
-
-      // Optimistically update UI
-      setIsSubmitting(false);
-      setIsWizardOpen(false);
-      toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
-
-      // Fetch in the background to update the list
-      fetchOrcamentos();
+        setIsSubmitting(false);
+        setIsWizardOpen(false);
+        toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
+        fetchOrcamentos();
 
     } catch (error: any) {
-      console.error("Erro ao salvar:", error);
-      toast({
-        title: "Erro ao salvar orçamento",
-        description: error.message,
-        variant: "destructive",
-      });
-      setIsSubmitting(false);
+        console.error("Erro ao salvar:", error);
+        toast({
+            title: "Erro ao salvar orçamento",
+            description: error.message,
+            variant: "destructive",
+        });
+        setIsSubmitting(false);
     }
-  };
+};
+
   
   const handleUpdateStatus = async (budgetId: string, status: 'Aceito' | 'Recusado') => {
     if (!user) return;
     try {
-        let updatePayload: { dataAceite?: string | null, dataRecusa?: string | null, status: 'Aceito' | 'Recusado' } = { status: status };
+        let updatePayload: { dataAceite?: string | null, dataRecusa?: string | null } = { };
         
         if (status === 'Aceito') {
             updatePayload.dataAceite = new Date().toISOString();
@@ -594,7 +588,7 @@ export default function OrcamentoPage() {
         await fetchOrcamentos();
         toast({ title: `Orçamento ${status.toLowerCase()}!` });
         if (status === 'Aceito' && acceptedBudget) { 
-            const updatedBudget = { ...acceptedBudget, ...updatePayload };
+            const updatedBudget = { ...acceptedBudget, status: 'Aceito', ...updatePayload };
             handleSendAcceptanceWhatsApp(updatedBudget); 
         }
     } catch(error) {
@@ -767,12 +761,30 @@ export default function OrcamentoPage() {
     setEditingBudgetItens(prev => prev.filter(item => item.id !== itemId));
   };
   
+  const handleEditingBudgetClientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!editingBudget) return;
+    const { name, value } = e.target;
+    let finalValue = value;
+    if (name === 'cpfCnpj') finalValue = maskCpfCnpj(value);
+    else if (name === 'telefone') finalValue = maskTelefone(value);
+    setEditingBudget(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        cliente: {
+          ...prev.cliente,
+          [name]: finalValue
+        }
+      }
+    })
+  };
+
   const handleUpdateBudget = async () => {
     if (!editingBudget || !user) return;
     setIsSubmitting(true);
     try {
         const totalVendaFinal = editingBudgetItens.reduce((acc, item) => acc + item.precoVenda, 0);
-        const budgetToUpdate = {
+        const budgetToUpdate: Orcamento = {
             ...editingBudget,
             itens: editingBudgetItens,
             totalVenda: totalVendaFinal,
@@ -1052,60 +1064,95 @@ export default function OrcamentoPage() {
             <DialogHeader>
                 <DialogTitle>Editar Orçamento #{editingBudget?.numeroOrcamento}</DialogTitle>
                 <DialogDescription>
-                    Cliente: {editingBudget?.cliente.nome} <br/>
-                    Ajuste os itens e clique em salvar.
+                    Ajuste os dados do cliente e os itens do orçamento.
                 </DialogDescription>
             </DialogHeader>
-            <div className="flex-grow overflow-y-auto p-1 pr-4">
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 p-4 border rounded-lg items-end">
-                  <div className="sm:col-span-2">
-                    <Label htmlFor="edit-material-select">Item / Serviço</Label>
-                    <Select value={newItemForEdit.materialId} onValueChange={(val) => handleNewItemForEditChange('materialId', val)}>
-                      <SelectTrigger id="edit-material-select"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                      <SelectContent>
-                        {materiais.map(mat => (<SelectItem key={mat.id} value={mat.id}>{`${mat.descricao} (${formatCurrency(mat.precoUnitario)}/${mat.unidade})`}</SelectItem>))}
-                      </SelectContent>
-                    </Select>
+            <div className="flex-grow overflow-y-auto p-1 pr-4 space-y-6">
+                
+                {/* Client Info Form */}
+                {editingBudget && (
+                  <div className="space-y-4 p-4 border rounded-lg">
+                    <h3 className="font-semibold text-lg">Dados do Cliente</h3>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-cliente-nome">Nome</Label>
+                        <Input id="edit-cliente-nome" name="nome" value={editingBudget.cliente.nome} onChange={handleEditingBudgetClientChange} required/>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-cliente-telefone">Telefone</Label>
+                        <Input id="edit-cliente-telefone" name="telefone" value={editingBudget.cliente.telefone} onChange={handleEditingBudgetClientChange} />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="edit-cliente-endereco">Endereço</Label>
+                        <Input id="edit-cliente-endereco" name="endereco" value={editingBudget.cliente.endereco} onChange={handleEditingBudgetClientChange} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-cliente-email">Email</Label>
+                        <Input id="edit-cliente-email" name="email" type="email" value={editingBudget.cliente.email || ''} onChange={handleEditingBudgetClientChange} />
+                      </div>
+                       <div className="space-y-2">
+                        <Label htmlFor="edit-cliente-cpfCnpj">CPF/CNPJ</Label>
+                        <Input id="edit-cliente-cpfCnpj" name="cpfCnpj" value={editingBudget.cliente.cpfCnpj || ''} onChange={handleEditingBudgetClientChange} />
+                      </div>
+                    </div>
                   </div>
-                  {selectedMaterialForEdit && (
-                    <>
-                      <div><Label htmlFor="edit-quantidade">Qtd ({selectedMaterialForEdit.unidade})</Label><Input id="edit-quantidade" type="text" inputMode='decimal' placeholder="1,5" value={newItemQtyStr} onChange={e => handleNewItemForEditChange('quantidade', e.target.value)} /></div>
-                      <div><Label htmlFor="edit-margem-lucro">Acréscimo (%)</Label><Input id="edit-margem-lucro" type="text" inputMode='decimal' placeholder="10" value={newItemMarginStr} onChange={e => handleNewItemForEditChange('margemLucro', e.target.value)} /></div>
-                      <div className="lg:col-span-1"><Button onClick={handleAddItemToEditBudget} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Adicionar Item</Button></div>
-                    </>
-                  )}
-                </div>
+                )}
+                
+                <Separator />
 
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Item</TableHead>
-                            <TableHead className="text-right">Qtd.</TableHead>
-                            <TableHead className="text-right">Venda</TableHead>
-                            <TableHead className="text-center">Ações</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {editingBudgetItens.map(item => (
-                            <TableRow key={item.id}>
-                                <TableCell>{item.materialNome}</TableCell>
-                                <TableCell className="text-right">{formatNumber(item.quantidade, 2)}</TableCell>
-                                <TableCell className="text-right font-bold text-primary">{formatCurrency(item.precoVenda)}</TableCell>
-                                <TableCell className="flex justify-center gap-1">
-                                    <Button variant="ghost" size="icon" onClick={() => handleEditItemClick(item, 'modal')}><Pencil className="h-4 w-4 text-primary" /></Button>
-                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveItemFromEditBudget(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                     <TableTotalFooter>
-                        <TableRow className="bg-muted/50 font-bold text-base">
-                            <TableCell colSpan={2}>TOTAL</TableCell>
-                            <TableCell className="text-right text-primary">{formatCurrency(editingBudgetItens.reduce((acc, item) => acc + item.precoVenda, 0))}</TableCell>
-                            <TableCell></TableCell>
-                        </TableRow>
-                    </TableTotalFooter>
-                </Table>
+                {/* Items Info */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg">Itens do Orçamento</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border rounded-lg items-end">
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="edit-material-select">Adicionar Item / Serviço</Label>
+                      <Select value={newItemForEdit.materialId} onValueChange={(val) => handleNewItemForEditChange('materialId', val)}>
+                        <SelectTrigger id="edit-material-select"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                        <SelectContent>
+                          {materiais.map(mat => (<SelectItem key={mat.id} value={mat.id}>{`${mat.descricao} (${formatCurrency(mat.precoUnitario)}/${mat.unidade})`}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {selectedMaterialForEdit && (
+                      <>
+                        <div><Label htmlFor="edit-quantidade">Qtd ({selectedMaterialForEdit.unidade})</Label><Input id="edit-quantidade" type="text" inputMode='decimal' placeholder="1,5" value={newItemQtyStr} onChange={e => handleNewItemForEditChange('quantidade', e.target.value)} /></div>
+                        <div><Label htmlFor="edit-margem-lucro">Acréscimo (%)</Label><Input id="edit-margem-lucro" type="text" inputMode='decimal' placeholder="10" value={newItemMarginStr} onChange={e => handleNewItemForEditChange('margemLucro', e.target.value)} /></div>
+                        <div className="lg:col-span-1"><Button onClick={handleAddItemToEditBudget} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Adicionar</Button></div>
+                      </>
+                    )}
+                  </div>
+
+                  <Table>
+                      <TableHeader>
+                          <TableRow>
+                              <TableHead>Item</TableHead>
+                              <TableHead className="text-right">Qtd.</TableHead>
+                              <TableHead className="text-right">Venda</TableHead>
+                              <TableHead className="text-center">Ações</TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {editingBudgetItens.map(item => (
+                              <TableRow key={item.id}>
+                                  <TableCell>{item.materialNome}</TableCell>
+                                  <TableCell className="text-right">{formatNumber(item.quantidade, 2)}</TableCell>
+                                  <TableCell className="text-right font-bold text-primary">{formatCurrency(item.precoVenda)}</TableCell>
+                                  <TableCell className="flex justify-center gap-1">
+                                      <Button variant="ghost" size="icon" onClick={() => handleEditItemClick(item, 'modal')}><Pencil className="h-4 w-4 text-primary" /></Button>
+                                      <Button variant="ghost" size="icon" onClick={() => handleRemoveItemFromEditBudget(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                  </TableCell>
+                              </TableRow>
+                          ))}
+                      </TableBody>
+                      <TableTotalFooter>
+                          <TableRow className="bg-muted/50 font-bold text-base">
+                              <TableCell colSpan={2}>TOTAL</TableCell>
+                              <TableCell className="text-right text-primary">{formatCurrency(editingBudgetItens.reduce((acc, item) => acc + item.precoVenda, 0))}</TableCell>
+                              <TableCell></TableCell>
+                          </TableRow>
+                      </TableTotalFooter>
+                  </Table>
+                </div>
             </div>
             <DialogFooter className="pt-4 border-t">
                 <DialogClose asChild><Button variant="outline" disabled={isSubmitting}>Cancelar</Button></DialogClose>
