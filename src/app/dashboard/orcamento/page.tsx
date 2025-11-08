@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, FormEvent, useRef, useCallback } from 'react';
@@ -286,6 +287,7 @@ export default function OrcamentoPage() {
     setIsLoading(prev => ({...prev, materiais: true, clientes: true, empresa: true, orcamentos: true}));
 
     try {
+        await syncOfflineOrcamentos(user.uid);
         const [materiaisData, clientesData, empresaData, orcamentosData] = await Promise.all([
             getMateriais(user.uid),
             getClientes(user.uid),
@@ -307,10 +309,7 @@ export default function OrcamentoPage() {
   
   useEffect(() => {
     if (user) {
-      // Sincroniza orçamentos offline e depois busca todos os dados
-      syncOfflineOrcamentos(user.uid).then(() => {
-          fetchAllData();
-      });
+      fetchAllData();
     } else if (!loadingAuth) {
       setMateriais([]);
       setClientes([]);
@@ -505,14 +504,13 @@ export default function OrcamentoPage() {
     setOrcamentoItens(prev => prev.filter(i => i.id !== id));
   };
   
-  const proceedToSaveBudget = async (clienteFinal: ClienteData) => {
+  const proceedToSaveBudget = (clienteFinal: ClienteData) => {
     if (!user) {
       toast({ title: "Usuário não autenticado", variant: "destructive" });
       return;
     }
     setIsSubmitting(true);
-    try {
-      const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
+    getNextOrcamentoNumber(user.uid).then(numeroOrcamento => {
       const newBudget: Omit<Orcamento, "id"> = {
         userId: user.uid,
         numeroOrcamento,
@@ -526,36 +524,34 @@ export default function OrcamentoPage() {
         dataRecusa: null,
       };
 
-      addOrcamento(newBudget); // Fire-and-forget
+      addOrcamento(newBudget);
       
       setIsWizardOpen(false);
       toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
-      // Fetch data after a short delay to allow offline write to complete
       setTimeout(() => fetchAllData(true), 500);
 
-    } catch (error: any) {
+    }).catch((error: any) => {
       console.error("Erro ao salvar:", error);
       toast({
         title: "Erro ao salvar orçamento",
         description: error.message,
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
-    }
+    }).finally(() => {
+        setIsSubmitting(false);
+    });
   };
 
-  const handleConfirmSave = async () => {
+  const handleConfirmSave = () => {
     if (orcamentoItens.length === 0) {
       toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item.", variant: "destructive" });
       return;
     }
-    // Se o cliente foi selecionado da lista, já tem ID. Se foi digitado, não tem.
     if (!clienteData.id) {
-        setClientToSave(clienteData as ClienteData); // Cast because we know it's a new client object
+        setClientToSave(clienteData as ClienteData); 
         setIsConfirmSaveClientOpen(true);
     } else {
-        await proceedToSaveBudget(clienteData as ClienteData);
+        proceedToSaveBudget(clienteData as ClienteData);
     }
   };
   
@@ -563,7 +559,7 @@ export default function OrcamentoPage() {
     setIsConfirmSaveClientOpen(false);
     if (!clientToSave || !user) return;
 
-    let finalClientData = { ...clientToSave };
+    let finalClientData: ClienteData = { ...clientToSave, userId: user.uid };
 
     if (shouldSave) {
         try {
@@ -575,23 +571,30 @@ export default function OrcamentoPage() {
                 email: finalClientData.email,
             };
             const newClientId = await addCliente(user.uid, clientPayload);
-            finalClientData.id = newClientId; // Add the new ID to the client data for the budget
+            finalClientData.id = newClientId;
             toast({ title: "Novo cliente salvo com sucesso!" });
-            fetchOrcamentos(); // Fetch clients again
+            fetchClientes(user.uid).then(setClientes);
         } catch (error) {
             toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
-            // continue to save the budget anyway, but without the client ID
             delete finalClientData.id;
         }
     } else {
         delete finalClientData.id;
     }
     
-    await proceedToSaveBudget(finalClientData as ClienteData);
+    proceedToSaveBudget(finalClientData);
     setClientToSave(null);
   };
 
 
+  const fetchClientes = useCallback(async (uid: string) => {
+    try {
+        return await getClientes(uid);
+    } catch(e) {
+        console.error(e);
+        return [];
+    }
+  },[]);
   
   const handleUpdateStatus = async (budgetId: string, status: 'Aceito' | 'Recusado') => {
     if (!user) return;
@@ -841,17 +844,21 @@ export default function OrcamentoPage() {
 
     const { cliente } = editingBudget;
 
-    // Se o cliente tem um ID, ele já existe. Atualize-o.
     if (cliente.id) {
-        await updateCliente(cliente.id, {
-            telefone: cliente.telefone,
-            endereco: cliente.endereco,
-        });
-        toast({ title: "Dados do cliente atualizados."});
-        await finishUpdateBudget();
+        try {
+            await updateCliente(cliente.id, {
+                telefone: cliente.telefone,
+                endereco: cliente.endereco,
+            });
+            toast({ title: "Dados do cliente atualizados."});
+        } catch (error) {
+            console.error("Erro ao atualizar cliente existente:", error);
+            toast({ title: "Não foi possível atualizar o cliente.", variant: "destructive" });
+        } finally {
+            await finishUpdateBudget();
+        }
     } else {
-        // Se o cliente não tem ID, pergunte se quer salvar.
-        setClientToSave(cliente as ClienteData);
+        setClientToSave(cliente);
         setIsConfirmSaveClientOpen(true);
     }
   };
@@ -876,7 +883,7 @@ export default function OrcamentoPage() {
       }
     }
     setClientToSave(null);
-    await finishUpdateBudget(); // Continua para salvar o orçamento, independentemente da escolha.
+    await finishUpdateBudget(); 
   };
 
   const anyLoading = loadingAuth || Object.values(isLoading).some(Boolean);
@@ -1246,12 +1253,12 @@ export default function OrcamentoPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Salvar Novo Cliente?</AlertDialogTitle>
             <AlertDialogDescription>
-              Este cliente não está na sua lista. Deseja salvá-lo para uso futuro? As informações do orçamento serão salvas de qualquer maneira.
+              Este cliente não está na sua lista. Deseja salvá-lo para uso futuro?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => handleConfirmSaveClientDialog(true)}>Sim, Salvar Cliente</AlertDialogAction>
-            <AlertDialogCancel onClick={() => handleConfirmSaveClientDialog(false)}>Não, Apenas no Orçamento</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleConfirmSaveClient(true)}>Sim, Salvar Cliente</AlertDialogAction>
+            <AlertDialogCancel onClick={() => handleConfirmSaveClient(false)}>Não, Apenas no Orçamento</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -50,20 +50,17 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
       throw new Error("User ID é nulo, impossível gerar número do orçamento.");
     }
     
-    const currentYear = new Date().getFullYear();
     console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Chamado com userId: ${userId}`);
+    const currentYear = new Date().getFullYear();
 
     try {
-        const startOfYear = new Date(currentYear, 0, 1);
-        const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
-
+        const startOfYear = new Date(currentYear, 0, 1).toISOString();
+        
         const q = query(
             collection(db, ORCAMENTOS_COLLECTION),
             where('userId', '==', userId),
-            // Nota: Esta consulta pode não funcionar perfeitamente offline se os dados do ano inteiro não estiverem no cache.
-            // O fallback para timestamp é crucial.
-            where('dataCriacao', '>=', new Date(startOfYear).toISOString()),
-            where('dataCriacao', '<=', new Date(endOfYear).toISOString())
+            where('dataCriacao', '>=', startOfYear),
+            orderBy('dataCriacao', 'desc') // Order by date to find the latest
         );
 
         const querySnapshot = await getDocs(q);
@@ -85,12 +82,10 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
         
         const newSequence = lastSequence + 1;
         const newNumeroOrcamento = `${currentYear}-${String(newSequence).padStart(3, '0')}`;
-        console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Última sequência para ${currentYear}: ${lastSequence}. Nova sequência: ${newSequence}`);
+        console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Última sequência para ${currentYear}: ${lastSequence}. Novo número: ${newNumeroOrcamento}`);
         return newNumeroOrcamento;
 
     } catch (error: any) {
-        // Se estiver offline, getDocs() falha se os dados não estiverem em cache.
-        // Nesse caso, usamos o fallback para um número baseado em timestamp.
         console.warn("Falha ao buscar número sequencial online (provavelmente offline), usando fallback:", error.message);
         const offlineNumber = `${currentYear}-${Date.now()}`;
         console.log(`[ORCAMENTO SERVICE - getNextOrcamentoNumber] Gerando número de fallback offline: ${offlineNumber}`);
@@ -102,16 +97,10 @@ export const syncOfflineOrcamentos = async (userId: string) => {
     if (!userId) return;
 
     try {
-        const q = query(
-            collection(db, ORCAMENTOS_COLLECTION),
-            where('userId', '==', userId)
-        );
-
-        // Tenta obter os dados do servidor para garantir que temos a lista mais recente.
+        const q = query(collection(db, ORCAMENTOS_COLLECTION), where('userId', '==', userId));
         const querySnapshot = await getDocs(q);
         const orcamentos = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Orcamento));
 
-        // Filtra orçamentos que possuem um número no formato de fallback (timestamp).
         const offlineOrcamentos = orcamentos.filter(o => o.numeroOrcamento && o.numeroOrcamento.includes('-') && o.numeroOrcamento.split('-')[1].length > 4);
         
         if (offlineOrcamentos.length === 0) {
@@ -121,18 +110,16 @@ export const syncOfflineOrcamentos = async (userId: string) => {
 
         console.log(`Sincronizando ${offlineOrcamentos.length} orçamentos offline...`);
 
-        // Ordena para garantir que os números sequenciais sejam atribuídos na ordem de criação.
         offlineOrcamentos.sort((a, b) => new Date(a.dataCriacao).getTime() - new Date(b.dataCriacao).getTime());
 
-        // Pega o próximo número sequencial real a partir do estado atual online.
-        const nextNumberStr = await getNextOrcamentoNumber(userId);
-        const parts = nextNumberStr.split('-');
-        let nextSequence = parseInt(parts[1], 10);
+        let nextNumberStr = await getNextOrcamentoNumber(userId);
+        let year = new Date().getFullYear();
+        let nextSequence = parseInt(nextNumberStr.split('-')[1], 10);
         
         const batch = writeBatch(db);
 
         for (const orcamento of offlineOrcamentos) {
-            const newNumeroOrcamento = `${parts[0]}-${String(nextSequence).padStart(3, '0')}`;
+            const newNumeroOrcamento = `${year}-${String(nextSequence).padStart(3, '0')}`;
             const docRef = doc(db, ORCAMENTOS_COLLECTION, orcamento.id);
             batch.update(docRef, { numeroOrcamento: newNumeroOrcamento });
             console.log(`Atualizando orçamento ${orcamento.numeroOrcamento} para ${newNumeroOrcamento}`);
@@ -143,8 +130,6 @@ export const syncOfflineOrcamentos = async (userId: string) => {
         console.log("Sincronização de orçamentos offline concluída.");
 
     } catch (error) {
-        // Se houver erro na sincronização (ex: ainda offline), ele tentará novamente na próxima vez.
         console.error("Erro ao sincronizar orçamentos offline:", error);
     }
 };
-
