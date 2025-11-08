@@ -500,42 +500,55 @@ export default function OrcamentoPage() {
   };
   
   const handleConfirmSave = async () => {
-    if (!user) { toast({ title: "Usuário não autenticado", variant: "destructive" }); return; }
-    if (orcamentoItens.length === 0) { toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item ao orçamento.", variant: "destructive" }); return;}
-    
+    if (!user) {
+        toast({ title: "Usuário não autenticado", variant: "destructive" });
+        return;
+    }
+    if (orcamentoItens.length === 0) {
+        toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item ao orçamento.", variant: "destructive" });
+        return;
+    }
+
     setIsSubmitting(true);
+
     try {
         const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
-        
+
         const finalClienteData: Partial<ClienteData> = { ...clienteData };
         if (finalClienteData.id === undefined) {
             delete finalClienteData.id;
         }
 
         const newBudget: Omit<Orcamento, 'id'> = {
-            userId: user.uid, 
+            userId: user.uid,
             numeroOrcamento,
             cliente: { ...(finalClienteData as Omit<ClienteData, 'id'>), userId: user.uid },
-            itens: orcamentoItens, 
+            itens: orcamentoItens,
             totalVenda: totalVenda,
-            dataCriacao: new Date().toISOString(), 
-            status: 'Pendente', 
+            dataCriacao: new Date().toISOString(),
+            status: 'Pendente',
             validadeDias: validadeDias,
             dataAceite: null,
             dataRecusa: null,
         };
 
-        await addOrcamento(newBudget);
-        await fetchOrcamentos();
-        toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
+        // Fire-and-forget: don't await the result
+        addOrcamento(newBudget);
+
+        // Optimistically update UI
+        setIsSubmitting(false);
         setIsWizardOpen(false);
-    } catch(error: any) {
+        toast({ title: `Orçamento ${numeroOrcamento} salvo com sucesso!` });
+        
+        // Fetch in the background to update the list
+        fetchOrcamentos();
+
+    } catch (error: any) {
         console.error("Erro ao salvar:", error);
         toast({ title: "Erro ao salvar orçamento", description: error.message, variant: "destructive" });
-    } finally {
         setIsSubmitting(false);
     }
-  }
+  };
   
   const handleUpdateStatus = async (budgetId: string, status: 'Aceito' | 'Recusado') => {
     if (!user) return;
@@ -565,7 +578,7 @@ export default function OrcamentoPage() {
         await fetchOrcamentos();
         toast({ title: `Orçamento ${status.toLowerCase()}!` });
         if (status === 'Aceito' && acceptedBudget) { 
-            const updatedBudget = { ...acceptedBudget, status, ...updatePayload };
+            const updatedBudget = { ...acceptedBudget, ...updatePayload, status: 'Aceito' };
             handleSendAcceptanceWhatsApp(updatedBudget); 
         }
     } catch(error) {
