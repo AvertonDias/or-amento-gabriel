@@ -279,12 +279,11 @@ export default function OrcamentoPage() {
   const [isConfirmSaveClientOpen, setIsConfirmSaveClientOpen] = useState(false);
   const [clientToSave, setClientToSave] = useState<Omit<ClienteData, 'id' | 'userId'> | null>(null);
 
-  const fetchAllData = useCallback(async (isRefresh = false) => {
+ const fetchAllData = useCallback(async (isRefresh = false) => {
     if (!user) return;
     
-    if(isRefresh) setIsRefreshing(true);
-
-    setIsLoading(prev => ({...prev, materiais: true, clientes: true, empresa: true, orcamentos: true}));
+    if (isRefresh) setIsRefreshing(true);
+    else setIsLoading(prev => ({...prev, materiais: true, clientes: true, empresa: true, orcamentos: true}));
 
     try {
         await syncOfflineOrcamentos(user.uid);
@@ -303,9 +302,10 @@ export default function OrcamentoPage() {
         toast({ title: 'Erro ao carregar dados do servidor', variant: 'destructive' });
     } finally {
         setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
-        if(isRefresh) setIsRefreshing(false);
+        if (isRefresh) setIsRefreshing(false);
     }
-  }, [user, toast]);
+}, [user, toast]);
+
   
   useEffect(() => {
     if (user) {
@@ -554,38 +554,41 @@ export default function OrcamentoPage() {
     }
   };
   
-  const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
+  const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
       setIsConfirmSaveClientOpen(false);
       if (!clientToSave || !user) return;
-
-      let finalClientData: ClienteData = { ...clientToSave, userId: user.uid, id: clientToSave.id || crypto.randomUUID()};
-
+  
+      let finalClientData: ClienteData = { ...clientToSave, userId: user.uid, id: clientToSave.id || crypto.randomUUID() };
+  
       if (shouldSave) {
-          try {
-              const clientPayload = {
-                  nome: finalClientData.nome,
-                  cpfCnpj: finalClientData.cpfCnpj,
-                  endereco: finalClientData.endereco,
-                  telefone: finalClientData.telefone,
-                  email: finalClientData.email,
-              };
-              const newClientId = await addCliente(user.uid, clientPayload);
-              finalClientData.id = newClientId; // Usa o ID real retornado pelo Firebase
-              toast({ title: "Novo cliente salvo com sucesso!" });
-              fetchClientes(user.uid).then(setClientes); // Atualiza a lista de clientes
-          } catch (error) {
-              console.error("Erro ao salvar novo cliente:", error);
-              toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
-              // Se falhar ao salvar, continua para salvar o orçamento com os dados que temos
-              delete finalClientData.id;
-          }
+          const clientPayload = {
+              nome: finalClientData.nome,
+              cpfCnpj: finalClientData.cpfCnpj,
+              endereco: finalClientData.endereco,
+              telefone: finalClientData.telefone,
+              email: finalClientData.email,
+          };
+          
+          addCliente(user.uid, clientPayload)
+              .then(newClientId => {
+                  finalClientData.id = newClientId;
+                  toast({ title: "Novo cliente salvo com sucesso!" });
+                  fetchAllData(true);
+                  proceedToSaveBudget(finalClientData);
+              })
+              .catch(error => {
+                  console.error("Erro ao salvar novo cliente:", error);
+                  toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
+                  // Se falhar ao salvar, continua para salvar o orçamento com os dados que temos, mas sem ID
+                  delete finalClientData.id;
+                  proceedToSaveBudget(finalClientData);
+              });
       } else {
          // Não salva o cliente, mas o orçamento ainda precisa de um objeto ClienteData
-         // Mantemos os dados, mas sem o ID, para que não seja confundido com um cliente salvo
          delete finalClientData.id;
+         proceedToSaveBudget(finalClientData);
       }
       
-      await proceedToSaveBudget(finalClientData);
       setClientToSave(null);
   };
 
@@ -1026,7 +1029,7 @@ export default function OrcamentoPage() {
 
                 <div className="relative py-2">
                     <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Ou preencha manualmente</span></div>
+                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Ou preencha manually</span></div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1230,16 +1233,16 @@ export default function OrcamentoPage() {
       
       <AlertDialog open={isConfirmSaveClientOpen} onOpenChange={setIsConfirmSaveClientOpen}>
         <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Salvar Novo Cliente?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Este cliente não está na sua lista. Deseja salvá-lo para uso futuro?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => handleConfirmSaveClientDialog(true)}>Sim, Salvar Cliente</AlertDialogAction>
-            <AlertDialogCancel onClick={() => handleConfirmSaveClientDialog(false)}>Não, Apenas no Orçamento</AlertDialogCancel>
-          </AlertDialogFooter>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Salvar Novo Cliente?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Este cliente não está na sua lista. Deseja salvá-lo para uso futuro?
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogAction onClick={() => handleConfirmSaveClientDialog(true)}>Sim, Salvar Cliente</AlertDialogAction>
+                <AlertDialogCancel onClick={() => handleConfirmSaveClientDialog(false)}>Não, Apenas no Orçamento</AlertDialogCancel>
+            </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
@@ -1283,4 +1286,3 @@ export default function OrcamentoPage() {
     </div>
   );
 }
-

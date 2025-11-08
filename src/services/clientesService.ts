@@ -5,12 +5,13 @@ import type { ClienteData } from '@/lib/types';
 const CLIENTES_COLLECTION = 'clientes';
 
 // Add a new client and return its ID
-export const addCliente = async (userId: string, cliente: Omit<ClienteData, 'id' | 'userId'>): Promise<string> => {
-  const docRef = await addDoc(collection(db, CLIENTES_COLLECTION), {
+export const addCliente = (userId: string, cliente: Omit<ClienteData, 'id' | 'userId'>): Promise<string> => {
+  // Retornamos a promessa diretamente. No modo offline, ela resolverá quando
+  // a escrita for feita no cache local.
+  return addDoc(collection(db, CLIENTES_COLLECTION), {
     ...cliente,
     userId,
-  });
-  return docRef.id;
+  }).then(docRef => docRef.id);
 };
 
 // Update an existing client
