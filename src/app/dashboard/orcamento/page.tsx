@@ -20,7 +20,7 @@ import html2canvas from 'html2canvas';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { getMateriais, updateEstoque } from '@/services/materiaisService';
-import { getClientes } from '@/services/clientesService';
+import { getClientes, addCliente, updateCliente } from '@/services/clientesService';
 import { getEmpresaData } from '@/services/empresaService';
 import { addOrcamento, deleteOrcamento, getOrcamentos, getNextOrcamentoNumber, updateOrcamento, updateOrcamentoStatus, syncOfflineOrcamentos } from '@/services/orcamentosService';
 import { addDays, parseISO, format, isBefore, startOfToday } from 'date-fns';
@@ -275,6 +275,9 @@ export default function OrcamentoPage() {
   // State for expired budgets modal
   const [expiredBudgets, setExpiredBudgets] = useState<Orcamento[]>([]);
   const [isExpiredModalOpen, setIsExpiredModalOpen] = useState(false);
+  
+  const [isConfirmSaveClientOpen, setIsConfirmSaveClientOpen] = useState(false);
+  const [clientToSave, setClientToSave] = useState<ClienteData | null>(null);
 
 
   const fetchAllData = useCallback(async (isRefresh = false) => {
@@ -778,8 +781,8 @@ export default function OrcamentoPage() {
       }
     })
   };
-
-  const handleUpdateBudget = async () => {
+  
+  const finishUpdateBudget = async () => {
     if (!editingBudget || !user) return;
     setIsSubmitting(true);
     try {
@@ -790,7 +793,7 @@ export default function OrcamentoPage() {
             totalVenda: totalVendaFinal,
         };
         await updateOrcamento(budgetToUpdate.id, budgetToUpdate);
-        await fetchOrcamentos();
+        await fetchAllData(true); // Refresh all data to ensure consistency
         setIsEditBudgetModalOpen(false);
         setEditingBudget(null);
         toast({title: "Orçamento atualizado com sucesso!"});
@@ -800,6 +803,50 @@ export default function OrcamentoPage() {
     } finally {
         setIsSubmitting(false);
     }
+  };
+
+
+  const handleUpdateBudget = async () => {
+    if (!editingBudget || !user) return;
+
+    const { cliente } = editingBudget;
+
+    // Se o cliente tem um ID, ele já existe. Atualize-o.
+    if (cliente.id) {
+        await updateCliente(cliente.id, {
+            telefone: cliente.telefone,
+            endereco: cliente.endereco,
+        });
+        toast({ title: "Dados do cliente atualizados."});
+        await finishUpdateBudget();
+    } else {
+        // Se o cliente não tem ID, pergunte se quer salvar.
+        setClientToSave(cliente as ClienteData);
+        setIsConfirmSaveClientOpen(true);
+    }
+  };
+
+  const handleConfirmSaveClient = async (save: boolean) => {
+    setIsConfirmSaveClientOpen(false);
+    if (!clientToSave || !user) return;
+    
+    if (save) {
+      try {
+        const newClientPayload = {
+          nome: clientToSave.nome,
+          cpfCnpj: clientToSave.cpfCnpj,
+          endereco: clientToSave.endereco,
+          telefone: clientToSave.telefone,
+          email: clientToSave.email,
+        };
+        await addCliente(user.uid, newClientPayload);
+        toast({ title: "Novo cliente salvo com sucesso!"});
+      } catch (error) {
+        toast({ title: "Erro ao salvar novo cliente", variant: "destructive"});
+      }
+    }
+    setClientToSave(null);
+    await finishUpdateBudget(); // Continua para salvar o orçamento, independentemente da escolha.
   };
 
   const anyLoading = loadingAuth || Object.values(isLoading).some(Boolean);
@@ -1076,7 +1123,7 @@ export default function OrcamentoPage() {
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="edit-cliente-nome">Nome</Label>
-                        <Input id="edit-cliente-nome" name="nome" value={editingBudget.cliente.nome} onChange={handleEditingBudgetClientChange} required/>
+                        <Input id="edit-cliente-nome" name="nome" value={editingBudget.cliente.nome} disabled/>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="edit-cliente-telefone">Telefone</Label>
@@ -1088,11 +1135,11 @@ export default function OrcamentoPage() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="edit-cliente-email">Email</Label>
-                        <Input id="edit-cliente-email" name="email" type="email" value={editingBudget.cliente.email || ''} onChange={handleEditingBudgetClientChange} />
+                        <Input id="edit-cliente-email" name="email" type="email" value={editingBudget.cliente.email || ''} disabled />
                       </div>
                        <div className="space-y-2">
                         <Label htmlFor="edit-cliente-cpfCnpj">CPF/CNPJ</Label>
-                        <Input id="edit-cliente-cpfCnpj" name="cpfCnpj" value={editingBudget.cliente.cpfCnpj || ''} onChange={handleEditingBudgetClientChange} />
+                        <Input id="edit-cliente-cpfCnpj" name="cpfCnpj" value={editingBudget.cliente.cpfCnpj || ''} disabled />
                       </div>
                     </div>
                   </div>
@@ -1163,6 +1210,21 @@ export default function OrcamentoPage() {
             </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+       <AlertDialog open={isConfirmSaveClientOpen} onOpenChange={setIsConfirmSaveClientOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Salvar Novo Cliente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Este cliente não está na sua lista. Deseja salvá-lo para uso futuro? As informações do orçamento serão salvas de qualquer maneira.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => handleConfirmSaveClient(true)}>Sim, Salvar Cliente</AlertDialogAction>
+            <AlertDialogCancel onClick={() => handleConfirmSaveClient(false)}>Não, Apenas no Orçamento</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={isExpiredModalOpen} onOpenChange={setIsExpiredModalOpen}>
         <AlertDialogContent>
