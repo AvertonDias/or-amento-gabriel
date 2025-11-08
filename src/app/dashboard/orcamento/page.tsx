@@ -534,45 +534,42 @@ export default function OrcamentoPage() {
   };
   
 const proceedToSaveBudget = async (currentClient: ClienteData) => {
-    if (!user || !currentClient) {
-        toast({ title: "Erro interno: dados do usuário ou cliente ausentes.", variant: "destructive" });
-        return;
+    if (!user || !currentClient.id) {
+      toast({ title: "Erro interno: dados do usuário ou ID do cliente ausentes.", variant: "destructive" });
+      return;
     }
 
     setIsSubmitting(true);
     try {
-        const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
-        
-        const newBudget: Omit<Orcamento, "id"> = {
-            userId: user.uid,
-            numeroOrcamento,
-            cliente: { ...currentClient },
-            itens: orcamentoItens,
-            totalVenda,
-            dataCriacao: new Date().toISOString(),
-            status: "Pendente",
-            validadeDias,
-            dataAceite: null,
-            dataRecusa: null,
-        };
+      const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
+      const newBudget: Omit<Orcamento, "id"> = {
+        userId: user.uid,
+        numeroOrcamento,
+        cliente: { ...currentClient },
+        itens: orcamentoItens,
+        totalVenda,
+        dataCriacao: new Date().toISOString(),
+        status: "Pendente",
+        validadeDias,
+        dataAceite: null,
+        dataRecusa: null,
+      };
 
-        addOrcamento(newBudget);
-        
-        toast({ title: `Orçamento ${numeroOrcamento} salvo!` });
-        
-        // As escritas offline são rápidas, então podemos fechar o modal e atualizar a UI.
-        setIsWizardOpen(false);
-        setTimeout(() => fetchAllData(true), 500);
+      await addOrcamento(newBudget);
+      toast({ title: `Orçamento ${numeroOrcamento} salvo!` });
+      
+      setIsWizardOpen(false);
+      setTimeout(() => fetchAllData(true), 500);
 
     } catch (error: any) {
-        console.error("Erro ao salvar orçamento:", error);
-        toast({ title: "Erro ao salvar orçamento", description: error.message, variant: "destructive" });
+      console.error("Erro ao salvar orçamento:", error);
+      toast({ title: "Erro ao salvar orçamento", description: error.message, variant: "destructive" });
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
 };
 
-const handleConfirmSave = async () => {
+const handleConfirmSave = () => {
     if (orcamentoItens.length === 0) {
         toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item.", variant: "destructive" });
         return;
@@ -586,31 +583,39 @@ const handleConfirmSave = async () => {
     const existingClient = clientes.find(c => c.nome.trim().toLowerCase() === normalizedNewClientName);
 
     if (existingClient) {
+        // Cliente já existe, apenas salvar o orçamento
         proceedToSaveBudget(existingClient);
     } else {
+        // Cliente novo, perguntar se quer salvar
         setClientToSave(clienteData);
         setIsConfirmSaveClientOpen(true);
     }
 };
 
 
-const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
-    if (!clientToSave) return;
+const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
+    if (!clientToSave || !user) return;
 
-    if (shouldSave && user) {
+    let finalClientData: ClienteData;
+
+    if (shouldSave) {
         const clientPayload = { ...clientToSave };
         delete clientPayload.id;
         try {
-            // A função addCliente já não usa await, então isso é enfileirado offline.
-            addCliente(user.uid, clientPayload);
-            toast({ title: "Novo cliente será salvo ao reconectar." });
+            const newClientId = await addCliente(user.uid, clientPayload);
+            finalClientData = { ...clientToSave, id: newClientId, userId: user.uid };
+            toast({ title: "Novo cliente salvo com sucesso!" });
         } catch (error: any) {
-            console.error("Erro ao enfileirar salvamento do novo cliente:", error);
-            toast({ title: "Erro ao tentar salvar novo cliente.", variant: "destructive" });
+            console.error("Erro ao salvar novo cliente:", error);
+            toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
+            // Se falhar ao salvar, não prosseguir com o orçamento.
+            setIsConfirmSaveClientOpen(false);
+            return;
         }
+    } else {
+        finalClientData = { ...clientToSave, id: clientToSave.id || crypto.randomUUID(), userId: user.uid };
     }
     
-    const finalClientData = { ...clientToSave, id: clientToSave.id || crypto.randomUUID() };
     proceedToSaveBudget(finalClientData);
     setIsConfirmSaveClientOpen(false);
     setClientToSave(null);

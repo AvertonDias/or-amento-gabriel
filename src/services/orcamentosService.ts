@@ -6,19 +6,17 @@ import type { Orcamento } from '@/lib/types';
 const ORCAMENTOS_COLLECTION = 'orcamentos';
 
 // Add a new orcamento
-export const addOrcamento = (orcamento: Omit<Orcamento, 'id'>) => {
+export const addOrcamento = async (orcamento: Omit<Orcamento, 'id'>) => {
   console.log(`[ORCAMENTO SERVICE - addOrcamento] Tentando salvar orçamento para cliente: ${orcamento.cliente.nome}`);
   
-  // Nao usamos await aqui para permitir que o firebase gerencie a fila offline
-  addDoc(collection(db, ORCAMENTOS_COLLECTION), orcamento)
-    .then(docRef => {
-      console.log("[ORCAMENTO SERVICE - addOrcamento] Orçamento adicionado à fila com ID temporário/local.");
-    })
-    .catch(error => {
-      console.error("[ORCAMENTO SERVICE - addOrcamento] Erro ao adicionar orçamento:", error.message);
-      // Mesmo com erro, o Firestore offline deve ter gerenciado isso.
-      // O erro aqui provavelmente seria sobre regras de segurança ou configuração.
-    });
+  try {
+    const docRef = await addDoc(collection(db, ORCAMENTOS_COLLECTION), orcamento);
+    console.log("[ORCAMENTO SERVICE - addOrcamento] Orçamento adicionado com ID:", docRef.id);
+  } catch (error) {
+      console.error("[ORCAMENTO SERVICE - addOrcamento] Erro ao adicionar orçamento:", error);
+      // Re-throw the error to be handled by the caller
+      throw error;
+  }
 };
 
 
@@ -65,7 +63,6 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
         const q = query(
             collection(db, ORCAMENTOS_COLLECTION),
             where('userId', '==', userId),
-            where('numeroOrcamento', '>=', `${currentYear}-000`),
             orderBy('numeroOrcamento', 'desc'),
             limit(1)
         );
