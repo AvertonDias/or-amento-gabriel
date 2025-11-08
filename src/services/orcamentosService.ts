@@ -66,7 +66,7 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
             collection(db, ORCAMENTOS_COLLECTION),
             where('userId', '==', userId),
             where('numeroOrcamento', '>=', `${currentYear}-000`),
-            where('numeroOrcamento', '<', `${currentYear+1}-000`),
+            where('numeroOrcamento', '<', `${currentYear + 1}-000`),
             orderBy('numeroOrcamento', 'desc'),
             limit(1)
         );
@@ -106,10 +106,12 @@ export const syncOfflineOrcamentos = async (userId: string) => {
     if (!userId) return;
 
     try {
-        const q = query(collection(db, ORCAMENTOS_COLLECTION), where('userId', '==', userId), where('numeroOrcamento', 'array-contains', 'TEMP'));
+        const q = query(collection(db, ORCAMENTOS_COLLECTION), where('userId', '==', userId));
         const querySnapshot = await getDocs(q);
         
-        const offlineOrcamentos = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Orcamento));
+        const offlineOrcamentos = querySnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as Orcamento))
+            .filter(orc => orc.numeroOrcamento && orc.numeroOrcamento.includes('TEMP'));
         
         if (offlineOrcamentos.length === 0) {
             console.log("Nenhum orçamento offline para sincronizar.");
@@ -118,6 +120,7 @@ export const syncOfflineOrcamentos = async (userId: string) => {
 
         console.log(`Sincronizando ${offlineOrcamentos.length} orçamentos offline...`);
 
+        // Ordena para processar os mais antigos primeiro
         offlineOrcamentos.sort((a, b) => {
             const timeA = parseInt(a.numeroOrcamento.split('-').pop() || '0');
             const timeB = parseInt(b.numeroOrcamento.split('-').pop() || '0');
@@ -127,21 +130,26 @@ export const syncOfflineOrcamentos = async (userId: string) => {
         const batch = writeBatch(db);
 
         for (const orcamento of offlineOrcamentos) {
-            const newNumeroOrcamento = await getNextOrcamentoNumber(userId);
-            if(newNumeroOrcamento.includes('TEMP')) {
-                console.warn("Ainda offline, não é possível sincronizar os números dos orçamentos.");
-                return; // Aborta se ainda estiver offline
+            try {
+                const newNumeroOrcamento = await getNextOrcamentoNumber(userId);
+                // Se ainda estivermos offline, o número conterá TEMP, então abortamos a sincronização.
+                if (newNumeroOrcamento.includes('TEMP')) {
+                    console.warn("Ainda offline, não é possível sincronizar os números dos orçamentos.");
+                    return; 
+                }
+                
+                const docRef = doc(db, ORCAMENTOS_COLLECTION, orcamento.id);
+                batch.update(docRef, { numeroOrcamento: newNumeroOrcamento });
+                console.log(`Atualizando orçamento ${orcamento.numeroOrcamento} para ${newNumeroOrcamento}`);
+            } catch(e) {
+                console.error(`Erro ao gerar novo número para o orçamento ${orcamento.id}. Pulando.`, e);
             }
-            
-            const docRef = doc(db, ORCAMENTOS_COLLECTION, orcamento.id);
-            batch.update(docRef, { numeroOrcamento: newNumeroOrcamento });
-            console.log(`Atualizando orçamento ${orcamento.numeroOrcamento} para ${newNumeroOrcamento}`);
         }
 
         await batch.commit();
         console.log("Sincronização de orçamentos offline concluída.");
 
     } catch (error) {
-        console.error("Erro ao sincronizar orçamentos offline:", error);
+        console.error("Erro ao buscar orçamentos para sincronização:", error);
     }
 };
