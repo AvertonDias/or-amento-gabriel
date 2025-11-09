@@ -1,4 +1,3 @@
-'use client';
 // src/ai/genkit.ts
 
 // Importe TUDO de 'genkit' como um namespace
