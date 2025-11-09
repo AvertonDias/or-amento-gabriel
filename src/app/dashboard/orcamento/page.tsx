@@ -617,6 +617,7 @@ const handleConfirmSave = async () => {
             (newBudget as any)._isPending = true;
             setOrcamentosSalvos(prev => [...prev, newBudget as Orcamento]); // Optimistic update
             setIsConfirmSaveClientOpen(true);
+            setIsSubmitting(false); // Unlock button while dialog is open
             return; // Stop here, the dialog will continue the flow
         }
         
@@ -647,6 +648,7 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
     }
     const budgetToSave = orcamentosSalvos[pendingBudgetIndex];
 
+    setIsSubmitting(true);
 
     if (shouldSave) {
         try {
@@ -661,6 +663,7 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
             toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
             // Remove the optimistically added budget if client save fails
             setOrcamentosSalvos(prev => prev.filter((_, i) => i !== pendingBudgetIndex));
+            setIsSubmitting(false);
             return;
         }
     }
@@ -678,6 +681,8 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
         // Refresh all data to ensure consistency
         fetchAllData(true);
         setClientToSave(null);
+        setIsSubmitting(false);
+        setIsWizardOpen(false);
     }
 };
 
