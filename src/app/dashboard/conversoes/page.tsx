@@ -202,7 +202,7 @@ export default function ConversoesPage() {
         quantidadeMinima: numQuantidadeMinima,
       };
 
-      await updateMaterial(id, updatedPayload);
+      await updateMaterial(user.uid, id, updatedPayload);
       toast({
         title: "Sucesso!",
         description: "Estoque do item atualizado com sucesso.",
