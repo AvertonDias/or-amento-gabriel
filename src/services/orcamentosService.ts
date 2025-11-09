@@ -1,3 +1,4 @@
+
 'use client';
 
 import { db, auth } from '@/lib/firebase';
@@ -85,8 +86,7 @@ export const updateOrcamentoStatus = async (
 };
 
 // Delete an orcamento
-export const deleteOrcamento = async (orcamentoId: string, userId: string) => {
-  if (!userId) throw new Error('Usuário não autenticado.');
+export const deleteOrcamento = async (orcamentoId: string) => {
   const orcamentoDoc = doc(db, 'orcamentos', orcamentoId);
   await deleteDoc(orcamentoDoc);
 };
@@ -172,72 +172,5 @@ export const getNextOrcamentoNumber = async (
       `[ORCAMENTO SERVICE - getNextOrcamentoNumber] Gerando número de fallback offline: ${offlineNumber}`
     );
     return offlineNumber;
-  }
-};
-
-export const syncOfflineOrcamentos = async (userId: string) => {
-  if (!navigator.onLine || !userId) {
-    console.log('Offline ou sem usuário, pulando sincronização.');
-    return;
-  }
-
-  try {
-    const orcamentosCollection = getOrcamentosCollection();
-    const q = query(
-      orcamentosCollection,
-      where('userId', '==', userId)
-    );
-
-    const querySnapshot = await getDocs(q);
-
-    const offlineOrcamentos = querySnapshot.docs
-      .map((doc) => ({ id: doc.id, ref: doc.ref, ...doc.data() }))
-      .filter(
-        (orc) =>
-          (orc.numeroOrcamento &&
-            typeof orc.numeroOrcamento === 'string' &&
-            orc.numeroOrcamento.includes('TEMP'))
-      ) as (Orcamento & { ref: any })[];
-
-    if (offlineOrcamentos.length === 0) {
-      console.log('Nenhum orçamento offline para sincronizar.');
-      return;
-    }
-
-    console.log(`Sincronizando ${offlineOrcamentos.length} orçamentos offline...`);
-
-    offlineOrcamentos.sort((a, b) => {
-      const timeA = parseInt(a.numeroOrcamento.split('-').pop() || '0');
-      const timeB = parseInt(b.numeroOrcamento.split('-').pop() || '0');
-      return timeA - timeB;
-    });
-
-    for (const orcamento of offlineOrcamentos) {
-      try {
-        const newNumeroOrcamento = await getNextOrcamentoNumber(userId);
-        if (newNumeroOrcamento.includes('TEMP')) {
-          console.log(
-            'Ainda offline, não é possível sincronizar os números dos orçamentos.'
-          );
-          return;
-        }
-
-        await updateDoc(orcamento.ref, {
-          numeroOrcamento: newNumeroOrcamento,
-        });
-        console.log(
-          `Atualizando orçamento ${orcamento.numeroOrcamento} para ${newNumeroOrcamento}`
-        );
-      } catch (e) {
-        console.error(
-          `Erro ao gerar novo número para o orçamento ${orcamento.id}. Pulando.`,
-          e
-        );
-      }
-    }
-
-    console.log('Sincronização de orçamentos offline concluída.');
-  } catch (error) {
-    console.error('Erro ao buscar orçamentos para sincronização:', error);
   }
 };
