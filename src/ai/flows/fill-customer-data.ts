@@ -10,7 +10,7 @@
 // Importe a configuração Genkit para GARANTIR que ela seja executada.
 import '@/ai/genkit';
 
-import { defineFlow } from 'genkit';
+import * as genkit from 'genkit';
 import { geminiPro } from '@genkit-ai/googleai';
 import { z } from 'zod';
 
@@ -56,7 +56,7 @@ Preencha o seguinte objeto de saída com as informações completas que encontra
 `,
 });
 
-const fillCustomerDataFlow = defineFlow(
+const fillCustomerDataFlow = genkit.defineFlow(
   {
     name: 'fillCustomerDataFlow',
     inputSchema: FillCustomerDataInputSchema,

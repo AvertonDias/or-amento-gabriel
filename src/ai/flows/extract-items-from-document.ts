@@ -10,8 +10,8 @@
 // Importe a configuração Genkit para GARANTIR que ela seja executada.
 import '@/ai/genkit';
 
+import * as genkit from 'genkit';
 import {z} from 'zod';
-import { defineFlow } from 'genkit';
 import { geminiProVision } from '@genkit-ai/googleai';
 
 
@@ -56,7 +56,7 @@ const extractPrompt = geminiProVision.definePrompt(
 );
 
 
-export const extractItemsFromDocument = defineFlow(
+export const extractItemsFromDocument = genkit.defineFlow(
   {
     name: 'extractItemsFromDocument',
     inputSchema: ExtractItemsInputSchema,

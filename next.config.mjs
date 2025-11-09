@@ -1,14 +1,12 @@
-
+// next.config.mjs
 /** @type {import('next').NextConfig} */
-import withPWAInit from '@ducanh2912/next-pwa';
-
-const withPWA = withPWAInit({
-  dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
-});
-
 const nextConfig = {
-  reactStrictMode: true,
+  // ... outras configurações ...
+  experimental: {
+    // Adicione transpilePackages aqui
+    // Isso pode ajudar a resolver problemas de transpilação com o Genkit e suas dependências.
+    transpilePackages: ['genkit', '@genkit-ai/core', '@genkit-ai/googleai', 'dotprompt', 'handlebars'],
+  },
 };
 
-export default withPWA(nextConfig);
+export default nextConfig;
