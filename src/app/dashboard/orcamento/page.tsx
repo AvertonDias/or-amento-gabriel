@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, FormEvent, useRef, useCallback } from 'react';
@@ -1398,3 +1399,4 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
 }
 
     
+
