@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Wrench, PlusCircle, Pencil, Loader2, RefreshCw, Package, Construction } from 'lucide-react';
+import { Trash2, Wrench, PlusCircle, Pencil, Loader2, RefreshCw, Package, Construction, Upload, Bot, FileScan, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
@@ -26,6 +26,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { cn } from '@/lib/utils';
+import { extractItemsFromDocument, ExtractItemsOutput } from '@/ai/flows/extract-items-from-document';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 
 const initialNewItemState: Omit<MaterialItem, 'id' | 'userId'> = {
@@ -47,12 +49,12 @@ const unidadesDeMedida = [
   { value: 'serv', label: 'Serviço (serv)' },
 ];
 
-// Helper function to normalize strings for comparison
 const normalizeString = (str: string) => {
   if (!str) return '';
   return str.trim().toLowerCase().replace(/,/g, '.').replace(/\s+/g, ' ');
 };
 
+type ExtractedItem = ExtractItemsOutput['items'][0] & { id: string; status: 'pending' | 'reviewed' | 'removed' };
 
 export default function MateriaisPage() {
   const [user, loadingAuth] = useAuthState(auth);
@@ -66,7 +68,6 @@ export default function MateriaisPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<MaterialItem | null>(null);
 
-  // States for string representation of number inputs
   const [precoUnitarioStr, setPrecoUnitarioStr] = useState('');
   const [quantidadeStr, setQuantidadeStr] = useState('');
   const [quantidadeMinimaStr, setQuantidadeMinimaStr] = useState('');
@@ -74,10 +75,12 @@ export default function MateriaisPage() {
   const [editingQuantidadeStr, setEditingQuantidadeStr] = useState('');
   const [editingQuantidadeMinimaStr, setEditingQuantidadeMinimaStr] = useState('');
 
-  // State for update confirmation
   const [isUpdateConfirmOpen, setIsUpdateConfirmOpen] = useState(false);
   const [conflictingItem, setConflictingItem] = useState<MaterialItem | null>(null);
 
+  const [isProcessingFile, setIsProcessingFile] = useState(false);
+  const [extractedItems, setExtractedItems] = useState<ExtractedItem[]>([]);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
   const { toast } = useToast();
   
@@ -121,7 +124,6 @@ export default function MateriaisPage() {
 
   const handleNewItemNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-
     if (name === 'precoUnitario') {
       const maskedValue = maskCurrency(value);
       setPrecoUnitarioStr(maskedValue);
@@ -181,33 +183,24 @@ export default function MateriaisPage() {
     if (!conflictingItem || !user) return;
     try {
       const { id, userId, ...materialToUpdate } = conflictingItem;
-
-      // Se for um item, soma a quantidade. Se não, apenas atualiza.
       const newQuantity = (newItem.tipo === 'item' && materialToUpdate.quantidade != null && newItem.quantidade != null)
         ? materialToUpdate.quantidade + newItem.quantidade
         : newItem.quantidade;
-
       const updatedPayload: Partial<Omit<MaterialItem, 'id' | 'userId'>> = {
         unidade: newItem.unidade,
         precoUnitario: newItem.precoUnitario,
-        // Só atualiza os campos de estoque se for um item
         ...(newItem.tipo === 'item' && {
           quantidade: newQuantity,
           quantidadeMinima: newItem.quantidadeMinima,
         })
       };
-
       await updateMaterial(user.uid, id, updatedPayload);
       setNewItem({ ...initialNewItemState, tipo: activeTab, unidade: activeTab === 'servico' ? 'serv' : 'un' });
       setPrecoUnitarioStr('');
       setQuantidadeStr('');
       setQuantidadeMinimaStr('');
       await fetchMateriais();
-      toast({
-        title: "Sucesso!",
-        description: "Item atualizado com sucesso.",
-      });
-
+      toast({ title: "Sucesso!", description: "Item atualizado com sucesso." });
     } catch (error) {
       toast({ title: 'Erro ao atualizar item', variant: 'destructive' });
     } finally {
@@ -215,32 +208,16 @@ export default function MateriaisPage() {
     }
 };
 
-
   const handleAdicionarMaterial = async (e: FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      toast({ title: "Usuário não autenticado", variant: "destructive" });
-      return;
-    }
+    if (!user) { toast({ title: "Usuário não autenticado", variant: "destructive" }); return; }
     if (!newItem.descricao || newItem.precoUnitario === null || isNaN(newItem.precoUnitario)) {
-        toast({
-            title: "Campos Obrigatórios",
-            description: "Por favor, preencha a Descrição e o Preço.",
-            variant: "destructive"
-        });
+        toast({ title: "Campos Obrigatórios", description: "Por favor, preencha a Descrição e o Preço.", variant: "destructive" });
         return;
     }
-
-    // Check for duplicates
     const normalizedNewDesc = normalizeString(newItem.descricao);
     const existingItem = materiais.find(m => normalizeString(m.descricao) === normalizedNewDesc && m.tipo === newItem.tipo);
-
-    if (existingItem) {
-      setConflictingItem(existingItem);
-      setIsUpdateConfirmOpen(true);
-      return;
-    }
-
+    if (existingItem) { setConflictingItem(existingItem); setIsUpdateConfirmOpen(true); return; }
     setIsSubmitting(true);
     await performAdd();
     setIsSubmitting(false);
@@ -249,22 +226,17 @@ export default function MateriaisPage() {
   const handleConfirmUpdate = async () => {
     setIsUpdateConfirmOpen(false);
     if (!conflictingItem) return;
-    
     setIsSubmitting(true);
     await performUpdate();
     setIsSubmitting(false);
   };
 
-
   const handleRemoverMaterial = async (id: string) => {
     if (!user) return;
     try {
         await deleteMaterial(user.uid, id);
-        await fetchMateriais(); // Refresh list
-        toast({
-            title: "Item Removido",
-            variant: "destructive"
-        });
+        await fetchMateriais();
+        toast({ title: "Item Removido", variant: "destructive" });
     } catch(error) {
         toast({ title: 'Erro ao remover item', variant: 'destructive' });
     }
@@ -288,7 +260,6 @@ export default function MateriaisPage() {
   const handleEditNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingMaterial) return;
     const { name, value } = e.target;
-    
     if (name === 'precoUnitario') {
       const maskedValue = maskCurrency(value);
       setEditingPrecoUnitarioStr(maskedValue);
@@ -307,7 +278,6 @@ export default function MateriaisPage() {
     }
   };
 
-
   const handleEditUnitChange = (value: string) => {
     if (!editingMaterial) return;
     setEditingMaterial(prev => prev ? { ...prev, unidade: value } : null);
@@ -316,40 +286,131 @@ export default function MateriaisPage() {
   const handleSalvarEdicao = async (e: FormEvent) => {
     e.preventDefault();
     if (!editingMaterial || !editingMaterial.id || !user) return;
-
     if(!editingMaterial.descricao || editingMaterial.precoUnitario === null || isNaN(editingMaterial.precoUnitario)) {
-      toast({
-          title: "Campos Obrigatórios",
-          description: "Por favor, preencha Descrição e Preço.",
-          variant: "destructive"
-      });
+      toast({ title: "Campos Obrigatórios", description: "Por favor, preencha Descrição e Preço.", variant: "destructive" });
       return;
     }
-    
     setIsSubmitting(true);
     try {
         const { id, userId, ...materialToUpdate } = editingMaterial;
         await updateMaterial(user.uid, id, materialToUpdate);
         setIsEditModalOpen(false);
         setEditingMaterial(null);
-        await fetchMateriais(); // Refresh list
-        toast({
-            title: "Sucesso!",
-            description: "Item atualizado com sucesso.",
-        });
+        await fetchMateriais();
+        toast({ title: "Sucesso!", description: "Item atualizado com sucesso." });
     } catch(error) {
         toast({ title: 'Erro ao atualizar item', variant: 'destructive' });
     } finally {
         setIsSubmitting(false);
     }
   };
+
+  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast({ title: "Arquivo muito grande", description: "O arquivo deve ter no máximo 5MB.", variant: "destructive" });
+      return;
+    }
+
+    setIsProcessingFile(true);
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async () => {
+        const documentDataUri = reader.result as string;
+        const result = await extractItemsFromDocument({ documentDataUri });
+
+        if (result.items && result.items.length > 0) {
+            setExtractedItems(result.items.map(item => ({...item, id: crypto.randomUUID(), status: 'pending' })));
+            setIsReviewModalOpen(true);
+        } else {
+            toast({ title: "Nenhum item encontrado", description: "A IA não conseguiu extrair itens do documento.", variant: "destructive" });
+        }
+      };
+      reader.onerror = (error) => {
+        throw new Error("Falha ao ler o arquivo.");
+      };
+    } catch (error) {
+      console.error("Erro ao extrair itens:", error);
+      toast({ title: "Erro na IA", description: "Não foi possível analisar o documento.", variant: "destructive" });
+    } finally {
+      setIsProcessingFile(false);
+      e.target.value = ''; // Reset file input
+    }
+  };
+
+  const handleUpdateExtractedItem = (id: string, field: keyof ExtractedItem, value: string | number) => {
+    setExtractedItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+  };
   
+  const handleSaveReviewedItems = async () => {
+    if (!user) return;
+    setIsSubmitting(true);
+    let successCount = 0;
+    const itemsToSave = extractedItems.filter(i => i.status === 'pending');
+
+    for (const item of itemsToSave) {
+        try {
+            const materialPayload: Omit<MaterialItem, 'id' | 'userId'> = {
+                descricao: item.descricao,
+                unidade: item.unidade || 'un',
+                precoUnitario: item.precoUnitario || 0,
+                tipo: 'item',
+                quantidade: item.quantidade || 1,
+                quantidadeMinima: null,
+            };
+            await addMaterial(user.uid, materialPayload);
+            successCount++;
+        } catch (error) {
+            console.error(`Falha ao salvar o item ${item.descricao}:`, error);
+        }
+    }
+
+    setIsSubmitting(false);
+    setIsReviewModalOpen(false);
+    setExtractedItems([]);
+
+    if (successCount > 0) {
+        toast({ title: "Itens Salvos!", description: `${successCount} de ${itemsToSave.length} itens foram salvos com sucesso.`});
+        await fetchMateriais();
+    } else {
+        toast({ title: "Nenhum item salvo", description: "Ocorreu um erro ao salvar os itens extraídos.", variant: "destructive" });
+    }
+  };
+
   const showSkeleton = loadingAuth || isLoadingData;
-  const itens = materiais.filter(m => m.tipo === 'item');
-  const servicos = materiais.filter(m => m.tipo === 'servico');
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
+
+        <Card className="bg-primary/10 border-primary/20">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-primary">
+                    <Sparkles className="h-6 w-6"/>
+                    Importação Inteligente de Itens
+                </CardTitle>
+                <CardDescription className="text-primary/90">
+                    Economize tempo! Envie uma foto ou PDF da sua lista de compras ou nota fiscal e deixe a IA cadastrar os itens para você.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Button asChild variant="secondary" className="w-full sm:w-auto" disabled={isProcessingFile}>
+                    <Label htmlFor="file-upload">
+                        {isProcessingFile ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Upload className="mr-2 h-4 w-4" />
+                        )}
+                        {isProcessingFile ? 'Processando...' : 'Importar Itens de Arquivo'}
+                    </Label>
+                </Button>
+                <Input id="file-upload" type="file" className="sr-only" onChange={handleFileImport} accept="image/*,application/pdf" disabled={isProcessingFile}/>
+                <p className="text-xs text-muted-foreground mt-2">Formatos aceitos: JPG, PNG, PDF (max 5MB).</p>
+            </CardContent>
+        </Card>
+      
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -462,7 +523,6 @@ export default function MateriaisPage() {
                   </Button>
                 </div>
                 
-                {/* Desktop Table */}
                 <div className="hidden md:block overflow-x-auto">
                   <Table>
                     <TableHeader>
@@ -477,10 +537,7 @@ export default function MateriaisPage() {
                     </TableHeader>
                     <TableBody>
                       {materiais.map(item => {
-                        const isStockLow = item.tipo === 'item' &&
-                                          item.quantidade != null &&
-                                          item.quantidadeMinima != null &&
-                                          item.quantidade <= item.quantidadeMinima;
+                        const isStockLow = item.tipo === 'item' && item.quantidade != null && item.quantidadeMinima != null && item.quantidade <= item.quantidadeMinima;
                         return (
                           <TableRow key={item.id}>
                             <TableCell className="font-medium">{item.descricao}</TableCell>
@@ -501,15 +558,11 @@ export default function MateriaisPage() {
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Esta ação não pode ser desfeita. Isso excluirá permanentemente este item.
-                                    </AlertDialogDescription>
+                                    <AlertDialogDescription>Esta ação não pode ser desfeita. Isso excluirá permanentemente este item.</AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleRemoverMaterial(item.id)}>
-                                      Sim, Excluir
-                                    </AlertDialogAction>
+                                    <AlertDialogAction onClick={() => handleRemoverMaterial(item.id)}>Sim, Excluir</AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
                               </AlertDialog>
@@ -521,13 +574,9 @@ export default function MateriaisPage() {
                   </Table>
                 </div>
 
-                {/* Mobile Cards */}
                 <div className="md:hidden grid grid-cols-1 gap-4">
                   {materiais.map(item => {
-                     const isStockLow = item.tipo === 'item' &&
-                                          item.quantidade != null &&
-                                          item.quantidadeMinima != null &&
-                                          item.quantidade <= item.quantidadeMinima;
+                     const isStockLow = item.tipo === 'item' && item.quantidade != null && item.quantidadeMinima != null && item.quantidade <= item.quantidadeMinima;
                     return (
                     <Card key={item.id} className="p-0">
                         <CardHeader className="flex flex-row items-start justify-between p-4">
@@ -538,23 +587,15 @@ export default function MateriaisPage() {
                             <div className="flex gap-1 -mr-2 -mt-2">
                                 <Button variant="ghost" size="icon" onClick={() => handleEditClick(item)}><Pencil className="h-4 w-4 text-primary" /></Button>
                                 <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                  </AlertDialogTrigger>
+                                  <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger>
                                   <AlertDialogContent>
                                     <AlertDialogHeader>
                                       <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Esta ação não pode ser desfeita. Isso excluirá permanentemente este item.
-                                      </AlertDialogDescription>
+                                      <AlertDialogDescription>Esta ação não pode ser desfeita. Isso excluirá permanentemente este item.</AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
                                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => handleRemoverMaterial(item.id)}>
-                                        Sim, Excluir
-                                      </AlertDialogAction>
+                                      <AlertDialogAction onClick={() => handleRemoverMaterial(item.id)}>Sim, Excluir</AlertDialogAction>
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
                                 </AlertDialog>
@@ -579,6 +620,50 @@ export default function MateriaisPage() {
           </div>
         </CardContent>
       </Card>
+      
+      <Dialog open={isReviewModalOpen} onOpenChange={setIsReviewModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><FileScan className="w-6 h-6"/> Revisar Itens Extraídos</DialogTitle>
+            <DialogDescription>A IA extraiu os itens abaixo. Revise, edite ou remova antes de salvar.</DialogDescription>
+          </DialogHeader>
+          <div className="flex-grow overflow-y-auto p-1 pr-4 space-y-2">
+            {extractedItems.filter(i => i.status !== 'removed').map((item) => (
+                <div key={item.id} className="grid grid-cols-12 gap-2 items-center p-2 border rounded-lg">
+                    <div className="col-span-12 md:col-span-4">
+                        <Label htmlFor={`desc-${item.id}`} className="text-xs">Descrição</Label>
+                        <Input id={`desc-${item.id}`} value={item.descricao} onChange={(e) => handleUpdateExtractedItem(item.id, 'descricao', e.target.value)} />
+                    </div>
+                    <div className="col-span-4 md:col-span-2">
+                         <Label htmlFor={`qtd-${item.id}`} className="text-xs">Qtd</Label>
+                         <Input id={`qtd-${item.id}`} type="number" value={item.quantidade} onChange={(e) => handleUpdateExtractedItem(item.id, 'quantidade', parseFloat(e.target.value) || 0)} />
+                    </div>
+                    <div className="col-span-4 md:col-span-2">
+                         <Label htmlFor={`un-${item.id}`} className="text-xs">Unidade</Label>
+                         <Input id={`un-${item.id}`} value={item.unidade} onChange={(e) => handleUpdateExtractedItem(item.id, 'unidade', e.target.value)} />
+                    </div>
+                    <div className="col-span-4 md:col-span-3">
+                         <Label htmlFor={`price-${item.id}`} className="text-xs">Preço Unit.</Label>
+                         <Input id={`price-${item.id}`} type="number" value={item.precoUnitario} onChange={(e) => handleUpdateExtractedItem(item.id, 'precoUnitario', parseFloat(e.target.value) || 0)} />
+                    </div>
+                     <div className="col-span-12 md:col-span-1 flex items-end justify-end">
+                        <Button variant="ghost" size="icon" onClick={() => handleUpdateExtractedItem(item.id, 'status', 'removed')}>
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                    </div>
+                </div>
+            ))}
+          </div>
+          <DialogFooter>
+             <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+             <Button onClick={handleSaveReviewedItems} disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <PlusCircle className="mr-2 h-4 w-4" />}
+                Salvar Itens Revisados
+             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="max-w-md">
@@ -635,9 +720,7 @@ export default function MateriaisPage() {
         <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Item Duplicado Encontrado</AlertDialogTitle>
-               <AlertDialogDescription>
-                Este {conflictingItem?.tipo} já existe. Deseja somar a nova quantidade ao estoque e usar este novo preço?
-              </AlertDialogDescription>
+               <AlertDialogDescription>Este {conflictingItem?.tipo} já existe. Deseja somar a nova quantidade ao estoque e usar este novo preço?</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setConflictingItem(null)}>Cancelar</AlertDialogCancel>
