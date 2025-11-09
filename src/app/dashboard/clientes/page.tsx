@@ -548,10 +548,15 @@ export default function ClientesPage() {
                                       <DropdownMenuSeparator />
                                       <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                          <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
+                                          <div className={cn(
+                                            "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+                                            "text-destructive focus:bg-destructive/10 focus:text-destructive"
+                                          )}
+                                          onSelect={(e) => e.preventDefault()}
+                                          >
                                               <Trash2 className="mr-2 h-4 w-4" />
                                               Excluir Cliente
-                                          </DropdownMenuItem>
+                                          </div>
                                         </AlertDialogTrigger>
                                         <AlertDialogContent>
                                             <AlertDialogHeader>
@@ -759,5 +764,3 @@ export default function ClientesPage() {
     </div>
   );
 }
-
-    
