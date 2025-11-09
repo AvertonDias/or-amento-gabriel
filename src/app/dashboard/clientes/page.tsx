@@ -289,10 +289,19 @@ export default function ClientesPage() {
     }
   };
 
-  const importContacts = async () => {
+  const handleImportContacts = async () => {
+    if (!('contacts' in navigator && 'select' in (navigator as any).contacts)) {
+      return toast({
+        title: 'Recurso não suportado',
+        description: 'Seu navegador não suporta a API de Contatos para importação.',
+        variant: 'destructive',
+      });
+    }
+
     try {
       const props = ['name', 'email', 'tel', 'address'];
       const opts = { multiple: false };
+      // A chamada `select` solicitará a permissão se for necessário.
       const contacts = await (navigator as any).contacts.select(props, opts);
       
       if (contacts.length > 0) {
@@ -320,49 +329,22 @@ export default function ClientesPage() {
           });
         }
       }
-    } catch (error) {
-      console.error('Erro ao importar contato:', error);
-      toast({
-        title: 'Importação Cancelada',
-        description: 'Não foi possível importar o contato.',
-        variant: 'destructive',
-      });
-    }
-  }
-
-  const handleImportContacts = async () => {
-    if (!('contacts' in navigator && 'select' in (navigator as any).contacts)) {
-      return toast({
-        title: 'Recurso não suportado',
-        description: 'Seu navegador não suporta a API de Contatos para importação.',
-        variant: 'destructive',
-      });
-    }
-
-    try {
-      // @ts-ignore
-      const permission = await navigator.permissions.query({ name: 'contacts' });
-      
-      if (permission.state === 'granted') {
-        await importContacts();
-      } else if (permission.state === 'prompt') {
-        // O próprio `select` irá solicitar a permissão
-        await importContacts();
-      } else if (permission.state === 'denied') {
-        toast({
-          title: 'Permissão Negada',
-          description: 'Você precisa permitir o acesso aos contatos nas configurações do seu navegador para usar este recurso.',
-          variant: 'destructive',
-          duration: 5000,
-        });
+    } catch (error: any) {
+      // Verifica se o erro é de permissão negada ou outro tipo de cancelamento
+      if (error.name === 'AbortError') {
+          toast({
+              title: 'Importação Cancelada',
+              description: 'A seleção de contatos foi cancelada ou a permissão foi negada.',
+              variant: 'default',
+          });
+      } else {
+          console.error('Erro ao importar contato:', error);
+          toast({
+              title: 'Erro ao Importar',
+              description: 'Não foi possível importar o contato. Tente novamente.',
+              variant: 'destructive',
+          });
       }
-    } catch (error) {
-       console.error("Erro ao verificar permissão de contatos:", error);
-       toast({
-         title: 'Erro de Permissão',
-         description: 'Ocorreu um erro ao tentar acessar as permissões de contato.',
-         variant: 'destructive',
-       });
     }
   };
 
