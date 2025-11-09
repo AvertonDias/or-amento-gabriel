@@ -25,41 +25,40 @@ const getOrcamentosCollection = () => {
 };
 
 // Add a new orcamento
-export const addOrcamento = async (
+export const addOrcamento = (
   userId: string,
   orcamento: Omit<Orcamento, 'id'>
-): Promise<void> => {
+): Promise<string> => {
   if (!orcamento || !orcamento.cliente) {
     console.error(
       '[ORCAMENTO SERVICE - addOrcamento] Tentativa de salvar orçamento com dados inválidos.'
     );
-    throw new Error('Dados do orçamento ou cliente inválidos.');
+    return Promise.reject(new Error('Dados do orçamento ou cliente inválidos.'));
   }
   console.log(
     `[ORCAMENTO SERVICE - addOrcamento] Tentando salvar orçamento para cliente: ${orcamento.cliente.nome}`
   );
   const orcamentosCollection = getOrcamentosCollection();
-  try {
-    const docRef = await addDoc(orcamentosCollection, { ...orcamento });
-    console.log(
-      '[ORCAMENTO SERVICE - addOrcamento] Orçamento adicionado com ID:',
-      docRef.id
-    );
-  } catch (error) {
-    // Se estiver offline, o Firestore escreve em uma fila local. A promessa é rejeitada
-    // apenas se houver um erro real (ex: permissões, dados inválidos).
-    // Para offline, a promessa pode ser resolvida com o doc da cache.
-    if ((error as any).code === 'unavailable') {
-        console.warn('[ORCAMENTO SERVICE - addOrcamento] App offline. Orçamento adicionado à fila.');
-    } else {
-        console.error(
+  
+  // Return the promise from addDoc directly
+  return addDoc(orcamentosCollection, { ...orcamento })
+    .then(docRef => {
+      console.log(
+        '[ORCAMENTO SERVICE - addOrcamento] Orçamento adicionado com ID:',
+        docRef.id
+      );
+      return docRef.id;
+    })
+    .catch(error => {
+      // This will catch actual errors, but allow offline queuing to work.
+      console.error(
         '[ORCAMENTO SERVICE - addOrcamento] Erro ao adicionar orçamento:',
         error
-        );
-        throw error;
-    }
-  }
+      );
+      throw error; // Re-throw the error to be handled by the caller if needed
+    });
 };
+
 
 // Update an existing orcamento
 export const updateOrcamento = async (
@@ -163,7 +162,7 @@ export const getNextOrcamentoNumber = async (
     );
     return newNumeroOrcamento;
   } catch (error: any) {
-    console.warn(
+     console.warn(
       'Falha ao buscar número sequencial online (provavelmente offline), usando fallback:',
       error.message
     );

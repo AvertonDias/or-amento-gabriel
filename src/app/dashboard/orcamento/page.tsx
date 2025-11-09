@@ -530,7 +530,7 @@ export default function OrcamentoPage() {
     setOrcamentoItens(prev => prev.filter(i => i.id !== id));
   };
 
-const proceedToSaveBudget = async (currentClient: ClienteData) => {
+  const proceedToSaveBudget = (currentClient: ClienteData) => {
     if (!user) {
         toast({ title: "Erro interno: dados do usuário ausentes.", variant: "destructive" });
         return;
@@ -541,39 +541,42 @@ const proceedToSaveBudget = async (currentClient: ClienteData) => {
     }
 
     setIsSubmitting(true);
-    try {
-        const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
-        const newBudget: Omit<Orcamento, "id"> = {
-            userId: user.uid,
-            numeroOrcamento,
-            cliente: { ...currentClient },
-            itens: orcamentoItens,
-            totalVenda,
-            dataCriacao: new Date().toISOString(),
-            status: "Pendente",
-            validadeDias,
-            dataAceite: null,
-            dataRecusa: null,
-        };
+    
+    getNextOrcamentoNumber(user.uid).then(numeroOrcamento => {
+      const newBudget: Omit<Orcamento, "id"> = {
+          userId: user.uid,
+          numeroOrcamento,
+          cliente: { ...currentClient },
+          itens: orcamentoItens,
+          totalVenda,
+          dataCriacao: new Date().toISOString(),
+          status: "Pendente",
+          validadeDias,
+          dataAceite: null,
+          dataRecusa: null,
+      };
 
-        await addOrcamento(user.uid, newBudget);
-        
-        toast({ title: `Orçamento ${numeroOrcamento} salvo!` });
-        
-        // Adicionando um pequeno atraso para dar tempo ao Firestore de processar a escrita
-        // e garantir que a próxima leitura inclua o novo documento.
-        setTimeout(() => {
-          fetchAllData(true);
-        }, 500); 
-
-    } catch (error: any) {
-        console.error("Erro ao salvar orçamento:", error);
-        toast({ title: "Erro ao salvar orçamento", description: error.message, variant: "destructive" });
-    } finally {
+      addOrcamento(user.uid, newBudget)
+        .then(() => {
+          toast({ title: `Orçamento ${numeroOrcamento} salvo!` });
+          setTimeout(() => {
+            fetchAllData(true);
+          }, 500);
+        })
+        .catch((error: any) => {
+            console.error("Erro ao salvar orçamento:", error);
+            toast({ title: "Erro ao salvar orçamento", description: error.message, variant: "destructive" });
+        })
+        .finally(() => {
+            setIsSubmitting(false);
+            setIsWizardOpen(false);
+        });
+    }).catch(error => {
+        console.error("Erro ao obter número do orçamento:", error);
+        toast({ title: "Erro ao gerar número do orçamento", variant: "destructive" });
         setIsSubmitting(false);
-        setIsWizardOpen(false);
-    }
-};
+    });
+  };
 
 const handleConfirmSave = () => {
     if (orcamentoItens.length === 0) {
@@ -599,32 +602,27 @@ const handleConfirmSave = () => {
 };
 
 
-const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
+const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
     setIsConfirmSaveClientOpen(false);
     if (!clientToSave || !user) return;
-
-    let finalClientData: ClienteData;
 
     if (shouldSave) {
         const clientPayload = { ...clientToSave };
         delete clientPayload.id;
-        try {
-            const newClientId = await addCliente(user.uid, clientPayload);
-            finalClientData = { ...clientToSave, id: newClientId, userId: user.uid };
-            toast({ title: "Novo cliente salvo com sucesso!" });
-            
-            // Atualiza a lista de clientes no estado local antes de salvar o orçamento
-            setClientes(prev => [...prev, finalClientData]);
-            
-            proceedToSaveBudget(finalClientData);
-
-        } catch (error: any) {
-            console.error("Erro ao salvar novo cliente:", error);
-            toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
-        }
+        addCliente(user.uid, clientPayload)
+          .then(newClientId => {
+              const finalClientData: ClienteData = { ...clientToSave, id: newClientId, userId: user.uid };
+              toast({ title: "Novo cliente salvo com sucesso!" });
+              setClientes(prev => [...prev, finalClientData]);
+              proceedToSaveBudget(finalClientData);
+          })
+          .catch((error: any) => {
+              console.error("Erro ao salvar novo cliente:", error);
+              toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
+          });
     } else {
         // Usa um ID aleatório apenas para a estrutura do orçamento, já que não será salvo
-        finalClientData = { ...clientToSave, id: clientToSave.id || crypto.randomUUID(), userId: user.uid };
+        const finalClientData: ClienteData = { ...clientToSave, id: clientToSave.id || crypto.randomUUID(), userId: user.uid };
         proceedToSaveBudget(finalClientData);
     }
     
