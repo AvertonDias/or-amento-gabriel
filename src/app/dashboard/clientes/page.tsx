@@ -331,6 +331,23 @@ export default function ClientesPage() {
     }
   };
   
+  const formatAddress = (address: any): string => {
+    if (!address) return '';
+    
+    const parts = [
+      address.addressLine1,
+      address.addressLine2,
+      address.city,
+      address.region,
+      address.postalCode,
+      address.country
+    ];
+    
+    // Safely access properties and join them.
+    // This is more robust than a fixed structure.
+    return parts.filter(Boolean).join(', ');
+  }
+
   const processSelectedContacts = (contacts: any[]) => {
     if (contacts.length > 0) {
       const contact = contacts[0];
@@ -340,19 +357,7 @@ export default function ClientesPage() {
         setSelectedContactDetails(contact);
         setIsContactSelectionModalOpen(true);
       } else {
-        const address = contact.address?.[0];
-        let formattedAddress = '';
-        if (address) {
-          const addressParts = [
-            address.addressLine1,
-            address.addressLine2,
-            address.city,
-            address.region,
-            address.postalCode,
-            address.country,
-          ];
-          formattedAddress = addressParts.filter(Boolean).join(', ');
-        }
+        const formattedAddress = formatAddress(contact.address?.[0]);
         
         const partialClient = {
           nome: contact.name?.[0] || '',
@@ -394,7 +399,7 @@ export default function ClientesPage() {
                 description: 'A seleção de contatos foi cancelada.',
                 variant: 'default',
             });
-            setContactsPermissionStatus('denied'); // Assume denial on abort
+            // Don't set to denied on abort, user might try again.
         } else {
             console.error('Erro ao importar contato:', error);
             toast({
@@ -434,19 +439,15 @@ export default function ClientesPage() {
     const selectedTel = formData.get('tel') as string || '';
     const selectedEmail = formData.get('email') as string || '';
     const selectedAddressString = formData.get('address') as string || '';
-    const selectedAddress = selectedAddressString ? JSON.parse(selectedAddressString) : null;
     
     let formattedAddress = '';
-    if (selectedAddress) {
-      const addressParts = [
-        selectedAddress.addressLine1,
-        selectedAddress.addressLine2,
-        selectedAddress.city,
-        selectedAddress.region,
-        selectedAddress.postalCode,
-        selectedAddress.country,
-      ];
-      formattedAddress = addressParts.filter(Boolean).join(', ');
+    if (selectedAddressString) {
+      try {
+        const selectedAddress = JSON.parse(selectedAddressString);
+        formattedAddress = formatAddress(selectedAddress);
+      } catch (error) {
+        console.error("Error parsing selected address", error);
+      }
     }
 
     const partialClient = {
@@ -852,15 +853,7 @@ export default function ClientesPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {selectedContactDetails.address.map((addr, i) => {
-                        const addressParts = [
-                            addr.addressLine1,
-                            addr.addressLine2,
-                            addr.city,
-                            addr.region,
-                            addr.postalCode,
-                            addr.country,
-                        ];
-                        const formatted = addressParts.filter(Boolean).join(', ');
+                        const formatted = formatAddress(addr);
                         return <SelectItem key={i} value={JSON.stringify(addr)}>{formatted}</SelectItem>
                       })}
                     </SelectContent>
