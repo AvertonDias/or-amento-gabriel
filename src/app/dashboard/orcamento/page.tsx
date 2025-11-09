@@ -656,7 +656,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
         await fetchOrcamentos();
         toast({ title: `Orçamento ${status.toLowerCase()}!` });
         if (status === 'Aceito' && acceptedBudget) { 
-            const updatedBudget = { ...acceptedBudget, status: 'Aceito', ...updatePayload };
+            const updatedBudget: Orcamento = { ...acceptedBudget, status: 'Aceito', ...updatePayload };
             handleSendAcceptanceWhatsApp(updatedBudget); 
         }
     } catch(error) {
@@ -895,7 +895,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
   };
 
   const anyLoading = loadingAuth || Object.values(isLoading).some(Boolean);
-  const clienteFiltrado = clienteIdParam ? clientes.find(c => c.id === clienteIdParam) : null
+  const clienteFiltrado = clienteIdParam ? clientes.find(c => c.id === clienteIdParam) : null;
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
