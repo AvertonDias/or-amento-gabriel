@@ -7,10 +7,8 @@
  * - FillCustomerDataInput - The input type for the fillCustomerData function
  */
 
-// Importe a configuração Genkit para GARANTIR que ela seja executada.
-import '@/ai/genkit';
-import { defineFlow, generate } from 'genkit';
-import { gemini } from '@genkit-ai/googleai';
+// Importe as funções e modelos DO SEU ARQUIVO DE CONFIGURAÇÃO GENKIT
+import { defineFlow, generate, gemini } from '@/ai/genkit';
 import { z } from 'zod';
 
 const FillCustomerDataInputSchema = z.object({

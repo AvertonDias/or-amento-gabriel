@@ -7,11 +7,9 @@
  * - ExtractItemsOutput - The return type for the extractItemsFromDocument function.
  */
 
-// Importe a configuração Genkit para GARANTIR que ela seja executada.
-import '@/ai/genkit';
-import { defineFlow, generate } from 'genkit';
+// Importe as funções e modelos DO SEU ARQUIVO DE CONFIGURAÇÃO GENKIT
+import { defineFlow, generate, gemini } from '@/ai/genkit';
 import {z} from 'zod';
-import { gemini } from '@genkit-ai/googleai';
 
 
 const ItemSchema = z.object({

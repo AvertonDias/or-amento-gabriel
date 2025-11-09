@@ -1,18 +1,16 @@
-
 // src/ai/genkit.ts
 
-// Importe TUDO de 'genkit' como um namespace
-import * as genkit from 'genkit';
-import { gemini } from '@genkit-ai/googleai';
+import { configureGenkit, defineFlow, generate } from 'genkit';
+import { googleAI, gemini } from '@genkit-ai/googleai';
 
-// Apenas configure o Genkit aqui.
-// A configuração deve acontecer antes que qualquer flow tente usar os modelos.
-genkit.configureGenkit({
+// Configure o Genkit UMA VEZ.
+configureGenkit({
   plugins: [
-    // Ao NÃO passar 'apiKey', ele tentará usar as Credenciais Padrão do Aplicativo (ADC).
-    // Isso é o que queremos para as Server Actions em Cloud Workstations.
-    gemini(),
+    googleAI(),
   ],
   logLevel: 'debug',
-  enableTracingAndMetrics: false, // Desativa o tracing para resolver problemas de build
+  enableTracingAndMetrics: false,
 });
+
+// Exporte as funções e os modelos para que os flows possam importá-los.
+export { defineFlow, generate, gemini };
