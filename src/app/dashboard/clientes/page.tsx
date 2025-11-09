@@ -297,7 +297,7 @@ export default function ClientesPage() {
         variant: 'destructive',
       });
     }
-
+  
     try {
       const props = ['name', 'email', 'tel', 'address'];
       const opts = { multiple: false };
@@ -307,13 +307,24 @@ export default function ClientesPage() {
       if (contacts.length > 0) {
         const contact = contacts[0];
         const hasMultipleOptions = (contact.tel?.length > 1 || contact.email?.length > 1 || contact.address?.length > 1);
-
+  
         if (hasMultipleOptions) {
           setSelectedContactDetails(contact);
           setIsContactSelectionModalOpen(true);
         } else {
           const address = contact.address?.[0];
-          const formattedAddress = address ? [address.streetAddress, address.addressLevel2, address.addressLevel1, address.postalCode, address.country].filter(Boolean).join(', ') : '';
+          let formattedAddress = '';
+          if (address) {
+            const addressParts = [
+              address.addressLine1,
+              address.addressLine2,
+              address.city,
+              address.region,
+              address.postalCode,
+              address.country,
+            ];
+            formattedAddress = addressParts.filter(Boolean).join(', ');
+          }
           
           const partialClient = {
             nome: contact.name?.[0] || '',
@@ -346,7 +357,7 @@ export default function ClientesPage() {
       }
     }
   };
-
+  
 
   const handleConfirmContactSelection = (e: FormEvent) => {
     e.preventDefault();
@@ -358,7 +369,18 @@ export default function ClientesPage() {
     const selectedAddressString = formData.get('address') as string || '';
     const selectedAddress = selectedAddressString ? JSON.parse(selectedAddressString) : null;
     
-    const formattedAddress = selectedAddress ? [selectedAddress.streetAddress, selectedAddress.addressLevel2, selectedAddress.addressLevel1, selectedAddress.postalCode, selectedAddress.country].filter(Boolean).join(', ') : '';
+    let formattedAddress = '';
+    if (selectedAddress) {
+      const addressParts = [
+        selectedAddress.addressLine1,
+        selectedAddress.addressLine2,
+        selectedAddress.city,
+        selectedAddress.region,
+        selectedAddress.postalCode,
+        selectedAddress.country,
+      ];
+      formattedAddress = addressParts.filter(Boolean).join(', ');
+    }
 
     const partialClient = {
       nome: selectedContactDetails.name?.[0] || '',
@@ -729,7 +751,15 @@ export default function ClientesPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {selectedContactDetails.address.map((addr, i) => {
-                        const formatted = [addr.streetAddress, addr.addressLevel2, addr.addressLevel1, addr.postalCode, addr.country].filter(Boolean).join(', ');
+                        const addressParts = [
+                            addr.addressLine1,
+                            addr.addressLine2,
+                            addr.city,
+                            addr.region,
+                            addr.postalCode,
+                            addr.country,
+                        ];
+                        const formatted = addressParts.filter(Boolean).join(', ');
                         return <SelectItem key={i} value={JSON.stringify(addr)}>{formatted}</SelectItem>
                       })}
                     </SelectContent>
@@ -766,3 +796,5 @@ export default function ClientesPage() {
     </div>
   );
 }
+
+    
