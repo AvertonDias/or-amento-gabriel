@@ -9,7 +9,7 @@
 
 // Importe a configuração Genkit para GARANTIR que ela seja executada.
 import '@/ai/genkit';
-import * as genkit from 'genkit';
+import { defineFlow, generate } from 'genkit';
 import {z} from 'zod';
 import { gemini } from '@genkit-ai/googleai';
 
@@ -35,7 +35,7 @@ const ExtractItemsOutputSchema = z.object({
 export type ExtractItemsOutput = z.infer<typeof ExtractItemsOutputSchema>;
 
 
-export const extractItemsFromDocument = genkit.defineFlow(
+export const extractItemsFromDocument = defineFlow(
   {
     name: 'extractItemsFromDocument',
     inputSchema: ExtractItemsInputSchema,
@@ -48,7 +48,7 @@ export const extractItemsFromDocument = genkit.defineFlow(
     console.log("SERVER ACTION ENV - NODE_ENV:", process.env.NODE_ENV);
     
     try {
-        const { output } = await genkit.generate({
+        const { output } = await generate({
             model: gemini.vision,
             prompt: `You are an expert data entry assistant. Your task is to analyze the provided image or PDF of a shopping list or invoice and extract all items listed.
 

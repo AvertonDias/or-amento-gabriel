@@ -9,7 +9,7 @@
 
 // Importe a configuração Genkit para GARANTIR que ela seja executada.
 import '@/ai/genkit';
-import * as genkit from 'genkit';
+import { defineFlow, generate } from 'genkit';
 import { gemini } from '@genkit-ai/googleai';
 import { z } from 'zod';
 
@@ -55,7 +55,7 @@ Preencha o seguinte objeto de saída com as informações completas que encontra
 `,
 });
 
-const fillCustomerDataFlow = genkit.defineFlow(
+const fillCustomerDataFlow = defineFlow(
   {
     name: 'fillCustomerDataFlow',
     inputSchema: FillCustomerDataInputSchema,
@@ -66,7 +66,11 @@ const fillCustomerDataFlow = genkit.defineFlow(
       ...input,
       cpfCnpj: input.cpfCnpj || undefined,
     };
-    const {output} = await prompt(sanitizedInput);
+    const {output} = await generate({
+        model: gemini.text,
+        prompt: prompt(sanitizedInput),
+        output: { schema: FillCustomerDataOutputSchema },
+    });
     return output!;
   }
 );
