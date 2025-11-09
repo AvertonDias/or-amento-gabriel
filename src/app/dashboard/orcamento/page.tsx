@@ -529,19 +529,65 @@ export default function OrcamentoPage() {
   const removeLinha = (id: string) => {
     setOrcamentoItens(prev => prev.filter(i => i.id !== id));
   };
-
-  const proceedToSaveBudget = (currentClient: ClienteData) => {
-    if (!user) {
-        toast({ title: "Erro interno: dados do usuário ausentes.", variant: "destructive" });
-        return;
+  
+const handleConfirmSave = () => {
+    if (!user) return;
+    if (orcamentoItens.length === 0) {
+      toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item.", variant: "destructive" });
+      return;
     }
-    if (!currentClient || !currentClient.id) {
-        toast({ title: "Erro interno: dados do cliente ausentes.", variant: "destructive" });
-        return;
+    if (!clienteData.nome) {
+      toast({ title: "Cliente não informado", description: "Preencha o nome do cliente.", variant: "destructive" });
+      return;
     }
 
     setIsSubmitting(true);
+
+    const normalizedNewClientName = clienteData.nome.trim().toLowerCase();
+    const existingClient = clientes.find(c => c.nome.trim().toLowerCase() === normalizedNewClientName);
+
+    if (existingClient) {
+      proceedToSaveBudget(existingClient);
+    } else {
+      // Temporarily store the client data and open the confirmation dialog
+      setClientToSave({ ...clienteData });
+      setIsConfirmSaveClientOpen(true);
+      setIsSubmitting(false); // Let the user interact with the dialog
+    }
+};
+
+const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
+    setIsConfirmSaveClientOpen(false);
+    if (!clientToSave || !user) return;
+
+    if (shouldSave) {
+        const clientPayload = { ...clientToSave };
+        delete clientPayload.id; // Remove temp id if any
+        addCliente(user.uid, clientPayload)
+            .then(newClientId => {
+                const finalClientData = { ...clientToSave, id: newClientId, userId: user.uid };
+                setClientes(prev => [...prev, finalClientData]); // Optimistically update client list
+                proceedToSaveBudget(finalClientData);
+                toast({ title: "Novo cliente salvo!" });
+            })
+            .catch(err => {
+                console.error("Erro ao salvar novo cliente:", err);
+                toast({ title: "Erro ao salvar o cliente.", variant: 'destructive'});
+                setIsSubmitting(false);
+            });
+    } else {
+        const tempClientData = { ...clientToSave, id: crypto.randomUUID(), userId: user.uid };
+        proceedToSaveBudget(tempClientData);
+    }
+    setClientToSave(null);
+};
+
+
+const proceedToSaveBudget = (currentClient: ClienteData) => {
+    if (!user || !currentClient.id) return;
     
+    setIsSubmitting(true);
+
     getNextOrcamentoNumber(user.uid).then(numeroOrcamento => {
       const newBudget: Omit<Orcamento, "id"> = {
           userId: user.uid,
@@ -559,9 +605,7 @@ export default function OrcamentoPage() {
       addOrcamento(user.uid, newBudget)
         .then(() => {
           toast({ title: `Orçamento ${numeroOrcamento} salvo!` });
-          setTimeout(() => {
-            fetchAllData(true);
-          }, 500);
+          fetchAllData(true); 
         })
         .catch((error: any) => {
             console.error("Erro ao salvar orçamento:", error);
@@ -572,119 +616,12 @@ export default function OrcamentoPage() {
             setIsWizardOpen(false);
         });
     }).catch(error => {
-        console.error("Erro ao obter número do orçamento:", error);
+        console.error("Erro ao gerar número do orçamento:", error);
         toast({ title: "Erro ao gerar número do orçamento", variant: "destructive" });
         setIsSubmitting(false);
     });
-  };
-
-const handleConfirmSave = async () => {
-    if (orcamentoItens.length === 0) {
-        toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item.", variant: "destructive" });
-        return;
-    }
-    if (!clienteData.nome) {
-        toast({ title: "Cliente não informado", description: "Preencha o nome do cliente.", variant: "destructive" });
-        return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-        const numeroOrcamento = await getNextOrcamentoNumber(user!.uid);
-        const normalizedNewClientName = clienteData.nome.trim().toLowerCase();
-        const existingClient = clientes.find(c => c.nome.trim().toLowerCase() === normalizedNewClientName);
-
-        const newBudget: Omit<Orcamento, "id"> = {
-            userId: user!.uid,
-            numeroOrcamento,
-            cliente: { ...clienteData, id: existingClient?.id || crypto.randomUUID() },
-            itens: orcamentoItens,
-            totalVenda,
-            dataCriacao: new Date().toISOString(),
-            status: "Pendente",
-            validadeDias,
-            dataAceite: null,
-            dataRecusa: null,
-        };
-
-        if (existingClient) {
-            await addOrcamento(user!.uid, newBudget);
-        } else {
-            setClientToSave({ ...clienteData });
-            // This is a workaround to save both. The dialog will trigger the actual save.
-            // We pass the budget to be saved along with the client.
-            (newBudget as any)._isPending = true;
-            setOrcamentosSalvos(prev => [...prev, newBudget as Orcamento]); // Optimistic update
-            setIsConfirmSaveClientOpen(true);
-            setIsSubmitting(false); // Unlock button while dialog is open
-            return; // Stop here, the dialog will continue the flow
-        }
-        
-        toast({ title: `Orçamento ${numeroOrcamento} salvo!` });
-        fetchAllData(true);
-        setIsWizardOpen(false);
-
-    } catch (error) {
-        console.error("Erro no processo de salvar orçamento:", error);
-        toast({ title: "Erro ao salvar orçamento", variant: "destructive" });
-    } finally {
-        setIsSubmitting(false);
-    }
 };
 
-
-const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
-    setIsConfirmSaveClientOpen(false);
-    if (!clientToSave || !user) return;
-
-    let finalClientData: ClienteData = { ...clientToSave, id: clientToSave.id || crypto.randomUUID(), userId: user.uid };
-    
-    // Find the pending budget we added optimistically
-    const pendingBudgetIndex = orcamentosSalvos.findIndex(o => (o as any)._isPending);
-    if (pendingBudgetIndex === -1) {
-        toast({ title: "Erro interno: orçamento pendente não encontrado.", variant: "destructive"});
-        return;
-    }
-    const budgetToSave = orcamentosSalvos[pendingBudgetIndex];
-
-    setIsSubmitting(true);
-
-    if (shouldSave) {
-        try {
-            const clientPayload = { ...clientToSave };
-            delete clientPayload.id;
-            const newClientId = await addCliente(user.uid, clientPayload);
-            finalClientData.id = newClientId; // Update client with real ID
-            setClientes(prev => [...prev, finalClientData]); // Update local client list
-            toast({ title: "Novo cliente salvo com sucesso!" });
-        } catch (error: any) {
-            console.error("Erro ao salvar novo cliente:", error);
-            toast({ title: "Erro ao salvar novo cliente.", variant: "destructive" });
-            // Remove the optimistically added budget if client save fails
-            setOrcamentosSalvos(prev => prev.filter((_, i) => i !== pendingBudgetIndex));
-            setIsSubmitting(false);
-            return;
-        }
-    }
-    
-    // Now save the budget with the correct (new or temporary) client data
-    try {
-        const finalBudget = { ...budgetToSave, cliente: finalClientData };
-        delete (finalBudget as any)._isPending; // Clean up temp flag
-        await addOrcamento(user!.uid, finalBudget);
-        toast({ title: `Orçamento ${finalBudget.numeroOrcamento} salvo!` });
-    } catch (error) {
-        console.error("Erro ao salvar orçamento após diálogo:", error);
-        toast({ title: "Erro ao salvar o orçamento.", variant: "destructive" });
-    } finally {
-        // Refresh all data to ensure consistency
-        fetchAllData(true);
-        setClientToSave(null);
-        setIsSubmitting(false);
-        setIsWizardOpen(false);
-    }
-};
 
 
   const handleUpdateStatus = async (budgetId: string, status: 'Aceito' | 'Recusado') => {
@@ -868,15 +805,15 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
     }
   }
   
-  const handleRemoverOrcamento = async (id: string) => {
+  const handleRemoverOrcamento = (id: string) => {
     if (!user) return;
-    try {
-        await deleteOrcamento(id);
-        await fetchOrcamentos();
+    deleteOrcamento(id).then(() => {
+        fetchOrcamentos();
         toast({ title: 'Orçamento Excluído', variant: 'destructive' });
-    } catch(error) {
+    }).catch(error => {
         toast({ title: 'Erro ao excluir orçamento', variant: 'destructive'});
-    }
+        console.error(error)
+    })
   };
 
   const handleOpenEditBudgetModal = (orcamento: Orcamento) => {
@@ -1455,3 +1392,4 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
     </div>
   );
 }
+

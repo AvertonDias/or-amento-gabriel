@@ -85,10 +85,11 @@ export const updateOrcamentoStatus = async (
 };
 
 // Delete an orcamento
-export const deleteOrcamento = async (orcamentoId: string) => {
+export const deleteOrcamento = (orcamentoId: string) => {
   const orcamentoDoc = doc(db, 'orcamentos', orcamentoId);
-  await deleteDoc(orcamentoDoc);
+  return deleteDoc(orcamentoDoc);
 };
+
 
 // Get all orcamentos for a user
 export const getOrcamentos = async (userId: string): Promise<Orcamento[]> => {
@@ -112,19 +113,18 @@ export const getOrcamentos = async (userId: string): Promise<Orcamento[]> => {
 };
 
 // Get the next sequential orcamento number for the current year
-export const getNextOrcamentoNumber = async (
+export const getNextOrcamentoNumber = (
   userId: string
 ): Promise<string> => {
   if (!userId) {
-    throw new Error('User ID é nulo, impossível gerar número do orçamento.');
+    return Promise.reject(new Error('User ID é nulo, impossível gerar número do orçamento.'));
   }
 
   console.log(
     `[ORCAMENTO SERVICE - getNextOrcamentoNumber] Chamado com userId: ${userId}`
   );
 
-  try {
-    const orcamentosCollection = getOrcamentosCollection();
+  const orcamentosCollection = getOrcamentosCollection();
     const q = query(
       orcamentosCollection,
       where('userId', '==', userId),
@@ -132,8 +132,7 @@ export const getNextOrcamentoNumber = async (
       limit(1)
     );
 
-    const querySnapshot = await getDocs(q);
-
+  return getDocs(q).then(querySnapshot => {
     const currentYear = new Date().getFullYear();
     let lastSequence = 0;
 
@@ -151,8 +150,7 @@ export const getNextOrcamentoNumber = async (
         }
       }
     }
-
-    const newSequence = lastSequence + 1;
+     const newSequence = lastSequence + 1;
     const newNumeroOrcamento = `${currentYear}-${String(newSequence).padStart(
       3,
       '0'
@@ -161,7 +159,7 @@ export const getNextOrcamentoNumber = async (
       `[ORCAMENTO SERVICE - getNextOrcamentoNumber] Última sequência para ${currentYear}: ${lastSequence}. Novo número: ${newNumeroOrcamento}`
     );
     return newNumeroOrcamento;
-  } catch (error: any) {
+  }).catch((error: any) => {
      console.warn(
       'Falha ao buscar número sequencial online (provavelmente offline), usando fallback:',
       error.message
@@ -171,5 +169,6 @@ export const getNextOrcamentoNumber = async (
       `[ORCAMENTO SERVICE - getNextOrcamentoNumber] Gerando número de fallback offline: ${offlineNumber}`
     );
     return offlineNumber;
-  }
+  })
 };
+
