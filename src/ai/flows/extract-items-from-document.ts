@@ -11,8 +11,8 @@
 import '@/ai/genkit';
 
 import {z} from 'zod';
-import { generate, defineFlow } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import { defineFlow } from 'genkit';
+import { ai } from '@/ai/genkit';
 
 
 const ItemSchema = z.object({
@@ -35,6 +35,26 @@ const ExtractItemsOutputSchema = z.object({
 });
 export type ExtractItemsOutput = z.infer<typeof ExtractItemsOutputSchema>;
 
+const extractPrompt = ai.geminiProVision.definePrompt(
+  {
+    name: 'extractItemsPrompt',
+    input: { schema: ExtractItemsInputSchema },
+    output: { schema: ExtractItemsOutputSchema },
+    prompt: `You are an expert data entry assistant. Your task is to analyze the provided image or PDF of a shopping list or invoice and extract all items listed.
+
+            For each item, identify its description, quantity, and unit price.
+            - If the unit is not explicitly mentioned, assume it is "un" (unit).
+            - If a price is listed, ensure it is a number. If no price is found, set it to 0.
+            - If a quantity is not listed, assume it is 1.
+
+            Return the data as a structured JSON object.
+
+            Document to analyze:
+            {{media url=documentDataUri}}
+            `,
+  },
+);
+
 
 export const extractItemsFromDocument = defineFlow(
   {
@@ -49,22 +69,7 @@ export const extractItemsFromDocument = defineFlow(
     console.log("SERVER ACTION ENV - NODE_ENV:", process.env.NODE_ENV);
     
     try {
-        const { output } = await generate({
-            model: googleAI('gemini-pro-vision'),
-            prompt: `You are an expert data entry assistant. Your task is to analyze the provided image or PDF of a shopping list or invoice and extract all items listed.
-
-            For each item, identify its description, quantity, and unit price.
-            - If the unit is not explicitly mentioned, assume it is "un" (unit).
-            - If a price is listed, ensure it is a number. If no price is found, set it to 0.
-            - If a quantity is not listed, assume it is 1.
-
-            Return the data as a structured JSON object.
-
-            Document to analyze:
-            {{media url="${input.documentDataUri}"}}
-            `,
-            output: { schema: ExtractItemsOutputSchema },
-      });
+        const { output } = await extractPrompt(input);
 
       if (output()?.items) {
         return { items: output()!.items };

@@ -12,5 +12,11 @@ configureGenkit({
     googleAI(),
   ],
   logLevel: 'debug',
-  enableTracingAndMetrics: true,
+  enableTracingAndMetrics: false, // Desativa o tracing para resolver problemas de build
 });
+
+// Exporte o objeto ai para ser usado pelos fluxos
+export const ai = {
+  geminiPro: googleAI('gemini-pro'),
+  geminiProVision: googleAI('gemini-pro-vision'),
+};
