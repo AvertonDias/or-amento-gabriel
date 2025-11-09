@@ -1,4 +1,3 @@
-
 'use client';
 
 import { db, auth } from '@/lib/firebase';
@@ -17,12 +16,11 @@ import {
   getDoc,
   limit,
   serverTimestamp,
-  collectionGroup,
 } from 'firebase/firestore';
 import type { Orcamento } from '@/lib/types';
 
-const getOrcamentosCollection = (userId: string) => {
-  return collection(db, 'empresa', userId, 'orcamentos');
+const getOrcamentosCollection = () => {
+  return collection(db, 'orcamentos');
 };
 
 // Add a new orcamento
@@ -39,7 +37,7 @@ export const addOrcamento = async (
   console.log(
     `[ORCAMENTO SERVICE - addOrcamento] Tentando salvar orçamento para cliente: ${orcamento.cliente.nome}`
   );
-  const orcamentosCollection = getOrcamentosCollection(userId);
+  const orcamentosCollection = getOrcamentosCollection();
   try {
     const docRef = await addDoc(orcamentosCollection, { ...orcamento });
     console.log(
@@ -68,13 +66,7 @@ export const updateOrcamento = async (
   orcamento: Partial<Orcamento>
 ) => {
   if (!orcamento.userId) throw new Error('userId é obrigatório para atualizar');
-  const orcamentoDoc = doc(
-    db,
-    'empresa',
-    orcamento.userId,
-    'orcamentos',
-    orcamentoId
-  );
+  const orcamentoDoc = doc(db, 'orcamentos', orcamentoId);
   await updateDoc(orcamentoDoc, orcamento);
 };
 
@@ -88,26 +80,27 @@ export const updateOrcamentoStatus = async (
   if (!userId) {
     throw new Error('Usuário não autenticado.');
   }
-  const orcamentoDoc = doc(db, 'empresa', userId, 'orcamentos', budgetId);
+  const orcamentoDoc = doc(db, 'orcamentos', budgetId);
   await updateDoc(orcamentoDoc, { status, ...payload });
 };
 
 // Delete an orcamento
 export const deleteOrcamento = async (orcamentoId: string, userId: string) => {
   if (!userId) throw new Error('Usuário não autenticado.');
-  const orcamentoDoc = doc(db, 'empresa', userId, 'orcamentos', orcamentoId);
+  const orcamentoDoc = doc(db, 'orcamentos', orcamentoId);
   await deleteDoc(orcamentoDoc);
 };
 
 // Get all orcamentos for a user
 export const getOrcamentos = async (userId: string): Promise<Orcamento[]> => {
   try {
-    const orcamentosQuery = query(
-      collectionGroup(db, 'orcamentos'),
+    const orcamentosCollection = getOrcamentosCollection();
+    const q = query(
+      orcamentosCollection,
       where('userId', '==', userId),
       orderBy('numeroOrcamento', 'desc')
     );
-    const querySnapshot = await getDocs(orcamentosQuery);
+    const querySnapshot = await getDocs(q);
     const orcamentos: Orcamento[] = [];
     querySnapshot.forEach((doc) => {
       orcamentos.push({ id: doc.id, ...doc.data() } as Orcamento);
@@ -132,14 +125,15 @@ export const getNextOrcamentoNumber = async (
   );
 
   try {
-    const orcamentosQuery = query(
-      collectionGroup(db, 'orcamentos'),
+    const orcamentosCollection = getOrcamentosCollection();
+    const q = query(
+      orcamentosCollection,
       where('userId', '==', userId),
       orderBy('numeroOrcamento', 'desc'),
       limit(1)
     );
 
-    const querySnapshot = await getDocs(orcamentosQuery);
+    const querySnapshot = await getDocs(q);
 
     const currentYear = new Date().getFullYear();
     let lastSequence = 0;
@@ -188,8 +182,9 @@ export const syncOfflineOrcamentos = async (userId: string) => {
   }
 
   try {
+    const orcamentosCollection = getOrcamentosCollection();
     const q = query(
-      collectionGroup(db, 'orcamentos'),
+      orcamentosCollection,
       where('userId', '==', userId)
     );
 

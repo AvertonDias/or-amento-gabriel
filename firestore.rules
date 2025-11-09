@@ -2,23 +2,21 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Regra para a coleção 'empresa'
+    // Usuários podem ler e escrever em seus próprios documentos
     match /empresa/{userId} {
-      // O usuário pode ler e escrever em seu próprio documento de empresa.
       allow read, write: if request.auth.uid == userId;
     }
 
-    // As regras de grupo de coleção permitem consultas em todas as subcoleções de uma vez.
-    // Garante que um usuário só possa acessar documentos em subcoleções
-    // que pertencem ao seu próprio documento de 'empresa'.
-    match /{path=**}/clientes/{clienteId} {
-      allow read, write: if request.auth != null && get(/databases/$(database)/documents/empresa/$(request.auth.uid)).data.userId == request.auth.uid;
+    match /clientes/{clienteId} {
+      allow read, write: if request.auth.uid == resource.data.userId;
     }
-    match /{path=**}/materiais/{materialId} {
-      allow read, write: if request.auth != null && get(/databases/$(database)/documents/empresa/$(request.auth.uid)).data.userId == request.auth.uid;
+    
+    match /materiais/{materialId} {
+      allow read, write: if request.auth.uid == resource.data.userId;
     }
-    match /{path=**}/orcamentos/{orcamentoId} {
-      allow read, write: if request.auth != null && get(/databases/$(database)/documents/empresa/$(request.auth.uid)).data.userId == request.auth.uid;
+
+    match /orcamentos/{orcamentoId} {
+      allow read, write: if request.auth.uid == resource.data.userId;
     }
   }
 }
