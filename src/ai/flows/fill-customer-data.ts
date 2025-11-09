@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI agent to complete customer data.
@@ -11,8 +12,8 @@
 import '@/ai/genkit';
 
 import { defineFlow } from 'genkit';
-import { ai } from '@/ai/genkit';
-import {z} from 'zod';
+import { geminiPro } from '@genkit-ai/googleai';
+import { z } from 'zod';
 
 const FillCustomerDataInputSchema = z.object({
   nome: z.string().optional().describe('The customer\'s name.'),
@@ -35,7 +36,7 @@ export async function fillCustomerData(input: FillCustomerDataInput): Promise<Fi
 }
 
 
-const prompt = ai.geminiPro.definePrompt({
+const prompt = geminiPro.definePrompt({
   name: 'fillCustomerDataPrompt',
   input: {schema: FillCustomerDataInputSchema},
   output: {schema: FillCustomerDataOutputSchema},
