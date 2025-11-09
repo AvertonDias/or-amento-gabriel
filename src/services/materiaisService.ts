@@ -58,14 +58,15 @@ export const deleteMaterial = async (userId: string, materialId: string) => {
 };
 
 // Get all materials for a user
-export const getMateriais = async (userId: string): Promise<MaterialItem[]> => {
+export const getMateriais = (userId: string): Promise<MaterialItem[]> => {
   const materiaisCollection = getMateriaisCollection();
   const q = query(materiaisCollection, where('userId', '==', userId), orderBy('descricao', 'asc'));
-  const querySnapshot = await getDocs(q);
-  const materiais: MaterialItem[] = [];
-  querySnapshot.forEach((doc) => {
-    materiais.push({ id: doc.id, ...doc.data() } as MaterialItem);
+  
+  return getDocs(q).then((querySnapshot) => {
+      const materiais: MaterialItem[] = [];
+      querySnapshot.forEach((doc) => {
+        materiais.push({ id: doc.id, ...doc.data() } as MaterialItem);
+      });
+      return materiais;
   });
-  return materiais;
 };
-

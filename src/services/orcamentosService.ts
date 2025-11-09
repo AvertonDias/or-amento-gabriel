@@ -21,7 +21,7 @@ const getOrcamentosCollection = () => {
 };
 
 // Add a new orcamento
-export const addOrcamento = (orcamento: Omit<Orcamento, 'id'>) => {
+export const addOrcamento = (orcamento: Omit<Orcamento, 'id'>): Promise<void> => {
   if (!orcamento || !orcamento.cliente) {
     console.error(
       '[ORCAMENTO SERVICE - addOrcamento] Tentativa de salvar orçamento com dados inválidos.'
@@ -33,16 +33,18 @@ export const addOrcamento = (orcamento: Omit<Orcamento, 'id'>) => {
   );
   const orcamentosCollection = getOrcamentosCollection();
   
-  // A promessa de addDoc resolve quando a escrita é bem-sucedida no cache local.
-  // Não precisamos de await aqui no service, a UI deve lidar com o estado de submissão.
-  addDoc(orcamentosCollection, { ...orcamento }).catch(error => {
-      // O erro só acontecerá se a escrita for rejeitada por regras de segurança ou outro erro grave,
-      // não apenas por estar offline.
+  // Retorna a promessa de addDoc. Ela se resolverá quando a escrita for concluída no cache local.
+  return addDoc(orcamentosCollection, { ...orcamento })
+    .then(() => {
+        console.log("[ORCAMENTO SERVICE - addOrcamento] Orçamento adicionado/enfileirado offline com sucesso.");
+    })
+    .catch(error => {
       console.error(
         '[ORCAMENTO SERVICE - addOrcamento] Erro ao adicionar orçamento:',
         error
       );
-      // O erro é registrado, mas a UI não fica travada.
+      // Relança o erro para a UI tratar.
+      throw error;
   });
 };
 
@@ -79,19 +81,20 @@ export const deleteOrcamento = (orcamentoId: string) => {
 
 
 // Get all orcamentos for a user
-export const getOrcamentos = async (userId: string): Promise<Orcamento[]> => {
+export const getOrcamentos = (userId: string): Promise<Orcamento[]> => {
     const orcamentosCollection = getOrcamentosCollection();
     const q = query(
       orcamentosCollection,
       where('userId', '==', userId),
       orderBy('numeroOrcamento', 'desc')
     );
-    const querySnapshot = await getDocs(q);
-    const orcamentos: Orcamento[] = [];
-    querySnapshot.forEach((doc) => {
-      orcamentos.push({ id: doc.id, ...doc.data() } as Orcamento);
+    return getDocs(q).then(querySnapshot => {
+        const orcamentos: Orcamento[] = [];
+        querySnapshot.forEach((doc) => {
+            orcamentos.push({ id: doc.id, ...doc.data() } as Orcamento);
+        });
+        return orcamentos;
     });
-    return orcamentos;
 };
 
 // Get the next sequential orcamento number for the current year

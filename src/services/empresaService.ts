@@ -1,3 +1,4 @@
+
 import { db } from '@/lib/firebase';
 import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
 import type { EmpresaData } from '@/lib/types';
@@ -34,25 +35,18 @@ export const saveEmpresaData = async (userId: string, data: Omit<EmpresaData, 'i
 };
 
 
-export const getEmpresaData = async (userId: string): Promise<EmpresaData | null> => {
+export const getEmpresaData = (userId: string): Promise<EmpresaData | null> => {
     if (!userId) {
         console.warn("getEmpresaData chamado sem userId");
-        return null;
+        return Promise.resolve(null);
     }
     const empresaDocRef = doc(db, EMPRESA_COLLECTION, userId);
-    try {
-      const docSnap = await getDoc(empresaDocRef);
-
-      if (!docSnap.exists()) {
-          console.log(`Nenhum dado de empresa encontrado para o userId: ${userId}`);
-          return null;
-      }
-      
-      return { id: docSnap.id, ...docSnap.data() } as EmpresaData;
-
-    } catch (error) {
-      console.error("Erro ao buscar dados da empresa:", error);
-      // Retornar null em caso de erro de permissão ou outros problemas
-      return null;
-    }
+    
+    return getDoc(empresaDocRef).then(docSnap => {
+        if (!docSnap.exists()) {
+            console.log(`Nenhum dado de empresa encontrado para o userId: ${userId}`);
+            return null;
+        }
+        return { id: docSnap.id, ...docSnap.data() } as EmpresaData;
+    });
 };

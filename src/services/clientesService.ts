@@ -19,6 +19,8 @@ export const addCliente = (userId: string, cliente: Omit<ClienteData, 'id' | 'us
 // Update an existing client
 export const updateCliente = (clienteId: string, cliente: Partial<Omit<ClienteData, 'id' | 'userId'>>) => {
   const clienteDoc = doc(db, 'clientes', clienteId);
+  // O segundo argumento de updateDoc deve ser apenas o payload.
+  // O userId já está no documento e é validado pelas regras de segurança.
   return updateDoc(clienteDoc, cliente);
 };
 
@@ -29,15 +31,15 @@ export const deleteCliente = (clienteId: string) => {
 };
 
 // Get all clients for a user
-export const getClientes = async (userId: string): Promise<ClienteData[]> => {
+export const getClientes = (userId: string): Promise<ClienteData[]> => {
     const clientesCollection = getClientesCollection();
     const q = query(clientesCollection, where('userId', '==', userId), orderBy('nome', 'asc'));
-    const querySnapshot = await getDocs(q);
-    const clientes: ClienteData[] = [];
-    querySnapshot.forEach((doc) => {
-      clientes.push({ id: doc.id, ...doc.data() } as ClienteData);
-    });
-    return clientes;
-};
-
     
+    return getDocs(q).then((querySnapshot) => {
+        const clientes: ClienteData[] = [];
+        querySnapshot.forEach((doc) => {
+            clientes.push({ id: doc.id, ...doc.data() } as ClienteData);
+        });
+        return clientes;
+    });
+};

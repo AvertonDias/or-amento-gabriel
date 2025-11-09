@@ -292,20 +292,24 @@ export default function OrcamentoPage() {
     if (isRefresh) setIsRefreshing(true);
     else setIsLoading(prev => ({...prev, materiais: true, clientes: true, empresa: true, orcamentos: true}));
 
-    const [materiaisData, clientesData, empresaData, orcamentosData] = await Promise.all([
+    Promise.all([
         getMateriais(user.uid),
         getClientes(user.uid),
         getEmpresaData(user.uid),
         getOrcamentos(user.uid)
-    ]);
-    setMateriais(materiaisData);
-    setClientes(clientesData);
-    setEmpresa(empresaData);
-    setOrcamentosSalvos(orcamentosData);
-    
-    setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
-    if (isRefresh) setIsRefreshing(false);
-}, [user]);
+    ]).then(([materiaisData, clientesData, empresaData, orcamentosData]) => {
+        setMateriais(materiaisData);
+        setClientes(clientesData);
+        setEmpresa(empresaData);
+        setOrcamentosSalvos(orcamentosData);
+    }).catch(error => {
+        console.error("Erro ao buscar dados:", error);
+        toast({ title: 'Erro ao carregar dados', description: 'Não foi possível buscar os dados. Verifique sua conexão ou as permissões do banco de dados.', variant: 'destructive' });
+    }).finally(() => {
+        setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
+        if (isRefresh) setIsRefreshing(false);
+    });
+}, [user, toast]);
 
   
   useEffect(() => {
@@ -365,15 +369,14 @@ export default function OrcamentoPage() {
   const fetchOrcamentos = useCallback(async () => {
     if (!user) return;
     setIsLoading(prev => ({ ...prev, orcamentos: true }));
-    try {
-      const orcamentosData = await getOrcamentos(user.uid);
+    getOrcamentos(user.uid).then(orcamentosData => {
       setOrcamentosSalvos(orcamentosData);
-    } catch (error) {
+    }).catch(error => {
       console.error("Erro ao buscar orçamentos:", error);
       toast({ title: 'Erro ao carregar orçamentos', variant: 'destructive' });
-    } finally {
-      setIsLoading(prev => ({ ...prev, orcamentos: false }));
-    }
+    }).finally(() => {
+        setIsLoading(prev => ({ ...prev, orcamentos: false }));
+    });
   }, [user, toast]);
 
 
@@ -535,10 +538,19 @@ const handleConfirmSave = () => {
         return;
     }
     setIsSubmitting(true);
+    
     const normalizedNewClientName = clienteData.nome.trim().toLowerCase();
     const existingClient = clientes.find(c => c.nome.trim().toLowerCase() === normalizedNewClientName);
+
+    const afterClientResolution = (currentClient: ClienteData) => {
+        proceedToSaveBudget(currentClient).finally(() => {
+            setIsSubmitting(false);
+            setIsWizardOpen(false);
+        });
+    };
+
     if (existingClient) {
-        proceedToSaveBudget(existingClient);
+        afterClientResolution(existingClient);
     } else {
         setClientToSave({ ...clienteData });
         setIsConfirmSaveClientOpen(true);
@@ -549,8 +561,17 @@ const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
     setIsConfirmSaveClientOpen(false);
     if (!clientToSave || !user) {
         setIsSubmitting(false);
+        setIsWizardOpen(false);
         return;
     };
+    
+    const afterClientResolution = (currentClient: ClienteData) => {
+         proceedToSaveBudget(currentClient).finally(() => {
+            setIsSubmitting(false);
+            setIsWizardOpen(false);
+        });
+    };
+
     if (shouldSave) {
         const clientPayload = { ...clientToSave };
         delete clientPayload.id;
@@ -559,55 +580,50 @@ const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
                 const finalClientData = { ...clientToSave, id: newClientId, userId: user.uid };
                 setClientes(prev => [...prev, finalClientData]);
                 toast({ title: "Novo cliente salvo!" });
-                return finalClientData;
+                afterClientResolution(finalClientData);
             })
-            .then(proceedToSaveBudget)
             .catch(err => {
                 console.error("Erro ao salvar novo cliente:", err);
                 toast({ title: "Erro ao salvar o cliente.", variant: 'destructive'});
                 setIsSubmitting(false);
+                setIsWizardOpen(false);
             });
     } else {
-        const tempClientData = { ...clientToSave, id: crypto.randomUUID(), userId: user.uid };
-        proceedToSaveBudget(tempClientData);
+        const tempClientData = { ...clientToSave, id: `temp_${crypto.randomUUID()}`, userId: user.uid };
+        afterClientResolution(tempClientData);
     }
     setClientToSave(null);
 };
 
 
-const proceedToSaveBudget = (currentClient: ClienteData) => {
+const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     if (!user || !currentClient.id) {
         toast({ title: "Erro de dados", description: "Dados do cliente ou do usuário estão faltando.", variant: 'destructive' });
-        setIsSubmitting(false);
-        return;
+        return Promise.reject(new Error("Dados do cliente ou do usuário estão faltando."));
     };
 
-    getNextOrcamentoNumber(user.uid)
-      .then(numeroOrcamento => {
-          const newBudget: Omit<Orcamento, "id"> = {
-              userId: user.uid,
-              numeroOrcamento,
-              cliente: { ...currentClient },
-              itens: orcamentoItens,
-              totalVenda,
-              dataCriacao: new Date().toISOString(),
-              status: "Pendente",
-              validadeDias,
-              dataAceite: null,
-              dataRecusa: null,
-          };
-          addOrcamento(newBudget);
-          toast({ title: `Orçamento ${numeroOrcamento} salvo!` });
-          fetchAllData(true);
-      })
-      .catch(error => {
-          console.error("Erro ao salvar orçamento:", error);
-          toast({ title: "Erro ao salvar orçamento", variant: "destructive" });
-      })
-      .finally(() => {
-          setIsSubmitting(false);
-          setIsWizardOpen(false);
-      });
+    return getNextOrcamentoNumber(user.uid).then(numeroOrcamento => {
+        const newBudget: Omit<Orcamento, "id"> = {
+            userId: user.uid,
+            numeroOrcamento,
+            cliente: { ...currentClient },
+            itens: orcamentoItens,
+            totalVenda,
+            dataCriacao: new Date().toISOString(),
+            status: "Pendente",
+            validadeDias,
+            dataAceite: null,
+            dataRecusa: null,
+        };
+        return addOrcamento(newBudget);
+    }).then(() => {
+        toast({ title: `Orçamento salvo!` });
+        fetchAllData(true);
+    }).catch(error => {
+        console.error("Erro ao salvar orçamento:", error);
+        toast({ title: "Erro ao salvar orçamento", variant: "destructive" });
+        throw error;
+    });
 };
 
 
@@ -879,14 +895,14 @@ const proceedToSaveBudget = (currentClient: ClienteData) => {
   };
 
   const anyLoading = loadingAuth || Object.values(isLoading).some(Boolean);
-  const clienteFiltrado = clienteIdParam ? clientes.find(c => c.id === clienteIdParam) : null;
+  const clienteFiltrado = clienteIdParam ? clientes.find(c => c.id === clienteIdParam) : null
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
        <Card>
         <CardHeader>
           <CardTitle>Meus Orçamentos</CardTitle>
-          <CardDescription>Crie e gerencie seus orçamentos.</CardHeader>
+          <CardDescription>Crie e gerencie seus orçamentos.</CardDescription>
         </CardHeader>
         <CardContent>
           <Button onClick={handleOpenWizard} disabled={anyLoading}>
