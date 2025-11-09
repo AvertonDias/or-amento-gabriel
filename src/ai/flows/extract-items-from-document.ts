@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI agent to extract items from a shopping list or invoice.
@@ -12,7 +13,7 @@ import '@/ai/genkit';
 
 import * as genkit from 'genkit';
 import {z} from 'zod';
-import { geminiProVision } from '@genkit-ai/googleai';
+import { gemini } from '@genkit-ai/googleai';
 
 
 const ItemSchema = z.object({
@@ -35,7 +36,7 @@ const ExtractItemsOutputSchema = z.object({
 });
 export type ExtractItemsOutput = z.infer<typeof ExtractItemsOutputSchema>;
 
-const extractPrompt = geminiProVision.definePrompt(
+const extractPrompt = gemini.vision.definePrompt(
   {
     name: 'extractItemsPrompt',
     input: { schema: ExtractItemsInputSchema },

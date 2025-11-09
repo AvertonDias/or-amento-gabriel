@@ -11,7 +11,7 @@
 import '@/ai/genkit';
 
 import * as genkit from 'genkit';
-import { geminiPro } from '@genkit-ai/googleai';
+import { gemini } from '@genkit-ai/googleai';
 import { z } from 'zod';
 
 const FillCustomerDataInputSchema = z.object({
@@ -35,7 +35,7 @@ export async function fillCustomerData(input: FillCustomerDataInput): Promise<Fi
 }
 
 
-const prompt = geminiPro.definePrompt({
+const prompt = gemini.text.definePrompt({
   name: 'fillCustomerDataPrompt',
   input: {schema: FillCustomerDataInputSchema},
   output: {schema: FillCustomerDataOutputSchema},
