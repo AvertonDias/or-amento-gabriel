@@ -2,7 +2,7 @@
   "indexes": [
     {
       "collectionGroup": "clientes",
-      "queryScope": "COLLECTION_GROUP",
+      "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "nome", "order": "ASCENDING" }
@@ -10,7 +10,7 @@
     },
     {
       "collectionGroup": "materiais",
-      "queryScope": "COLLECTION_GROUP",
+      "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "descricao", "order": "ASCENDING" }
