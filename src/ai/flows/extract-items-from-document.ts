@@ -11,7 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { generate, defineFlow } from 'genkit';
-import { geminiProVision } from '@genkit-ai/googleai';
+
 
 const ItemSchema = z.object({
     descricao: z.string().describe('The full description of the item.'),
@@ -44,7 +44,7 @@ export const extractItemsFromDocument = defineFlow(
     
     try {
         const { output } = await generate({
-            model: geminiProVision,
+            model: 'googleai/gemini-pro-vision',
             prompt: `You are an expert data entry assistant. Your task is to analyze the provided image or PDF of a shopping list or invoice and extract all items listed.
 
             For each item, identify its description, quantity, and unit price.
