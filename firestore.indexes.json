@@ -1,46 +1,27 @@
-
 {
   "indexes": [
     {
       "collectionGroup": "clientes",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "nome",
-          "order": "ASCENDING"
-        }
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "nome", "order": "ASCENDING" }
       ]
     },
     {
       "collectionGroup": "materiais",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "descricao",
-          "order": "ASCENDING"
-        }
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "descricao", "order": "ASCENDING" }
       ]
     },
     {
       "collectionGroup": "orcamentos",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "numeroOrcamento",
-          "order": "DESCENDING"
-        }
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "numeroOrcamento", "order": "DESCENDING" }
       ]
     }
   ],
