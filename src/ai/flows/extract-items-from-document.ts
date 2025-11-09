@@ -41,6 +41,7 @@ const prompt = ai.definePrompt({
   name: 'extractItemsPrompt',
   input: {schema: ExtractItemsInputSchema},
   output: {schema: ExtractItemsOutputSchema},
+  model: 'googleai/gemini-pro-vision',
   prompt: `You are an expert data entry assistant. Your task is to analyze the provided image or PDF of a shopping list or invoice and extract all items listed.
 
 For each item, identify its description, quantity, and unit price.
