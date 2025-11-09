@@ -26,6 +26,8 @@ import {
   Ruler
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { ContactPermissionModal } from '@/components/contact-permission-modal';
 
 
 const navItems = [
@@ -86,6 +88,16 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const { toast } = useToast();
+  
+  const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
+  const [contactsPermissionStatus, setContactsPermissionStatus] = useLocalStorage<'prompt' | 'granted' | 'denied'>('contacts-permission-status', 'prompt');
+
+  useEffect(() => {
+    const isContactsSupported = 'contacts' in navigator && 'select' in (navigator as any).contacts;
+    if (isContactsSupported && contactsPermissionStatus === 'prompt') {
+      setIsPermissionModalOpen(true);
+    }
+  }, [contactsPermissionStatus]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -115,6 +127,19 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       });
     }
   };
+  
+  const handlePermissionGranted = () => {
+    setContactsPermissionStatus('granted');
+    setIsPermissionModalOpen(false);
+    toast({ title: 'Permissão concedida!', description: 'Agora você pode importar contatos facilmente.' });
+  };
+
+  const handlePermissionDenied = () => {
+    setContactsPermissionStatus('denied');
+    setIsPermissionModalOpen(false);
+    toast({ title: 'Permissão negada.', description: 'Você pode habilitar o acesso nas configurações do seu navegador.', variant: 'destructive' });
+  };
+
 
   if (isCheckingAuth) {
     return (
@@ -149,6 +174,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   return (
     <TooltipProvider>
       <PwaInstallButton />
+       <ContactPermissionModal
+        isOpen={isPermissionModalOpen}
+        onClose={() => setIsPermissionModalOpen(false)}
+        onPermissionGranted={handlePermissionGranted}
+        onPermissionDenied={handlePermissionDenied}
+      />
       <div className="flex min-h-screen w-full">
         {/* Desktop Sidebar */}
         <aside className={cn(
