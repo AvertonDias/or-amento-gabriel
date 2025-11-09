@@ -292,25 +292,20 @@ export default function OrcamentoPage() {
     if (isRefresh) setIsRefreshing(true);
     else setIsLoading(prev => ({...prev, materiais: true, clientes: true, empresa: true, orcamentos: true}));
 
-    try {
-        const [materiaisData, clientesData, empresaData, orcamentosData] = await Promise.all([
-            getMateriais(user.uid),
-            getClientes(user.uid),
-            getEmpresaData(user.uid),
-            getOrcamentos(user.uid)
-        ]);
-        setMateriais(materiaisData);
-        setClientes(clientesData);
-        setEmpresa(empresaData);
-        setOrcamentosSalvos(orcamentosData);
-    } catch (error) {
-        console.error("Erro ao buscar dados:", error);
-        toast({ title: 'Erro ao carregar dados do servidor', variant: 'destructive' });
-    } finally {
-        setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
-        if (isRefresh) setIsRefreshing(false);
-    }
-}, [user, toast]);
+    const [materiaisData, clientesData, empresaData, orcamentosData] = await Promise.all([
+        getMateriais(user.uid),
+        getClientes(user.uid),
+        getEmpresaData(user.uid),
+        getOrcamentos(user.uid)
+    ]);
+    setMateriais(materiaisData);
+    setClientes(clientesData);
+    setEmpresa(empresaData);
+    setOrcamentosSalvos(orcamentosData);
+    
+    setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
+    if (isRefresh) setIsRefreshing(false);
+}, [user]);
 
   
   useEffect(() => {
@@ -547,14 +542,13 @@ const handleConfirmSave = () => {
     } else {
         setClientToSave({ ...clienteData });
         setIsConfirmSaveClientOpen(true);
-        // We don't stop submitting here, the dialog will handle the flow.
     }
 };
 
 const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
     setIsConfirmSaveClientOpen(false);
     if (!clientToSave || !user) {
-        setIsSubmitting(false); // Make sure to stop submitting if something is wrong
+        setIsSubmitting(false);
         return;
     };
     if (shouldSave) {
@@ -602,7 +596,7 @@ const proceedToSaveBudget = (currentClient: ClienteData) => {
               dataAceite: null,
               dataRecusa: null,
           };
-          addOrcamento(newBudget); // Firestore handles offline queuing.
+          addOrcamento(newBudget);
           toast({ title: `Orçamento ${numeroOrcamento} salvo!` });
           fetchAllData(true);
       })

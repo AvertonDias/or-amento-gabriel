@@ -30,7 +30,6 @@ export const deleteCliente = (clienteId: string) => {
 
 // Get all clients for a user
 export const getClientes = async (userId: string): Promise<ClienteData[]> => {
-  try {
     const clientesCollection = getClientesCollection();
     const q = query(clientesCollection, where('userId', '==', userId), orderBy('nome', 'asc'));
     const querySnapshot = await getDocs(q);
@@ -39,14 +38,6 @@ export const getClientes = async (userId: string): Promise<ClienteData[]> => {
       clientes.push({ id: doc.id, ...doc.data() } as ClienteData);
     });
     return clientes;
-  } catch (error) {
-    console.error("Erro ao buscar clientes:", error);
-    // Suggest creating an index if that's the error
-    if ((error as any).code === 'failed-precondition') {
-        console.error("DICA: O erro acima pode ser resolvido criando um índice no Firestore. Verifique o link no erro para criar o índice.");
-    }
-    return [];
-  }
 };
 
     

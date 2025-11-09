@@ -1,3 +1,4 @@
+
 import { db } from '@/lib/firebase';
 import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy, runTransaction, getDoc } from 'firebase/firestore';
 import type { MaterialItem } from '@/lib/types';
@@ -67,3 +68,4 @@ export const getMateriais = async (userId: string): Promise<MaterialItem[]> => {
   });
   return materiais;
 };
+

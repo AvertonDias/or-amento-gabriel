@@ -80,7 +80,6 @@ export const deleteOrcamento = (orcamentoId: string) => {
 
 // Get all orcamentos for a user
 export const getOrcamentos = async (userId: string): Promise<Orcamento[]> => {
-  try {
     const orcamentosCollection = getOrcamentosCollection();
     const q = query(
       orcamentosCollection,
@@ -93,10 +92,6 @@ export const getOrcamentos = async (userId: string): Promise<Orcamento[]> => {
       orcamentos.push({ id: doc.id, ...doc.data() } as Orcamento);
     });
     return orcamentos;
-  } catch (e) {
-    console.error('Error getting documents: ', e);
-    return [];
-  }
 };
 
 // Get the next sequential orcamento number for the current year
