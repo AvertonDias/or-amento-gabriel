@@ -59,7 +59,7 @@ const fillCustomerDataFlow = defineFlow(
     inputSchema: FillCustomerDataInputSchema,
     outputSchema: FillCustomerDataOutputSchema,
   },
-  async (input) => {
+  async (input: FillCustomerDataInput) => {
     const sanitizedInput = {
       ...input,
       cpfCnpj: input.cpfCnpj || undefined,

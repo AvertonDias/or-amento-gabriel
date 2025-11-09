@@ -39,7 +39,7 @@ export const extractItemsFromDocument = defineFlow(
     inputSchema: ExtractItemsInputSchema,
     outputSchema: ExtractItemsOutputSchema,
   },
-  async (input) => {
+  async (input: ExtractItemsInput) => {
     // Mantendo os console.logs para depuração
     console.log("SERVER ACTION ENV - GOOGLE_API_KEY:", process.env.GOOGLE_API_KEY ? "DEFINED" : "UNDEFINED");
     console.log("SERVER ACTION ENV - GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "DEFINED" : "UNDEFINED");
