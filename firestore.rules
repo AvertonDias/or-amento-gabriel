@@ -7,18 +7,18 @@ service cloud.firestore {
     }
 
     match /clientes/{clienteId} {
-      allow read: if request.auth.uid == resource.data.userId;
-      allow write: if request.auth.uid == request.resource.data.userId;
+      allow read, write: if request.auth.uid == request.resource.data.userId;
     }
     
     match /materiais/{materialId} {
-      allow read: if request.auth.uid == resource.data.userId;
-      allow write: if request.auth.uid == request.resource.data.userId;
+      allow read, write: if request.auth.uid == request.resource.data.userId;
     }
 
     match /orcamentos/{orcamentoId} {
-      allow read: if request.auth.uid == resource.data.userId;
-      allow write: if request.auth.uid == request.resource.data.userId;
+      allow read: if resource.data.userId == request.auth.uid;
+      allow create: if request.resource.data.userId == request.auth.uid;
+      allow update: if request.resource.data.userId == request.auth.uid;
+      allow delete: if resource.data.userId == request.auth.uid;
     }
   }
 }
