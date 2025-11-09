@@ -1,7 +1,7 @@
 
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { initializeFirestore, CACHE_SIZE_UNLIMITED, indexedDBLocalCache } from "firebase/firestore";
+import { initializeFirestore, CACHE_SIZE_UNLIMITED, persistentLocalCache } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -19,7 +19,7 @@ const auth = getAuth(app);
 
 // Initialize Firestore with offline persistence
 const db = initializeFirestore(app, {
-  localCache: indexedDBLocalCache({ 
+  localCache: persistentLocalCache({ 
     cacheSizeBytes: CACHE_SIZE_UNLIMITED
   })
 });
