@@ -272,7 +272,7 @@ export default function ClientesPage() {
     
     setIsSubmitting(true);
     try {
-        const { id, userId, ...clientToUpdate } = editingClient;
+        const { id, ...clientToUpdate } = editingClient;
         await updateCliente(id, clientToUpdate);
         setIsEditModalOpen(false);
         setEditingClient(null);
@@ -289,55 +289,83 @@ export default function ClientesPage() {
     }
   };
 
-  const handleImportContacts = async () => {
-    if ('contacts' in navigator && 'select' in (navigator as any).contacts) {
-      try {
-        const props = ['name', 'email', 'tel', 'address'];
-        const opts = { multiple: false };
-        const contacts = await (navigator as any).contacts.select(props, opts);
-        
-        if (contacts.length > 0) {
-          const contact = contacts[0];
-          
-          const hasMultipleOptions = (contact.tel?.length > 1 || contact.email?.length > 1 || contact.address?.length > 1);
+  const importContacts = async () => {
+    try {
+      const props = ['name', 'email', 'tel', 'address'];
+      const opts = { multiple: false };
+      const contacts = await (navigator as any).contacts.select(props, opts);
+      
+      if (contacts.length > 0) {
+        const contact = contacts[0];
+        const hasMultipleOptions = (contact.tel?.length > 1 || contact.email?.length > 1 || contact.address?.length > 1);
 
-          if (hasMultipleOptions) {
-            setSelectedContactDetails(contact);
-            setIsContactSelectionModalOpen(true);
-          } else {
-            const address = contact.address?.[0];
-            const formattedAddress = address ? [address.streetAddress, address.addressLevel2, address.addressLevel1, address.postalCode, address.country].filter(Boolean).join(', ') : '';
-            
-            const partialClient = {
-              nome: contact.name?.[0] || '',
-              email: contact.email?.[0] || '',
-              telefone: contact.tel?.[0] ? maskTelefone(contact.tel[0]) : '',
-              endereco: formattedAddress,
-              cpfCnpj: '',
-            };
-            setNewClient(partialClient);
-            toast({
-              title: 'Contato Importado!',
-              description: 'Os dados do contato foram preenchidos no formulário.',
-            });
-          }
+        if (hasMultipleOptions) {
+          setSelectedContactDetails(contact);
+          setIsContactSelectionModalOpen(true);
+        } else {
+          const address = contact.address?.[0];
+          const formattedAddress = address ? [address.streetAddress, address.addressLevel2, address.addressLevel1, address.postalCode, address.country].filter(Boolean).join(', ') : '';
+          
+          const partialClient = {
+            nome: contact.name?.[0] || '',
+            email: contact.email?.[0] || '',
+            telefone: contact.tel?.[0] ? maskTelefone(contact.tel[0]) : '',
+            endereco: formattedAddress,
+            cpfCnpj: '',
+          };
+          setNewClient(partialClient);
+          toast({
+            title: 'Contato Importado!',
+            description: 'Os dados do contato foram preenchidos no formulário.',
+          });
         }
-      } catch (error) {
-        console.error('Erro ao importar contato:', error);
-        toast({
-          title: 'Importação Cancelada',
-          description: 'Não foi possível importar o contato.',
-          variant: 'destructive',
-        });
       }
-    } else {
+    } catch (error) {
+      console.error('Erro ao importar contato:', error);
       toast({
+        title: 'Importação Cancelada',
+        description: 'Não foi possível importar o contato.',
+        variant: 'destructive',
+      });
+    }
+  }
+
+  const handleImportContacts = async () => {
+    if (!('contacts' in navigator && 'select' in (navigator as any).contacts)) {
+      return toast({
         title: 'Recurso não suportado',
         description: 'Seu navegador não suporta a API de Contatos para importação.',
         variant: 'destructive',
       });
     }
+
+    try {
+      // @ts-ignore
+      const permission = await navigator.permissions.query({ name: 'contacts' });
+      
+      if (permission.state === 'granted') {
+        await importContacts();
+      } else if (permission.state === 'prompt') {
+        // O próprio `select` irá solicitar a permissão
+        await importContacts();
+      } else if (permission.state === 'denied') {
+        toast({
+          title: 'Permissão Negada',
+          description: 'Você precisa permitir o acesso aos contatos nas configurações do seu navegador para usar este recurso.',
+          variant: 'destructive',
+          duration: 5000,
+        });
+      }
+    } catch (error) {
+       console.error("Erro ao verificar permissão de contatos:", error);
+       toast({
+         title: 'Erro de Permissão',
+         description: 'Ocorreu um erro ao tentar acessar as permissões de contato.',
+         variant: 'destructive',
+       });
+    }
   };
+
 
   const handleConfirmContactSelection = (e: FormEvent) => {
     e.preventDefault();
@@ -757,5 +785,7 @@ export default function ClientesPage() {
     </div>
   );
 }
+
+    
 
     
