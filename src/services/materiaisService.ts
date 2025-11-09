@@ -18,7 +18,7 @@ export const addMaterial = async (userId: string, material: Omit<MaterialItem, '
 // Update an existing material
 export const updateMaterial = async (userId: string, materialId: string, material: Partial<Omit<MaterialItem, 'id' | 'userId'>>) => {
   const materialDoc = doc(db, 'materiais', materialId);
-  await updateDoc(materialDoc, material);
+  await updateDoc(materialDoc, { ...material, userId });
 };
 
 // Update stock for a material

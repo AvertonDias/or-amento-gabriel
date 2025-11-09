@@ -2,21 +2,20 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Usuários podem ler e escrever em seus próprios documentos
     match /empresa/{userId} {
       allow read, write: if request.auth.uid == userId;
     }
 
     match /clientes/{clienteId} {
-      allow read, write: if request.auth.uid == resource.data.userId;
+      allow read, write: if request.auth.uid == request.resource.data.userId;
     }
     
     match /materiais/{materialId} {
-      allow read, write: if request.auth.uid == resource.data.userId;
+      allow read, write: if request.auth.uid == request.resource.data.userId;
     }
 
     match /orcamentos/{orcamentoId} {
-      allow read, write: if request.auth.uid == resource.data.userId;
+      allow read, write: if request.auth.uid == request.resource.data.userId;
     }
   }
 }
