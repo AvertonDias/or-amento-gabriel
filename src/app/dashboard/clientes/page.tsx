@@ -86,45 +86,8 @@ export default function ClientesPage() {
   const [duplicateMessage, setDuplicateMessage] = useState("");
   
   const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
-  const [contactsPermissionStatus, setContactsPermissionStatus] = useState<PermissionState>('prompt');
-  const [isContactsApiSupported, setIsContactsApiSupported] = useState(true);
-  const [permissionModalHasBeenShown, setPermissionModalHasBeenShown] = useLocalStorage('contactPermissionModalShown', false);
-
 
   const { toast } = useToast();
-
-  // Check for Contacts API support and permission status on initial load
-  useEffect(() => {
-    const checkContactsPermission = async () => {
-      if ('contacts' in navigator && 'select' in (navigator as any).contacts) {
-        setIsContactsApiSupported(true);
-        try {
-          const status = await (navigator as any).permissions.query({ name: 'contacts' });
-          setContactsPermissionStatus(status.state);
-          // If permission is not granted and modal has not been shown, open it.
-          if (status.state !== 'granted' && !permissionModalHasBeenShown) {
-            setIsPermissionModalOpen(true);
-          }
-        } catch (error) {
-          // If permission query fails, it's safer to assume we need to prompt.
-          // This can happen in browsers that support the API but not the query.
-          console.warn("Could not query contacts permission, defaulting to 'prompt'.", error);
-          setContactsPermissionStatus('prompt');
-           if (!permissionModalHasBeenShown) {
-            setIsPermissionModalOpen(true);
-          }
-        }
-      } else {
-        setIsContactsApiSupported(false);
-        // If not supported, we can show the modal to inform the user.
-        if (!permissionModalHasBeenShown) {
-            setIsPermissionModalOpen(true);
-        }
-      }
-    };
-    checkContactsPermission();
-  }, [permissionModalHasBeenShown]);
-  
   
   const newClientCpfCnpjStatus = useMemo(() => {
     if (!newClient.cpfCnpj) return 'incomplete';
@@ -333,20 +296,16 @@ export default function ClientesPage() {
   
   const formatAddress = (address: any): string => {
     if (!address) return '';
-    
     const parts = [
-      address.addressLine1,
-      address.addressLine2,
-      address.city,
-      address.region,
-      address.postalCode,
-      address.country
-    ];
-    
-    // Safely access properties and join them.
-    // This is more robust than a fixed structure.
-    return parts.filter(Boolean).join(', ');
-  }
+        address.addressLine1,
+        address.addressLine2,
+        address.city,
+        address.region,
+        address.postalCode,
+        address.country
+    ].filter(Boolean); // Filtra partes nulas ou vazias
+    return parts.join(', ');
+};
 
   const processSelectedContacts = (contacts: any[]) => {
     if (contacts.length > 0) {
@@ -357,7 +316,7 @@ export default function ClientesPage() {
         setSelectedContactDetails(contact);
         setIsContactSelectionModalOpen(true);
       } else {
-        const formattedAddress = formatAddress(contact.address?.[0]);
+        const formattedAddress = contact.address?.[0] ? formatAddress(contact.address[0]) : '';
         
         const partialClient = {
           nome: contact.name?.[0] || '',
@@ -375,9 +334,8 @@ export default function ClientesPage() {
     }
   };
 
-  const requestContacts = async () => {
-    // This function will be called by the permission modal or the import button
-    if (!isContactsApiSupported) {
+  const handleImportContacts = async () => {
+    if (!('contacts' in navigator && 'select' in (navigator as any).contacts)) {
         toast({
             title: 'Recurso não suportado',
             description: 'Seu navegador não oferece suporte para importação de contatos.',
@@ -389,46 +347,23 @@ export default function ClientesPage() {
         const props = ['name', 'email', 'tel', 'address'];
         const opts = { multiple: false };
         const contacts = await (navigator as any).contacts.select(props, opts);
-        setContactsPermissionStatus('granted');
-        setPermissionModalHasBeenShown(true); // Mark as shown after successful interaction
         processSelectedContacts(contacts);
     } catch (error: any) {
         if (error.name === 'AbortError') {
             toast({
                 title: 'Importação Cancelada',
-                description: 'A seleção de contatos foi cancelada.',
+                description: 'A seleção de contatos foi cancelada pelo usuário.',
                 variant: 'default',
             });
-            // Don't set to denied on abort, user might try again.
         } else {
             console.error('Erro ao importar contato:', error);
             toast({
-                title: 'Erro ao Importar',
-                description: 'Não foi possível importar o contato. A permissão pode ter sido negada.',
+                title: 'Erro de Permissão',
+                description: 'Não foi possível importar o contato. A permissão pode ter sido negada nas configurações do seu navegador.',
                 variant: 'destructive',
             });
-            setContactsPermissionStatus('denied');
         }
-        setPermissionModalHasBeenShown(true); // Also mark as shown on error
     }
-  };
-
-  const handleImportContacts = async () => {
-    if (contactsPermissionStatus === 'granted') {
-      await requestContacts();
-    } else {
-      // If permission is not granted, show the modal to guide the user.
-      setIsPermissionModalOpen(true);
-    }
-  };
-  
-  const handlePermissionModalAction = async () => {
-    // This is called from the permission modal's primary button.
-    setIsPermissionModalOpen(false);
-    if (contactsPermissionStatus === 'prompt') {
-      await requestContacts();
-    }
-    setPermissionModalHasBeenShown(true);
   };
   
   const handleConfirmContactSelection = (e: FormEvent) => {
@@ -693,38 +628,6 @@ export default function ClientesPage() {
 
       {/* DIALOGS SECTION */}
 
-      <AlertDialog open={isPermissionModalOpen} onOpenChange={setIsPermissionModalOpen}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle className="flex items-center gap-2">
-                    <Contact className="h-6 w-6 text-primary" />
-                    Importar Contatos
-                </AlertDialogTitle>
-                {!isContactsApiSupported ? (
-                    <AlertDialogDescription>
-                        A importação de contatos não é suportada pelo seu navegador. Você ainda pode adicionar clientes manualmente.
-                    </AlertDialogDescription>
-                ) : contactsPermissionStatus === 'denied' ? (
-                    <AlertDialogDescription>
-                        A permissão para acessar os contatos foi negada anteriormente. Para usar este recurso, você precisa habilitar a permissão de "Contatos" para este site nas configurações do seu navegador.
-                    </AlertDialogDescription>
-                ) : (
-                    <AlertDialogDescription>
-                        Para facilitar o cadastro, podemos importar um cliente diretamente da sua lista de contatos. Gostaria de permitir o acesso?
-                    </AlertDialogDescription>
-                )}
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setPermissionModalHasBeenShown(true)}>Fechar</AlertDialogCancel>
-                {!isContactsApiSupported || contactsPermissionStatus === 'denied' ? null : (
-                    <AlertDialogAction onClick={handlePermissionModalAction}>
-                        Sim, Permitir
-                    </AlertDialogAction>
-                )}
-            </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -890,3 +793,5 @@ export default function ClientesPage() {
     </div>
   );
 }
+
+    
