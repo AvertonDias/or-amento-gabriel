@@ -19,8 +19,10 @@ const auth = getAuth(app);
 
 // Initialize Firestore with offline persistence
 const db = initializeFirestore(app, {
-  localCache: memoryLocalCache({ garbageCollection: 'settings' }),
-  cacheSizeBytes: CACHE_SIZE_UNLIMITED
+  localCache: memoryLocalCache({ 
+    garbageCollection: 'settings',
+    cacheSizeBytes: CACHE_SIZE_UNLIMITED
+  })
 });
 
 const storage = getStorage(app);
