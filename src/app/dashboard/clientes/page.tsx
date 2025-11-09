@@ -301,7 +301,7 @@ export default function ClientesPage() {
     try {
       const props = ['name', 'email', 'tel', 'address'];
       const opts = { multiple: false };
-      // A chamada `select` solicitará a permissão se for necessário.
+      
       const contacts = await (navigator as any).contacts.select(props, opts);
       
       if (contacts.length > 0) {
@@ -330,7 +330,6 @@ export default function ClientesPage() {
         }
       }
     } catch (error: any) {
-      // Verifica se o erro é de permissão negada ou outro tipo de cancelamento
       if (error.name === 'AbortError') {
           toast({
               title: 'Importação Cancelada',
