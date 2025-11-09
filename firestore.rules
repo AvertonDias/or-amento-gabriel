@@ -7,23 +7,17 @@ service cloud.firestore {
     }
 
     match /clientes/{clienteId} {
-      // Permite que um usuário leia e exclua apenas os seus próprios clientes.
       allow read, delete: if resource.data.userId == request.auth.uid;
-      // Permite que um usuário crie e atualize apenas clientes com seu próprio userId.
       allow create, update: if request.resource.data.userId == request.auth.uid;
     }
     
     match /materiais/{materialId} {
-      // Permite que um usuário leia e exclua apenas os seus próprios materiais.
       allow read, delete: if resource.data.userId == request.auth.uid;
-      // Permite que um usuário crie e atualize apenas materiais com seu próprio userId.
       allow create, update: if request.resource.data.userId == request.auth.uid;
     }
 
     match /orcamentos/{orcamentoId} {
-      // Permite que um usuário leia e exclua apenas os seus próprios orçamentos.
       allow read, delete: if resource.data.userId == request.auth.uid;
-      // Permite que um usuário crie e atualize apenas orçamentos com seu próprio userId.
       allow create, update: if request.resource.data.userId == request.auth.uid;
     }
   }
