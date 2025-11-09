@@ -102,10 +102,7 @@ export function PwaInstallButton() {
             onPointerDownOutside={(e) => e.preventDefault()}
         >
             <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                    <Download className="h-6 w-6 text-primary" />
-                    Instalar Meu Orçamento
-                </DialogTitle>
+                <DialogTitle>Instalar Meu Orçamento</DialogTitle>
                 <DialogDescription>
                     Instale o aplicativo em seu dispositivo para uma experiência mais rápida e para usá-lo como um app nativo,
                     inclusive com **acesso offline**. É rápido e seguro!
@@ -123,3 +120,5 @@ export function PwaInstallButton() {
     </Dialog>
   );
 }
+
+    

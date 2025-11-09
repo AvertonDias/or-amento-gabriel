@@ -273,15 +273,7 @@ export default function ClientesPage() {
     setIsSubmitting(true);
     try {
         const { id, userId, ...clientToUpdate } = editingClient;
-        const plainClientObject = {
-            nome: clientToUpdate.nome,
-            cpfCnpj: clientToUpdate.cpfCnpj,
-            endereco: clientToUpdate.endereco,
-            telefone: clientToUpdate.telefone,
-            email: clientToUpdate.email,
-        };
-
-        await updateCliente(id, plainClientObject);
+        await updateCliente(id, clientToUpdate);
         setIsEditModalOpen(false);
         setEditingClient(null);
         await fetchPageData(); // Refresh list
@@ -527,54 +519,54 @@ export default function ClientesPage() {
                <Accordion type="multiple" className="w-full">
                   {clientes.map(item => (
                     <AccordionItem value={item.id!} key={item.id} className="border-b">
-                      <AccordionTrigger className="hover:no-underline py-3 px-2 rounded-t-lg data-[state=open]:bg-muted/50">
-                          <div className="flex justify-between items-center w-full">
-                             <span className="font-medium text-lg text-primary">{item.nome}</span>
-                             <div className="flex items-center gap-2">
-                                <DropdownMenu>
-                                   <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
-                                         <MoreVertical className="h-5 w-5" />
-                                      </Button>
-                                   </DropdownMenuTrigger>
-                                   <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                      <DropdownMenuItem onClick={() => handleEditClick(item)}>
-                                         <Pencil className="mr-2 h-4 w-4" />
-                                         Editar Cliente
-                                      </DropdownMenuItem>
-                                       <DropdownMenuItem onClick={() => handleViewBudgets(item.id!)}>
-                                         <History className="mr-2 h-4 w-4" />
-                                         Ver Orçamentos
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <div className={cn(
-                                            "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-                                            "text-destructive focus:bg-destructive/10 focus:text-destructive"
-                                          )}
-                                          onSelect={(e) => e.preventDefault()}
-                                          >
-                                              <Trash2 className="mr-2 h-4 w-4" />
-                                              Excluir Cliente
-                                          </div>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                                <AlertDialogDescription>Esta ação não pode ser desfeita. Isso excluirá permanentemente o cliente.</AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleRemoverCliente(item.id!)}>Sim, Excluir</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                   </DropdownMenuContent>
-                                </DropdownMenu>
-                             </div>
+                      <div className="flex items-center w-full group">
+                          <AccordionTrigger className="flex-1 hover:no-underline py-3 px-2 rounded-t-lg data-[state=open]:bg-muted/50">
+                              <span className="font-medium text-lg text-primary">{item.nome}</span>
+                          </AccordionTrigger>
+                          <div className="flex items-center gap-2 pr-2">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                                      <MoreVertical className="h-5 w-5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                  <DropdownMenuItem onClick={() => handleEditClick(item)}>
+                                      <Pencil className="mr-2 h-4 w-4" />
+                                      Editar Cliente
+                                  </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleViewBudgets(item.id!)}>
+                                      <History className="mr-2 h-4 w-4" />
+                                      Ver Orçamentos
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <div className={cn(
+                                        "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+                                        "text-destructive focus:bg-destructive/10 focus:text-destructive"
+                                      )}
+                                      onSelect={(e) => e.preventDefault()}
+                                      >
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          Excluir Cliente
+                                      </div>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                            <AlertDialogDescription>Esta ação não pode ser desfeita. Isso excluirá permanentemente o cliente.</AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleRemoverCliente(item.id!)}>Sim, Excluir</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
-                      </AccordionTrigger>
+                      </div>
                       <AccordionContent className="p-4 space-y-3">
                           {item.cpfCnpj && <p className="text-sm"><span className="font-medium text-muted-foreground">CPF/CNPJ:</span> {item.cpfCnpj}</p>}
                           {item.telefone && <p className="text-sm"><span className="font-medium text-muted-foreground">Telefone:</span> {item.telefone}</p>}
@@ -766,3 +758,4 @@ export default function ClientesPage() {
   );
 }
 
+    

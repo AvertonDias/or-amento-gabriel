@@ -531,44 +531,43 @@ export default function OrcamentoPage() {
   };
   
 const handleConfirmSave = () => {
-    if (!user) return;
     if (orcamentoItens.length === 0) {
-      toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item.", variant: "destructive" });
-      return;
+        toast({ title: "Orçamento vazio", description: "Adicione pelo menos um item.", variant: "destructive" });
+        return;
     }
     if (!clienteData.nome) {
-      toast({ title: "Cliente não informado", description: "Preencha o nome do cliente.", variant: "destructive" });
-      return;
+        toast({ title: "Cliente não informado", description: "Preencha o nome do cliente.", variant: "destructive" });
+        return;
     }
-
     setIsSubmitting(true);
-
     const normalizedNewClientName = clienteData.nome.trim().toLowerCase();
     const existingClient = clientes.find(c => c.nome.trim().toLowerCase() === normalizedNewClientName);
-
     if (existingClient) {
-      proceedToSaveBudget(existingClient);
+        proceedToSaveBudget(existingClient);
     } else {
-      setClientToSave({ ...clienteData });
-      setIsConfirmSaveClientOpen(true);
-      setIsSubmitting(false); 
+        setClientToSave({ ...clienteData });
+        setIsConfirmSaveClientOpen(true);
+        // We don't stop submitting here, the dialog will handle the flow.
     }
 };
 
 const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
     setIsConfirmSaveClientOpen(false);
-    if (!clientToSave || !user) return;
-
+    if (!clientToSave || !user) {
+        setIsSubmitting(false); // Make sure to stop submitting if something is wrong
+        return;
+    };
     if (shouldSave) {
         const clientPayload = { ...clientToSave };
-        delete clientPayload.id; // Remove temp id if any
+        delete clientPayload.id;
         addCliente(user.uid, clientPayload)
-            .then(newClientId => {
+            .then((newClientId) => {
                 const finalClientData = { ...clientToSave, id: newClientId, userId: user.uid };
-                setClientes(prev => [...prev, finalClientData]); // Optimistically update client list
-                proceedToSaveBudget(finalClientData);
+                setClientes(prev => [...prev, finalClientData]);
                 toast({ title: "Novo cliente salvo!" });
+                return finalClientData;
             })
+            .then(proceedToSaveBudget)
             .catch(err => {
                 console.error("Erro ao salvar novo cliente:", err);
                 toast({ title: "Erro ao salvar o cliente.", variant: 'destructive'});
@@ -584,40 +583,37 @@ const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
 
 const proceedToSaveBudget = (currentClient: ClienteData) => {
     if (!user || !currentClient.id) {
+        toast({ title: "Erro de dados", description: "Dados do cliente ou do usuário estão faltando.", variant: 'destructive' });
         setIsSubmitting(false);
         return;
     };
-    
-    setIsSubmitting(true);
 
-    getNextOrcamentoNumber(user.uid).then(numeroOrcamento => {
-      const newBudget: Omit<Orcamento, "id"> = {
-          userId: user.uid,
-          numeroOrcamento,
-          cliente: { ...currentClient },
-          itens: orcamentoItens,
-          totalVenda,
-          dataCriacao: new Date().toISOString(),
-          status: "Pendente",
-          validadeDias,
-          dataAceite: null,
-          dataRecusa: null,
-      };
-
-      addOrcamento(user.uid, newBudget);
-      
-      toast({ title: `Orçamento ${numeroOrcamento} salvo!` });
-      fetchAllData(true); 
-      
-      // UI feedback is optimistic
-      setIsSubmitting(false);
-      setIsWizardOpen(false);
-
-    }).catch(error => {
-        console.error("Erro ao gerar número do orçamento:", error);
-        toast({ title: "Erro ao gerar número do orçamento", variant: "destructive" });
-        setIsSubmitting(false);
-    });
+    getNextOrcamentoNumber(user.uid)
+      .then(numeroOrcamento => {
+          const newBudget: Omit<Orcamento, "id"> = {
+              userId: user.uid,
+              numeroOrcamento,
+              cliente: { ...currentClient },
+              itens: orcamentoItens,
+              totalVenda,
+              dataCriacao: new Date().toISOString(),
+              status: "Pendente",
+              validadeDias,
+              dataAceite: null,
+              dataRecusa: null,
+          };
+          addOrcamento(newBudget); // Firestore handles offline queuing.
+          toast({ title: `Orçamento ${numeroOrcamento} salvo!` });
+          fetchAllData(true);
+      })
+      .catch(error => {
+          console.error("Erro ao salvar orçamento:", error);
+          toast({ title: "Erro ao salvar orçamento", variant: "destructive" });
+      })
+      .finally(() => {
+          setIsSubmitting(false);
+          setIsWizardOpen(false);
+      });
 };
 
 
@@ -872,7 +868,7 @@ const proceedToSaveBudget = (currentClient: ClienteData) => {
 
     if (cliente.id) {
         try {
-            await updateCliente(user.uid, cliente.id, {
+            await updateCliente(cliente.id, {
                 telefone: cliente.telefone,
                 endereco: cliente.endereco,
             });
@@ -896,7 +892,7 @@ const proceedToSaveBudget = (currentClient: ClienteData) => {
        <Card>
         <CardHeader>
           <CardTitle>Meus Orçamentos</CardTitle>
-          <CardDescription>Crie e gerencie seus orçamentos.</CardDescription>
+          <CardDescription>Crie e gerencie seus orçamentos.</CardHeader>
         </CardHeader>
         <CardContent>
           <Button onClick={handleOpenWizard} disabled={anyLoading}>
@@ -1391,4 +1387,4 @@ const proceedToSaveBudget = (currentClient: ClienteData) => {
   );
 }
 
-
+    

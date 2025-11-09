@@ -1,3 +1,4 @@
+
 import { db } from '@/lib/firebase';
 import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
 import type { ClienteData } from '@/lib/types';
@@ -47,3 +48,5 @@ export const getClientes = async (userId: string): Promise<ClienteData[]> => {
     return [];
   }
 };
+
+    

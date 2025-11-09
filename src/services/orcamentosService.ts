@@ -21,10 +21,7 @@ const getOrcamentosCollection = () => {
 };
 
 // Add a new orcamento
-export const addOrcamento = (
-  userId: string,
-  orcamento: Omit<Orcamento, 'id'>
-) => {
+export const addOrcamento = (orcamento: Omit<Orcamento, 'id'>) => {
   if (!orcamento || !orcamento.cliente) {
     console.error(
       '[ORCAMENTO SERVICE - addOrcamento] Tentativa de salvar orçamento com dados inválidos.'
@@ -161,3 +158,5 @@ export const getNextOrcamentoNumber = (
     return offlineNumber;
   })
 };
+
+    
