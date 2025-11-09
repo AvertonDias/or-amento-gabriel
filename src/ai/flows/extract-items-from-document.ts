@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview An AI agent to extract items from a shopping list or invoice.
@@ -10,7 +9,6 @@
 
 // Importe a configuração Genkit para GARANTIR que ela seja executada.
 import '@/ai/genkit';
-
 import * as genkit from 'genkit';
 import {z} from 'zod';
 import { gemini } from '@genkit-ai/googleai';
@@ -36,26 +34,6 @@ const ExtractItemsOutputSchema = z.object({
 });
 export type ExtractItemsOutput = z.infer<typeof ExtractItemsOutputSchema>;
 
-const extractPrompt = gemini.vision.definePrompt(
-  {
-    name: 'extractItemsPrompt',
-    input: { schema: ExtractItemsInputSchema },
-    output: { schema: ExtractItemsOutputSchema },
-    prompt: `You are an expert data entry assistant. Your task is to analyze the provided image or PDF of a shopping list or invoice and extract all items listed.
-
-            For each item, identify its description, quantity, and unit price.
-            - If the unit is not explicitly mentioned, assume it is "un" (unit).
-            - If a price is listed, ensure it is a number. If no price is found, set it to 0.
-            - If a quantity is not listed, assume it is 1.
-
-            Return the data as a structured JSON object.
-
-            Document to analyze:
-            {{media url=documentDataUri}}
-            `,
-  },
-);
-
 
 export const extractItemsFromDocument = genkit.defineFlow(
   {
@@ -70,7 +48,22 @@ export const extractItemsFromDocument = genkit.defineFlow(
     console.log("SERVER ACTION ENV - NODE_ENV:", process.env.NODE_ENV);
     
     try {
-        const { output } = await extractPrompt(input);
+        const { output } = await genkit.generate({
+            model: gemini.vision,
+            prompt: `You are an expert data entry assistant. Your task is to analyze the provided image or PDF of a shopping list or invoice and extract all items listed.
+
+            For each item, identify its description, quantity, and unit price.
+            - If the unit is not explicitly mentioned, assume it is "un" (unit).
+            - If a price is listed, ensure it is a number. If no price is found, set it to 0.
+            - If a quantity is not listed, assume it is 1.
+
+            Return the data as a structured JSON object.
+
+            Document to analyze:
+            {{media url="${input.documentDataUri}"}}
+            `,
+            output: { schema: ExtractItemsOutputSchema },
+      });
 
       if (output()?.items) {
         return { items: output()!.items };

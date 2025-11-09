@@ -9,7 +9,6 @@
 
 // Importe a configuração Genkit para GARANTIR que ela seja executada.
 import '@/ai/genkit';
-
 import * as genkit from 'genkit';
 import { gemini } from '@genkit-ai/googleai';
 import { z } from 'zod';
