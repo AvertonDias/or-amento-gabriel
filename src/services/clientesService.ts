@@ -16,15 +16,13 @@ export const addCliente = (userId: string, cliente: Omit<ClienteData, 'id' | 'us
 };
 
 // Update an existing client
-export const updateCliente = (userId: string, clienteId: string, cliente: Partial<Omit<ClienteData, 'id' | 'userId'>>) => {
-  // We need userId to respect security rules, but it's not part of the path anymore.
-  // The check will be done through rules on the document's content.
+export const updateCliente = (clienteId: string, cliente: Partial<Omit<ClienteData, 'id' | 'userId'>>) => {
   const clienteDoc = doc(db, 'clientes', clienteId);
   return updateDoc(clienteDoc, cliente);
 };
 
 // Delete a client
-export const deleteCliente = (userId: string, clienteId: string) => {
+export const deleteCliente = (clienteId: string) => {
   const clienteDoc = doc(db, 'clientes', clienteId);
   return deleteDoc(clienteDoc);
 };

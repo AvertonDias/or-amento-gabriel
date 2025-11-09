@@ -549,10 +549,9 @@ const handleConfirmSave = () => {
     if (existingClient) {
       proceedToSaveBudget(existingClient);
     } else {
-      // Temporarily store the client data and open the confirmation dialog
       setClientToSave({ ...clienteData });
       setIsConfirmSaveClientOpen(true);
-      setIsSubmitting(false); // Let the user interact with the dialog
+      setIsSubmitting(false); 
     }
 };
 
@@ -584,7 +583,10 @@ const handleConfirmSaveClientDialog = (shouldSave: boolean) => {
 
 
 const proceedToSaveBudget = (currentClient: ClienteData) => {
-    if (!user || !currentClient.id) return;
+    if (!user || !currentClient.id) {
+        setIsSubmitting(false);
+        return;
+    };
     
     setIsSubmitting(true);
 
@@ -602,19 +604,15 @@ const proceedToSaveBudget = (currentClient: ClienteData) => {
           dataRecusa: null,
       };
 
-      addOrcamento(user.uid, newBudget)
-        .then(() => {
-          toast({ title: `Orçamento ${numeroOrcamento} salvo!` });
-          fetchAllData(true); 
-        })
-        .catch((error: any) => {
-            console.error("Erro ao salvar orçamento:", error);
-            toast({ title: "Erro ao salvar orçamento", description: error.message, variant: "destructive" });
-        })
-        .finally(() => {
-            setIsSubmitting(false);
-            setIsWizardOpen(false);
-        });
+      addOrcamento(user.uid, newBudget);
+      
+      toast({ title: `Orçamento ${numeroOrcamento} salvo!` });
+      fetchAllData(true); 
+      
+      // UI feedback is optimistic
+      setIsSubmitting(false);
+      setIsWizardOpen(false);
+
     }).catch(error => {
         console.error("Erro ao gerar número do orçamento:", error);
         toast({ title: "Erro ao gerar número do orçamento", variant: "destructive" });
@@ -1392,4 +1390,5 @@ const proceedToSaveBudget = (currentClient: ClienteData) => {
     </div>
   );
 }
+
 

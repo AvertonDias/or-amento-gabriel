@@ -12,11 +12,7 @@ import {
   where,
   getDocs,
   orderBy,
-  writeBatch,
-  Timestamp,
-  getDoc,
   limit,
-  serverTimestamp,
 } from 'firebase/firestore';
 import type { Orcamento } from '@/lib/types';
 
@@ -28,7 +24,7 @@ const getOrcamentosCollection = () => {
 export const addOrcamento = (
   userId: string,
   orcamento: Omit<Orcamento, 'id'>
-): Promise<string> => {
+) => {
   if (!orcamento || !orcamento.cliente) {
     console.error(
       '[ORCAMENTO SERVICE - addOrcamento] Tentativa de salvar orçamento com dados inválidos.'
@@ -40,23 +36,17 @@ export const addOrcamento = (
   );
   const orcamentosCollection = getOrcamentosCollection();
   
-  // Return the promise from addDoc directly
-  return addDoc(orcamentosCollection, { ...orcamento })
-    .then(docRef => {
-      console.log(
-        '[ORCAMENTO SERVICE - addOrcamento] Orçamento adicionado com ID:',
-        docRef.id
-      );
-      return docRef.id;
-    })
-    .catch(error => {
-      // This will catch actual errors, but allow offline queuing to work.
+  // A promessa de addDoc resolve quando a escrita é bem-sucedida no cache local.
+  // Não precisamos de await aqui no service, a UI deve lidar com o estado de submissão.
+  addDoc(orcamentosCollection, { ...orcamento }).catch(error => {
+      // O erro só acontecerá se a escrita for rejeitada por regras de segurança ou outro erro grave,
+      // não apenas por estar offline.
       console.error(
         '[ORCAMENTO SERVICE - addOrcamento] Erro ao adicionar orçamento:',
         error
       );
-      throw error; // Re-throw the error to be handled by the caller if needed
-    });
+      // O erro é registrado, mas a UI não fica travada.
+  });
 };
 
 
@@ -171,4 +161,3 @@ export const getNextOrcamentoNumber = (
     return offlineNumber;
   })
 };
-

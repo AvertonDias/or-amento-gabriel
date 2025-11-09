@@ -224,7 +224,7 @@ export default function ClientesPage() {
   const handleRemoverCliente = async (id: string) => {
     if (!user) return;
     try {
-        await deleteCliente(user.uid, id);
+        await deleteCliente(id);
         await fetchPageData(); // Refresh list
         toast({
             title: 'Cliente Removido',
@@ -281,7 +281,7 @@ export default function ClientesPage() {
             email: clientToUpdate.email,
         };
 
-        await updateCliente(user.uid, id, plainClientObject);
+        await updateCliente(id, plainClientObject);
         setIsEditModalOpen(false);
         setEditingClient(null);
         await fetchPageData(); // Refresh list
@@ -765,3 +765,4 @@ export default function ClientesPage() {
     </div>
   );
 }
+
