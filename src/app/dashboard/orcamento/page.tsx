@@ -22,7 +22,7 @@ import { auth } from '@/lib/firebase';
 import { getMateriais, updateEstoque } from '@/services/materiaisService';
 import { getClientes, addCliente, updateCliente } from '@/services/clientesService';
 import { getEmpresaData } from '@/services/empresaService';
-import { addOrcamento, deleteOrcamento, getOrcamentos, getNextOrcamentoNumber, updateOrcamento, updateOrcamentoStatus, syncOfflineOrcamentos } from '@/services/orcamentosService';
+import { addOrcamento, deleteOrcamento, getOrcamentos, getNextOrcamentoNumber, updateOrcamento, updateOrcamentoStatus } from '@/services/orcamentosService';
 import { addDays, parseISO, format, isBefore, startOfToday } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import {
@@ -293,9 +293,6 @@ export default function OrcamentoPage() {
     else setIsLoading(prev => ({...prev, materiais: true, clientes: true, empresa: true, orcamentos: true}));
 
     try {
-        // A função syncOfflineOrcamentos não é mais necessária aqui, pois as leituras subsequentes trarão os dados corretos.
-        // Se ainda estiver offline, getOrcamentos retornará dados do cache. Se online, buscará do servidor.
-        
         const [materiaisData, clientesData, empresaData, orcamentosData] = await Promise.all([
             getMateriais(user.uid),
             getClientes(user.uid),
@@ -1256,6 +1253,104 @@ const handleConfirmSaveClientDialog = async (shouldSave: boolean) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <Dialog open={isEditBudgetModalOpen} onOpenChange={setIsEditBudgetModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Editar Orçamento #{editingBudget?.numeroOrcamento}</DialogTitle>
+            <DialogDescription>
+              Ajuste os dados do cliente e os itens do orçamento. O status não pode ser alterado aqui.
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingBudget && (
+            <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 overflow-y-auto p-1 pr-4">
+              {/* Client Data Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">Dados do Cliente</h3>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-cliente-nome">Nome</Label>
+                  <Input id="edit-cliente-nome" name="nome" value={editingBudget.cliente.nome} disabled />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-cliente-telefone">Telefone</Label>
+                  <Input id="edit-cliente-telefone" name="telefone" value={editingBudget.cliente.telefone} onChange={handleEditingBudgetClientChange} placeholder="(DD) XXXXX-XXXX"/>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-cliente-endereco">Endereço</Label>
+                  <Input id="edit-cliente-endereco" name="endereco" value={editingBudget.cliente.endereco} onChange={handleEditingBudgetClientChange} />
+                </div>
+                 <div className="space-y-2">
+                  <Label htmlFor="edit-validade-dias">Validade da Proposta (dias)</Label>
+                  <Input id="edit-validade-dias" type="number" value={editingBudget.validadeDias} onChange={(e) => setEditingBudget(prev => prev ? {...prev, validadeDias: e.target.value} : null)} placeholder="Ex: 7" />
+                </div>
+              </div>
+
+              {/* Items Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">Itens do Orçamento</h3>
+                
+                {/* Form to add new items */}
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 p-2 border rounded-lg items-end">
+                    <div className="col-span-2 lg:col-span-2">
+                      <Label htmlFor="edit-material-select" className="text-xs">Novo Item</Label>
+                       <Select value={newItemForEdit.materialId} onValueChange={(val) => handleNewItemForEditChange('materialId', val)}>
+                        <SelectTrigger id="edit-material-select" className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                        <SelectContent>
+                          {materiais.map(mat => (<SelectItem key={mat.id} value={mat.id}>{`${mat.descricao} (${formatCurrency(mat.precoUnitario)}/${mat.unidade})`}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {selectedMaterialForEdit && (
+                      <>
+                        <div><Label htmlFor="edit-quantidade-novo" className="text-xs">Qtd</Label><Input id="edit-quantidade-novo" className="h-8" type="text" inputMode='decimal' value={newItemQtyStr} onChange={e => handleNewItemForEditChange('quantidade', e.target.value)} /></div>
+                        <div><Label htmlFor="edit-margem-novo" className="text-xs">Acr.(%)</Label><Input id="edit-margem-novo" className="h-8" type="text" inputMode='decimal' value={newItemMarginStr} onChange={e => handleNewItemForEditChange('margemLucro', e.target.value)} /></div>
+                        <div><Button onClick={handleAddItemToEditBudget} size="sm" className="w-full h-8"><PlusCircle className="mr-1 h-4 w-4" />Add</Button></div>
+                      </>
+                    )}
+                </div>
+
+                {/* Table of existing items */}
+                <div className="overflow-x-auto">
+                   <Table>
+                      <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Venda</TableHead><TableHead className="w-[80px] text-center">Ações</TableHead></TableRow></TableHeader>
+                      <TableBody>
+                      {editingBudgetItens.map(item => (
+                          <TableRow key={item.id}>
+                              <TableCell className="py-2">
+                                <p className="font-medium">{item.materialNome}</p>
+                                <p className="text-xs text-muted-foreground">{formatNumber(item.quantidade, 2)} {item.unidade} x {formatCurrency(item.precoUnitario)} + {formatNumber(item.margemLucro)}%</p>
+                              </TableCell>
+                              <TableCell className="text-right font-bold text-primary py-2">{formatCurrency(item.precoVenda)}</TableCell>
+                              <TableCell className="flex justify-center gap-1 py-2">
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditItemClick(item, 'modal')}><Pencil className="h-4 w-4 text-primary" /></Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemoveItemFromEditBudget(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              </TableCell>
+                          </TableRow>
+                      ))}
+                      </TableBody>
+                       <TableTotalFooter>
+                          <TableRow className="bg-muted/50 font-bold text-base">
+                              <TableCell>TOTAL</TableCell>
+                              <TableCell className="text-right text-primary">{formatCurrency(editingBudgetItens.reduce((acc, item) => acc + item.precoVenda, 0))}</TableCell>
+                              <TableCell></TableCell>
+                          </TableRow>
+                      </TableTotalFooter>
+                  </Table>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="pt-4 border-t">
+             <DialogClose asChild>
+              <Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button>
+            </DialogClose>
+            <Button onClick={handleUpdateBudget} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 animate-spin" /> : <CheckCircle2 className="mr-2"/>} Salvar Alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
 
       <div className="absolute -z-10 top-0 -left-[9999px] w-[595pt] bg-white text-black">
