@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Wrench, PlusCircle, Pencil, Loader2, RefreshCw, Package, Construction, Upload, Bot, FileScan, Sparkles } from 'lucide-react';
+import { Trash2, Wrench, PlusCircle, Pencil, Loader2, RefreshCw, Package, Construction, Upload, Bot, FileScan, Sparkles, Camera } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
@@ -305,10 +305,7 @@ export default function MateriaisPage() {
     }
   };
 
-  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processFile = async (file: File) => {
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
       toast({ title: "Arquivo muito grande", description: "O arquivo deve ter no máximo 5MB.", variant: "destructive" });
       return;
@@ -323,10 +320,10 @@ export default function MateriaisPage() {
         const result = await extractItemsFromDocument({ documentDataUri });
 
         if (result.items && result.items.length > 0) {
-            setExtractedItems(result.items.map(item => ({...item, id: crypto.randomUUID(), status: 'pending' })));
-            setIsReviewModalOpen(true);
+          setExtractedItems(result.items.map(item => ({ ...item, id: crypto.randomUUID(), status: 'pending' })));
+          setIsReviewModalOpen(true);
         } else {
-            toast({ title: "Nenhum item encontrado", description: "A IA não conseguiu extrair itens do documento.", variant: "destructive" });
+          toast({ title: "Nenhum item encontrado", description: "A IA não conseguiu extrair itens do documento.", variant: "destructive" });
         }
       };
       reader.onerror = (error) => {
@@ -337,8 +334,14 @@ export default function MateriaisPage() {
       toast({ title: "Erro na IA", description: "Não foi possível analisar o documento.", variant: "destructive" });
     } finally {
       setIsProcessingFile(false);
-      e.target.value = ''; // Reset file input
     }
+  };
+
+  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await processFile(file);
+    e.target.value = ''; // Reset file input
   };
 
   const handleUpdateExtractedItem = (id: string, field: keyof ExtractedItem, value: string | number) => {
@@ -396,17 +399,24 @@ export default function MateriaisPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <Button asChild variant="secondary" className="w-full sm:w-auto" disabled={isProcessingFile}>
-                    <Label htmlFor="file-upload">
-                        {isProcessingFile ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                            <Upload className="mr-2 h-4 w-4" />
-                        )}
-                        {isProcessingFile ? 'Processando...' : 'Importar Itens de Arquivo'}
-                    </Label>
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                    <Button asChild variant="secondary" className="w-full sm:w-auto" disabled={isProcessingFile}>
+                        <Label htmlFor="file-upload">
+                            {isProcessingFile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                            {isProcessingFile ? 'Processando...' : 'Importar de Arquivo'}
+                        </Label>
+                    </Button>
+                    <Button asChild variant="secondary" className="w-full sm:w-auto" disabled={isProcessingFile}>
+                        <Label htmlFor="camera-upload">
+                           <Camera className="mr-2 h-4 w-4" />
+                           Abrir Câmera
+                        </Label>
+                    </Button>
+                </div>
+
                 <Input id="file-upload" type="file" className="sr-only" onChange={handleFileImport} accept="image/*,application/pdf" disabled={isProcessingFile}/>
+                <Input id="camera-upload" type="file" className="sr-only" onChange={handleFileImport} accept="image/*" capture="environment" disabled={isProcessingFile}/>
+
                 <p className="text-xs text-muted-foreground mt-2">Formatos aceitos: JPG, PNG, PDF (max 5MB).</p>
             </CardContent>
         </Card>
@@ -735,4 +745,5 @@ export default function MateriaisPage() {
     
 
     
+
 
