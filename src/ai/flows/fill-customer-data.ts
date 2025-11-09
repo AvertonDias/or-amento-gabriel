@@ -7,8 +7,11 @@
  * - FillCustomerDataOutput - The return type for the fillCustomerData function.
  */
 
-import {ai} from '@/ai/genkit';
+// Importe a configuração Genkit para GARANTIR que ela seja executada.
+import '@/ai/genkit';
+
 import { defineFlow } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import {z} from 'zod';
 
 const FillCustomerDataInputSchema = z.object({
@@ -32,7 +35,7 @@ export async function fillCustomerData(input: FillCustomerDataInput): Promise<Fi
 }
 
 
-const prompt = ai.definePrompt({
+const prompt = googleAI('gemini-pro').definePrompt({
   name: 'fillCustomerDataPrompt',
   input: {schema: FillCustomerDataInputSchema},
   output: {schema: FillCustomerDataOutputSchema},

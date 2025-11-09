@@ -7,9 +7,12 @@
  * - ExtractItemsOutput - The return type for the extractItemsFromDocument function.
  */
 
-import {ai} from '@/ai/genkit';
+// Importe a configuração Genkit para GARANTIR que ela seja executada.
+import '@/ai/genkit';
+
 import {z} from 'zod';
 import { generate, defineFlow } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 
 
 const ItemSchema = z.object({
@@ -40,10 +43,14 @@ export const extractItemsFromDocument = defineFlow(
     outputSchema: ExtractItemsOutputSchema,
   },
   async (input) => {
+    // Mantendo os console.logs para depuração
+    console.log("SERVER ACTION ENV - GOOGLE_API_KEY:", process.env.GOOGLE_API_KEY ? "DEFINED" : "UNDEFINED");
+    console.log("SERVER ACTION ENV - GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "DEFINED" : "UNDEFINED");
+    console.log("SERVER ACTION ENV - NODE_ENV:", process.env.NODE_ENV);
     
     try {
         const { output } = await generate({
-            model: 'googleai/gemini-pro-vision',
+            model: googleAI('gemini-pro-vision'),
             prompt: `You are an expert data entry assistant. Your task is to analyze the provided image or PDF of a shopping list or invoice and extract all items listed.
 
             For each item, identify its description, quantity, and unit price.
