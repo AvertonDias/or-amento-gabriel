@@ -9,6 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
+import { defineFlow } from 'genkit';
 import {z} from 'zod';
 
 const FillCustomerDataInputSchema = z.object({
@@ -53,7 +54,7 @@ Preencha o seguinte objeto de saída com as informações completas que encontra
 `,
 });
 
-const fillCustomerDataFlow = ai.defineFlow(
+const fillCustomerDataFlow = defineFlow(
   {
     name: 'fillCustomerDataFlow',
     inputSchema: FillCustomerDataInputSchema,
