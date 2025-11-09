@@ -293,8 +293,9 @@ export default function OrcamentoPage() {
     else setIsLoading(prev => ({...prev, materiais: true, clientes: true, empresa: true, orcamentos: true}));
 
     try {
-        await syncOfflineOrcamentos(user.uid);
-
+        // A função syncOfflineOrcamentos não é mais necessária aqui, pois as leituras subsequentes trarão os dados corretos.
+        // Se ainda estiver offline, getOrcamentos retornará dados do cache. Se online, buscará do servidor.
+        
         const [materiaisData, clientesData, empresaData, orcamentosData] = await Promise.all([
             getMateriais(user.uid),
             getClientes(user.uid),
@@ -332,9 +333,7 @@ export default function OrcamentoPage() {
     const handleOnline = () => {
       if (user) {
         toast({title: 'Você está online.', description: 'Sincronizando dados...'});
-        syncOfflineOrcamentos(user.uid).then(() => {
-          fetchAllData(true);
-        });
+        fetchAllData(true);
       }
     };
 
