@@ -1,13 +1,12 @@
-
-import {withPlaiceholder} from '@plaiceholder/next';
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ['genkit', '@genkit-ai/core', '@genkit-ai/googleai', 'dotprompt', 'handlebars'],
-  webpack: (config) => {
-    config.externals.push('pino-pretty', 'lokijs', 'encoding');
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push('firebase-admin');
+    }
     return config;
-  }
+  },
 };
 
-export default withPlaiceholder(nextConfig);
+export default nextConfig;
