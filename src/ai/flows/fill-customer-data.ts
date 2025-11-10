@@ -32,11 +32,20 @@ export async function fillCustomerData(input: FillCustomerDataInput): Promise<Fi
 }
 
 
-const prompt = gemini.text.definePrompt({
-  name: 'fillCustomerDataPrompt',
-  input: {schema: FillCustomerDataInputSchema},
-  output: {schema: FillCustomerDataOutputSchema},
-  prompt: `Você é um assistente de preenchimento de dados especialista em encontrar informações públicas sobre empresas e pessoas no Brasil.
+const fillCustomerDataFlow = defineFlow(
+  {
+    name: 'fillCustomerDataFlow',
+    inputSchema: FillCustomerDataInputSchema,
+    outputSchema: FillCustomerDataOutputSchema,
+  },
+  async (input: FillCustomerDataInput) => {
+    const sanitizedInput = {
+      ...input,
+      cpfCnpj: input.cpfCnpj || undefined,
+    };
+    const {output} = await generate({
+        model: gemini('gemini-pro'),
+        prompt: `Você é um assistente de preenchimento de dados especialista em encontrar informações públicas sobre empresas e pessoas no Brasil.
 Com base nas informações parciais fornecidas, preencha os dados restantes do cliente.
 Use fontes de dados públicas e abertas para encontrar as informações. Se não conseguir encontrar uma informação, retorne um campo vazio para ela.
 Priorize a precisão dos dados.
@@ -51,22 +60,6 @@ CPF/CNPJ: {{{cpfCnpj}}}
 
 Preencha o seguinte objeto de saída com as informações completas que encontrar.
 `,
-});
-
-const fillCustomerDataFlow = defineFlow(
-  {
-    name: 'fillCustomerDataFlow',
-    inputSchema: FillCustomerDataInputSchema,
-    outputSchema: FillCustomerDataOutputSchema,
-  },
-  async (input: FillCustomerDataInput) => {
-    const sanitizedInput = {
-      ...input,
-      cpfCnpj: input.cpfCnpj || undefined,
-    };
-    const {output} = await generate({
-        model: gemini.text,
-        prompt: prompt(sanitizedInput),
         output: { schema: FillCustomerDataOutputSchema },
     });
     return output!;
