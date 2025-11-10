@@ -7,8 +7,7 @@
  * - ExtractItemsOutput - The return type for the extractItemsFromDocument function.
  */
 
-// Importe as funções e modelos DO SEU ARQUIVO DE CONFIGURAÇÃO GENKIT
-import { defineFlow, generate, gemini } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
 import {z} from 'zod';
 
 
@@ -33,21 +32,21 @@ const ExtractItemsOutputSchema = z.object({
 export type ExtractItemsOutput = z.infer<typeof ExtractItemsOutputSchema>;
 
 
-export const extractItemsFromDocument = defineFlow(
+export const extractItemsFromDocument = ai.defineFlow(
   {
     name: 'extractItemsFromDocument',
     inputSchema: ExtractItemsInputSchema,
     outputSchema: ExtractItemsOutputSchema,
   },
-  async (input: ExtractItemsInput) => {
+  async (input: ExtractItemsInput): Promise<ExtractItemsOutput> => {
     // Mantendo os console.logs para depuração
     console.log("SERVER ACTION ENV - GOOGLE_API_KEY:", process.env.GOOGLE_API_KEY ? "DEFINED" : "UNDEFINED");
     console.log("SERVER ACTION ENV - GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "DEFINED" : "UNDEFINED");
     console.log("SERVER ACTION ENV - NODE_ENV:", process.env.NODE_ENV);
     
     try {
-        const { output } = await generate({
-            model: gemini('gemini-pro-vision'),
+        const { output } = await ai.generate({
+            model: 'gemini-pro-vision',
             prompt: `You are an expert data entry assistant. Your task is to analyze the provided image or PDF of a shopping list or invoice and extract all items listed.
 
             For each item, identify its description, quantity, and unit price.
@@ -63,8 +62,8 @@ export const extractItemsFromDocument = defineFlow(
             output: { schema: ExtractItemsOutputSchema },
       });
 
-      if (output()?.items) {
-        return { items: output()!.items };
+      if (output?.items) {
+        return { items: output.items };
       } else {
         console.warn("IA não conseguiu extrair itens ou a resposta foi inesperada");
         return { items: [] };

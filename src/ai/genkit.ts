@@ -1,16 +1,13 @@
 // src/ai/genkit.ts
 
-import { configureGenkit, defineFlow, generate } from 'genkit';
-import { googleAI, gemini } from '@genkit-ai/googleai';
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 
-// Configure o Genkit UMA VEZ.
-configureGenkit({
+// Configure e exporte o objeto 'ai' principal.
+export const ai = genkit({
   plugins: [
     googleAI(),
   ],
   logLevel: 'debug',
   enableTracingAndMetrics: false,
 });
-
-// Exporte as funções e os modelos para que os flows possam importá-los.
-export { defineFlow, generate, gemini };

@@ -7,8 +7,7 @@
  * - FillCustomerDataInput - The input type for the fillCustomerData function
  */
 
-// Importe as funções e modelos DO SEU ARQUIVO DE CONFIGURAÇÃO GENKIT
-import { defineFlow, generate, gemini } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
 const FillCustomerDataInputSchema = z.object({
@@ -32,7 +31,7 @@ export async function fillCustomerData(input: FillCustomerDataInput): Promise<Fi
 }
 
 
-const fillCustomerDataFlow = defineFlow(
+const fillCustomerDataFlow = ai.defineFlow(
   {
     name: 'fillCustomerDataFlow',
     inputSchema: FillCustomerDataInputSchema,
@@ -43,8 +42,8 @@ const fillCustomerDataFlow = defineFlow(
       ...input,
       cpfCnpj: input.cpfCnpj || undefined,
     };
-    const {output} = await generate({
-        model: gemini('gemini-pro'),
+    const {output} = await ai.generate({
+        model: 'gemini-pro',
         prompt: `Você é um assistente de preenchimento de dados especialista em encontrar informações públicas sobre empresas e pessoas no Brasil.
 Com base nas informações parciais fornecidas, preencha os dados restantes do cliente.
 Use fontes de dados públicas e abertas para encontrar as informações. Se não conseguir encontrar uma informação, retorne um campo vazio para ela.
