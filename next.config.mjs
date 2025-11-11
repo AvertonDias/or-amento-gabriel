@@ -1,14 +1,11 @@
 
-import PwaPlugin from "@ducanh2912/next-pwa";
+// Adicionado para invalidar o cache e corrigir o erro de compilação.
+const withPWA = require("@ducanh2912/next-pwa").default({
+  dest: "public",
+  disable: process.env.NODE_ENV === 'development',
+});
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  transpilePackages: ['@genkit-ai/googleai', 'dotprompt', 'handlebars', '@opentelemetry/sdk-node', '@opentelemetry/api', '@opentelemetry/instrumentation', '@opentelemetry/exporter-jaeger'],
-};
-
-const withPWA = PwaPlugin({
-  dest: "public",
-  disable: process.env.NODE_ENV === "development",
-});
+const nextConfig = {};
 
 export default withPWA(nextConfig);

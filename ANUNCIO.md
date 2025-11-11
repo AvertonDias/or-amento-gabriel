@@ -1,4 +1,4 @@
-# Anúncio: Transforme Seus Orçamentos com o "Gutters Budget Pro"
+# Anúncio: Transforme Seus Orçamentos com o "Meu Orçamento"
 
 **Título do Anúncio:** Cansado de perder tempo e dinheiro com orçamentos manuais? Automatize, profissionalize e maximize seus lucros agora!
 
@@ -8,7 +8,7 @@
 
 ### Transforme a maneira como você faz negócios.
 
-Você é um profissional dedicado, mas a papelada e os cálculos complexos dos orçamentos estão consumindo seu tempo e diminuindo seus lucros? Apresentamos o **Gutters Budget Pro**, a ferramenta definitiva projetada para simplificar sua vida e impulsionar seus resultados.
+Você é um profissional dedicado, mas a papelada e os cálculos complexos dos orçamentos estão consumindo seu tempo e diminuindo seus lucros? Apresentamos o **Meu Orçamento**, a ferramenta definitiva projetada para simplificar sua vida e impulsionar seus resultados.
 
 Com nosso aplicativo, você abandona as planilhas confusas e os cadernos desorganizados para abraçar uma solução moderna, rápida e 100% digital.
 
@@ -38,11 +38,11 @@ Com nosso aplicativo, você abandona as planilhas confusas e os cadernos desorga
 **6. Personalização Visual:**
 - Deixe o aplicativo com a sua cara! Escolha entre diversos temas de cores e alterne entre o modo claro e escuro para uma visualização mais confortável.
 
-### Por que escolher o Gutters Budget Pro?
+### Por que escolher o Meu Orçamento?
 
 - **Economize Tempo:** Reduza drasticamente o tempo gasto em tarefas administrativas.
 - **Aumente Seus Lucros:** Calcule preços com precisão e evite prejuízos.
 - **Profissionalize Sua Imagem:** Apresente propostas modernas e organizadas.
 - **Tenha Total Controle:** Gerencie seu negócio de qualquer lugar, a qualquer hora.
 
-**Não perca mais tempo com processos ultrapassados. Adquira o Gutters Budget Pro e leve sua empresa para o próximo nível!**
+**Não perca mais tempo com processos ultrapassados. Adquira o Meu Orçamento e leve sua empresa para o próximo nível!**
