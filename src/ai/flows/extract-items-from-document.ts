@@ -1,5 +1,3 @@
-// src/ai/flows/extract-items-from-document.ts
-
 'use server';
 
 import { ImageAnnotatorClient } from '@google-cloud/vision';
@@ -27,11 +25,12 @@ export type ExtractItemsOutput = z.infer<typeof ExtractItemsOutputSchema>;
 
 
 export async function extractItemsFromDocument(input: ExtractItemsInput): Promise<ExtractItemsOutput> {
+    // O SDK do Vision irá usar as Credenciais Padrão da Aplicação (ADC) automaticamente.
+    // Nenhuma chave de API é necessária.
     const client = new ImageAnnotatorClient();
 
     const dataUri = input.documentDataUri;
     const base64Data = dataUri.substring(dataUri.indexOf(',') + 1);
-    const mimeType = dataUri.substring(dataUri.indexOf(':') + 1, dataUri.indexOf(';'));
 
     try {
         const [result] = await client.documentTextDetection({
@@ -54,13 +53,15 @@ export async function extractItemsFromDocument(input: ExtractItemsInput): Promis
         
         let tempDescription = "";
         for (const line of rawLines) {
-             if (line.match(/^\d+CSNBOB/i)) { // Parece ser uma linha de descrição com código
+             // Este Regex procura por linhas que parecem ser uma descrição com código, como "2205000500CSNBOB..."
+             if (line.match(/^\d+CSNBOB/i)) {
                 if (tempDescription) {
                     tempDescription += " " + line;
                 } else {
                     tempDescription = line;
                 }
             } else {
+                // Este Regex procura por linhas que contêm os dados numéricos (unidade, qtd, preço, total)
                 const dataMatch = line.match(/(kg|un|m|m²|h|serv)\s+([\d,.]+)\s+([\d,.]+)\s+([\d,.]+)/i);
                 if (dataMatch && tempDescription) {
                     newExtractedItems.push({
@@ -69,8 +70,9 @@ export async function extractItemsFromDocument(input: ExtractItemsInput): Promis
                         quantidade: parseFloat(dataMatch[2].replace(/\./g, '').replace(',', '.')),
                         precoUnitario: parseFloat(dataMatch[3].replace(/\./g, '').replace(',', '.')),
                     });
-                    tempDescription = ""; // Resetar descrição após encontrar dados
+                    tempDescription = ""; // Reseta a descrição para o próximo item
                 } else if (!dataMatch && line.length > 10 && !line.toLowerCase().includes('total')) {
+                  // Se a linha não contém os dados numéricos, mas é longa, assume que é parte da descrição.
                   if (tempDescription) {
                     tempDescription += " " + line; // Continua a descrição
                   }

@@ -1,5 +1,3 @@
-// src/ai/flows/fill-customer-data.ts
-
 'use server';
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -22,6 +20,9 @@ export type FillCustomerDataOutput = z.infer<typeof FillCustomerDataOutputSchema
 
 
 export async function fillCustomerData(input: FillCustomerDataInput): Promise<FillCustomerDataOutput> {
+    // O SDK irá procurar por GOOGLE_API_KEY no process.env. Se não encontrar,
+    // e estiver em um ambiente Google Cloud, ele usará as Credenciais Padrão da Aplicação (ADC).
+    // Nenhuma chave de API é necessária no código.
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
