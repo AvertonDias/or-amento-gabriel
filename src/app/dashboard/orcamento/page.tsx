@@ -35,7 +35,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Separator } from '@/components/ui/separator';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { fillCustomerData } from '@/ai/flows/fill-customer-data';
 
 
 // Componente para o layout do PDF do Cliente
@@ -266,7 +265,6 @@ export default function OrcamentoPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAiFetching, setIsAiFetching] = useState(false);
   const [pdfBudget, setPdfBudget] = useState<Orcamento | null>(null);
   
   const [isEditBudgetModalOpen, setIsEditBudgetModalOpen] = useState(false);
@@ -896,49 +894,6 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
         await finishUpdateBudget();
     }
   };
-  
-  const handleAiFill = async () => {
-    if (!clienteData.nome && !clienteData.cpfCnpj) {
-      toast({
-        title: "Dados insuficientes",
-        description: "Forneça o Nome ou o CPF/CNPJ para a IA buscar os dados.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsAiFetching(true);
-    try {
-      const result = await fillCustomerData({
-        nome: clienteData.nome,
-        cpfCnpj: clienteData.cpfCnpj,
-      });
-
-      setClienteData(prev => ({
-        ...prev,
-        nome: result.nome || prev.nome,
-        endereco: result.endereco || prev.endereco,
-        telefone: result.telefone ? maskTelefone(result.telefone) : prev.telefone,
-        email: result.email || prev.email,
-        cpfCnpj: result.cpfCnpj ? maskCpfCnpj(result.cpfCnpj) : prev.cpfCnpj,
-      }));
-
-      toast({
-        title: "Dados preenchidos pela IA!",
-        description: "Verifique as informações antes de continuar.",
-      });
-
-    } catch (error) {
-      console.error("Erro ao preencher dados com IA:", error);
-      toast({
-        title: "Erro da IA",
-        description: "Não foi possível buscar os dados. Tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAiFetching(false);
-    }
-  };
 
   const anyLoading = loadingAuth || Object.values(isLoading).some(Boolean);
   const clienteFiltrado = clienteIdParam ? clientes.find(c => c.id === clienteIdParam) : null;
@@ -1193,13 +1148,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
 
                 <div className="space-y-2">
                   <Label htmlFor="cliente-nome">Nome</Label>
-                  <div className="flex gap-2">
-                    <Input id="cliente-nome" name="nome" value={clienteData.nome} onChange={handleClienteDataChange} required/>
-                    <Button type="button" size="icon" variant="outline" onClick={handleAiFill} disabled={isAiFetching}>
-                      {isAiFetching ? <Loader2 className="h-4 w-4 animate-spin"/> : <Sparkles className="h-4 w-4 text-primary" />}
-                      <span className="sr-only">Preencher com IA</span>
-                    </Button>
-                  </div>
+                  <Input id="cliente-nome" name="nome" value={clienteData.nome} onChange={handleClienteDataChange} required/>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1207,13 +1156,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                   <div className="space-y-2 md:col-span-2"><Label htmlFor="cliente-endereco">Endereço</Label><Input id="cliente-endereco" name="endereco" value={clienteData.endereco} onChange={handleClienteDataChange} /></div>
                   <div className="space-y-2">
                     <Label htmlFor="cliente-cpfCnpj">CPF/CNPJ</Label>
-                     <div className="flex gap-2">
-                        <Input id="cliente-cpfCnpj" name="cpfCnpj" value={clienteData.cpfCnpj || ''} onChange={handleClienteDataChange} placeholder="XXX.XXX.XXX-XX ou XX.XXX.XXX/XXXX-XX" />
-                         <Button type="button" size="icon" variant="outline" onClick={handleAiFill} disabled={isAiFetching}>
-                          {isAiFetching ? <Loader2 className="h-4 w-4 animate-spin"/> : <Sparkles className="h-4 w-4 text-primary" />}
-                          <span className="sr-only">Preencher com IA</span>
-                        </Button>
-                    </div>
+                    <Input id="cliente-cpfCnpj" name="cpfCnpj" value={clienteData.cpfCnpj || ''} onChange={handleClienteDataChange} placeholder="XXX.XXX.XXX-XX ou XX.XXX.XXX/XXXX-XX" />
                   </div>
                   <div className="space-y-2"><Label htmlFor="cliente-email">Email</Label><Input id="cliente-email" name="email" type="email" value={clienteData.email || ''} onChange={handleClienteDataChange} /></div>
                   <div className="space-y-2"><Label htmlFor="validade-dias">Validade da Proposta (dias)</Label><Input id="validade-dias" type="number" value={validadeDias} onChange={(e) => setValidadeDias(e.target.value)} placeholder="Ex: 7" /></div>
