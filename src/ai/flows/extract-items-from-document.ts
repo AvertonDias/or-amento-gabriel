@@ -2,13 +2,15 @@
 
 'use server';
 
-// Importe seu arquivo de configuração Genkit (apenas para garantir que ele seja executado)
-// A ordem é crucial. Este import side-effect deve ser feito PRIMEIRO.
+// *** ISTO É O MAIS CRÍTICO: Importe o arquivo de configuração Genkit no topo. ***
+// Este import com side-effect TEM QUE EXECUTAR configureGenkit ANTES de qualquer outra coisa.
+// O Webpack do Next.js pode ter problemas com a ordem de execução se não for explícito.
 import '@/ai/genkit'; 
 
-// Importe as funções e modelos diretamente das bibliotecas originais.
-import { defineFlow, generate } from 'genkit'; // <-- De genkit
-import { geminiProVision } from '@genkit-ai/googleai'; // <-- De @genkit-ai/googleai
+// Importe as funções e modelos DIRETAMENTE de suas bibliotecas de origem.
+// ESTA É A FORMA CANÔNICA DE USAR.
+import { defineFlow, generate } from 'genkit'; // <-- De 'genkit'
+import { geminiProVision } from '@genkit-ai/googleai'; // <-- De '@genkit-ai/googleai'
 import { z } from 'zod';
 
 
