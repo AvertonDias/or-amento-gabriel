@@ -2,7 +2,7 @@
 
 'use server';
 
-import { ai } from '@/ai/genkit';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { z } from 'zod';
 
 const FillCustomerDataInputSchema = z.object({
@@ -21,60 +21,61 @@ const FillCustomerDataOutputSchema = z.object({
 export type FillCustomerDataOutput = z.infer<typeof FillCustomerDataOutputSchema>;
 
 
-const fillCustomerPrompt = ai.definePrompt({
-    name: 'fillCustomerPrompt',
-    input: { schema: FillCustomerDataInputSchema },
-    output: { schema: FillCustomerDataOutputSchema },
-    prompt: `Você é um assistente de preenchimento de dados especialista em encontrar informações públicas sobre empresas e pessoas no Brasil.
-            Com base nas informações parciais fornecidas, preencha os dados restantes do cliente.
-            Use fontes de dados públicas e abertas para encontrar as informações. Se não conseguir encontrar uma informação, retorne um campo vazio para ela.
-            Priorize a precisão dos dados.
-
-            Informações fornecidas:
-            {{#if nome}}
-            Nome: {{nome}}
-            {{/if}}
-            {{#if cpfCnpj}}
-            CPF/CNPJ: {{cpfCnpj}}
-            {{/if}}
-
-            Preencha o seguinte objeto de saída com as informações completas que encontrar.
-            `,
-});
-
-
-// O fluxo do Genkit
-const fillCustomerDataFlow = ai.defineFlow(
-  {
-    name: 'fillCustomerDataFlow',
-    inputSchema: FillCustomerDataInputSchema,
-    outputSchema: FillCustomerDataOutputSchema,
-  },
-  async (input: FillCustomerDataInput) => {
+export async function fillCustomerData(input: FillCustomerDataInput): Promise<FillCustomerDataOutput> {
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
     const sanitizedInput = {
-      ...input,
-      nome: input.nome || undefined,
-      cpfCnpj: input.cpfCnpj || undefined,
+        ...input,
+        nome: input.nome || undefined,
+        cpfCnpj: input.cpfCnpj || undefined,
     };
-    
+
+    let promptText = `Você é um assistente de preenchimento de dados especialista em encontrar informações públicas sobre empresas e pessoas no Brasil.
+Com base nas informações parciais fornecidas, preencha os dados restantes do cliente.
+Use fontes de dados públicas e abertas para encontrar as informações. Se não conseguir encontrar uma informação, retorne um campo vazio para ela.
+Priorize a precisão dos dados.
+
+Informações fornecidas:
+`;
+    if (sanitizedInput.nome) {
+        promptText += `Nome: ${sanitizedInput.nome}\n`;
+    }
+    if (sanitizedInput.cpfCnpj) {
+        promptText += `CPF/CNPJ: ${sanitizedInput.cpfCnpj}\n`;
+    }
+    promptText += `
+Preencha o seguinte objeto de saída com as informações completas que encontrar.
+Responda APENAS com o objeto JSON.`;
+
     try {
-        const {output} = await fillCustomerPrompt(sanitizedInput);
-        
-        if (output) {
-            return output;
+        const result = await model.generateContent({
+            contents: [{ parts: [{ text: promptText }] }],
+            generationConfig: {
+                responseMimeType: 'application/json',
+                responseSchema: FillCustomerDataOutputSchema,
+            },
+        });
+
+        const response = result.response;
+        const textOutput = response.text();
+
+        let parsedOutput: FillCustomerDataOutput;
+        try {
+            parsedOutput = FillCustomerDataOutputSchema.parse(JSON.parse(textOutput));
+        } catch (parseError) {
+            console.error("Erro ao fazer parse da saída da IA:", parseError);
+            throw new Error(`A IA retornou um JSON inválido. ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+        }
+
+        if (parsedOutput) {
+            return parsedOutput;
         } else {
             console.warn("IA não conseguiu preencher os dados ou a resposta foi inesperada.");
             return { nome: '', endereco: '', telefone: '', email: '', cpfCnpj: '' };
         }
     } catch (error) {
-        console.error("Erro na Server Action 'fillCustomerDataFlow':", error);
+        console.error("Erro na Server Action 'fillCustomerData':", error);
         throw new Error(`Falha no preenchimento de dados pela IA: ${error instanceof Error ? error.message : String(error)}`);
     }
-  }
-);
-
-// A função exportada que o front-end chamará
-export async function fillCustomerData(input: FillCustomerDataInput): Promise<FillCustomerDataOutput> {
-  return fillCustomerDataFlow(input);
 }

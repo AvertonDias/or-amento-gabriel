@@ -2,7 +2,7 @@
 
 'use server';
 
-import { ai } from '@/ai/genkit';
+import { ImageAnnotatorClient } from '@google-cloud/vision';
 import { z } from 'zod';
 
 const ItemSchema = z.object({
@@ -26,45 +26,68 @@ const ExtractItemsOutputSchema = z.object({
 export type ExtractItemsOutput = z.infer<typeof ExtractItemsOutputSchema>;
 
 
-const extractItemsPrompt = ai.definePrompt(
-  {
-    name: 'extractItemsPrompt',
-    input: { schema: ExtractItemsInputSchema },
-    output: { schema: ExtractItemsOutputSchema },
-    prompt: `You are an expert data entry assistant. Your task is to analyze the provided image or PDF of a shopping list or invoice and extract all items listed.
+export async function extractItemsFromDocument(input: ExtractItemsInput): Promise<ExtractItemsOutput> {
+    const client = new ImageAnnotatorClient();
 
-    For each item, identify its description, quantity, and unit price.
-    - If the unit is not explicitly mentioned, assume it is "un" (unit).
-    - If a price is listed, ensure it is a number. If no price is found, set it to 0.
-    - If a quantity is not listed, assume it is 1.
+    const dataUri = input.documentDataUri;
+    const base64Data = dataUri.substring(dataUri.indexOf(',') + 1);
+    const mimeType = dataUri.substring(dataUri.indexOf(':') + 1, dataUri.indexOf(';'));
 
-    Return the data as a structured JSON object.
-
-    Document: {{media url=documentDataUri}}
-    `,
-  }
-);
-
-
-export const extractItemsFromDocument = ai.defineFlow(
-  {
-    name: 'extractItemsFromDocument',
-    inputSchema: ExtractItemsInputSchema,
-    outputSchema: ExtractItemsOutputSchema,
-  },
-  async (input: ExtractItemsInput): Promise<ExtractItemsOutput> => {
     try {
-        const { output } = await extractItemsPrompt(input);
+        const [result] = await client.documentTextDetection({
+            image: {
+                content: base64Data,
+            },
+            imageContext: {
+                languageHints: ['pt-BR'],
+            },
+        });
 
-      if (output?.items) {
-        return { items: output.items };
-      } else {
-        console.warn("IA não conseguiu extrair itens ou a resposta foi inesperada.");
-        return { items: [] };
-      }
+        const fullText = result.fullTextAnnotation?.text || '';
+        
+        console.log("-----------------------------------------");
+        console.log("Texto completo extraído via Google Cloud Vision API:\n", fullText);
+        console.log("-----------------------------------------");
+
+        const newExtractedItems: ExtractItemsOutput['items'] = [];
+        const rawLines = fullText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        
+        let tempDescription = "";
+        for (const line of rawLines) {
+             if (line.match(/^\d+CSNBOB/i)) { // Parece ser uma linha de descrição com código
+                if (tempDescription) {
+                    tempDescription += " " + line;
+                } else {
+                    tempDescription = line;
+                }
+            } else {
+                const dataMatch = line.match(/(kg|un|m|m²|h|serv)\s+([\d,.]+)\s+([\d,.]+)\s+([\d,.]+)/i);
+                if (dataMatch && tempDescription) {
+                    newExtractedItems.push({
+                        descricao: tempDescription,
+                        unidade: dataMatch[1].toLowerCase(),
+                        quantidade: parseFloat(dataMatch[2].replace(/\./g, '').replace(',', '.')),
+                        precoUnitario: parseFloat(dataMatch[3].replace(/\./g, '').replace(',', '.')),
+                    });
+                    tempDescription = ""; // Resetar descrição após encontrar dados
+                } else if (!dataMatch && line.length > 10 && !line.toLowerCase().includes('total')) {
+                  if (tempDescription) {
+                    tempDescription += " " + line; // Continua a descrição
+                  }
+                }
+            }
+        }
+
+        const validatedOutput = ExtractItemsOutputSchema.parse({ items: newExtractedItems });
+
+        if (validatedOutput?.items && validatedOutput.items.length > 0) {
+            return validatedOutput;
+        } else {
+            console.warn("Google Cloud Vision AI extraiu texto, mas a lógica de parsing não encontrou itens válidos.");
+            return { items: [] };
+        }
     } catch (error) {
-      console.error("Erro na Server Action 'extractItemsFromDocument':", error);
-      throw new Error(`Falha na extração de itens pela IA: ${error instanceof Error ? error.message : String(error)}`);
+        console.error("Erro na Server Action 'extractItemsFromDocument' (Vision AI SDK):", error);
+        throw new Error(`Falha na extração de itens do documento: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
     }
-  }
-);
+}
