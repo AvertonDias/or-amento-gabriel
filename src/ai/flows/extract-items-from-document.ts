@@ -1,14 +1,15 @@
-'use server';
-/**
- * @fileOverview An AI agent to extract items from a shopping list or invoice.
- *
- * - extractItemsFromDocument - A function that extracts items from a document.
- * - ExtractItemsInput - The input type for the extractItemsFromDocument function.
- * - ExtractItemsOutput - The return type for the extractItemsFromDocument function.
- */
+// src/ai/flows/extract-items-from-document.ts
 
-import { ai } from '@/ai/genkit';
-import {z} from 'zod';
+'use server';
+
+// Importe seu arquivo de configuração Genkit (apenas para garantir que ele seja executado)
+// A ordem é crucial. Este import side-effect deve ser feito PRIMEIRO.
+import '@/ai/genkit'; 
+
+// Importe as funções e modelos diretamente das bibliotecas originais.
+import { defineFlow, generate } from 'genkit'; // <-- De genkit
+import { geminiProVision } from '@genkit-ai/googleai'; // <-- De @genkit-ai/googleai
+import { z } from 'zod';
 
 
 const ItemSchema = z.object({
@@ -32,40 +33,42 @@ const ExtractItemsOutputSchema = z.object({
 export type ExtractItemsOutput = z.infer<typeof ExtractItemsOutputSchema>;
 
 
-export const extractItemsFromDocument = ai.defineFlow(
+export const extractItemsFromDocument = defineFlow(
   {
     name: 'extractItemsFromDocument',
     inputSchema: ExtractItemsInputSchema,
     outputSchema: ExtractItemsOutputSchema,
   },
   async (input: ExtractItemsInput): Promise<ExtractItemsOutput> => {
-    // Mantendo os console.logs para depuração
-    console.log("SERVER ACTION ENV - GOOGLE_API_KEY:", process.env.GOOGLE_API_KEY ? "DEFINED" : "UNDEFINED");
-    console.log("SERVER ACTION ENV - GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "DEFINED" : "UNDEFINED");
-    console.log("SERVER ACTION ENV - NODE_ENV:", process.env.NODE_ENV);
+    // Mantendo os console.logs para depuração final
+    console.log("=== SERVER ACTION ENV DUMP START ===");
+    console.log("GOOGLE_API_KEY:", process.env.GOOGLE_API_KEY ? "DEFINED" : "UNDEFINED");
+    console.log("GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "DEFINED" : "UNDEFINED");
+    console.log("GOOGLE_APPLICATION_CREDENTIALS:", process.env.GOOGLE_APPLICATION_CREDENTIALS ? "DEFINED" : "UNDEFINED");
+    console.log("=== SERVER ACTION ENV DUMP END ===");
     
     try {
-        const { output } = await ai.generate({
-            model: 'gemini-pro-vision',
-            prompt: `You are an expert data entry assistant. Your task is to analyze the provided image or PDF of a shopping list or invoice and extract all items listed.
+        const { output } = await generate({
+            model: geminiProVision, // Usando o modelo importado diretamente
+            prompt: [{
+              text: `You are an expert data entry assistant. Your task is to analyze the provided image or PDF of a shopping list or invoice and extract all items listed.
 
-            For each item, identify its description, quantity, and unit price.
-            - If the unit is not explicitly mentioned, assume it is "un" (unit).
-            - If a price is listed, ensure it is a number. If no price is found, set it to 0.
-            - If a quantity is not listed, assume it is 1.
+              For each item, identify its description, quantity, and unit price.
+              - If the unit is not explicitly mentioned, assume it is "un" (unit).
+              - If a price is listed, ensure it is a number. If no price is found, set it to 0.
+              - If a quantity is not listed, assume it is 1.
 
-            Return the data as a structured JSON object.
-
-            Document to analyze:
-            {{media url="${input.documentDataUri}"}}
-            `,
+              Return the data as a structured JSON object.`
+            }, {
+              media: { url: input.documentDataUri }
+            }],
             output: { schema: ExtractItemsOutputSchema },
       });
 
       if (output?.items) {
         return { items: output.items };
       } else {
-        console.warn("IA não conseguiu extrair itens ou a resposta foi inesperada");
+        console.warn("IA não conseguiu extrair itens ou a resposta foi inesperada.");
         return { items: [] };
       }
     } catch (error) {

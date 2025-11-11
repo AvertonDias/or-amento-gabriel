@@ -1,23 +1,26 @@
-/** @type {import('next').NextConfig} */
+// next.config.mjs
+import PwaPlugin from "@ducanh2912/next-pwa";
+
 const nextConfig = {
-  transpilePackages: [
-    '@genkit-ai/core',
-    '@genkit-ai/googleai',
-    'genkit',
-    'dotprompt',
-    'handlebars',
-    'require-in-the-middle',
-  ],
+  experimental: {
+    serverActions: true,
+    transpilePackages: ['@genkit-ai/googleai', 'dotprompt', 'handlebars', '@opentelemetry/sdk-node', '@opentelemetry/api', '@opentelemetry/instrumentation', '@opentelemetry/exporter-jaeger'], 
+  },
   webpack: (config, { isServer }) => {
-    // Adicionado para lidar com dependências que usam 'fs' no lado do cliente
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-      };
+    if (isServer) {
+      config.externals = [
+        ...config.externals,
+        'genkit',
+        /^genkit\//,
+      ];
     }
     return config;
   },
 };
 
-export default nextConfig;
+const withPWA = PwaPlugin({
+  dest: "public",
+  disable: process.env.NODE_ENV === "development",
+});
+
+export default withPWA(nextConfig);

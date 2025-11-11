@@ -1,13 +1,14 @@
+// src/ai/flows/fill-customer-data.ts
 
 'use server';
-/**
- * @fileOverview An AI agent to complete customer data.
- *
- * - fillCustomerData - A function that completes customer data from partial information.
- * - FillCustomerDataInput - The input type for the fillCustomerData function
- */
 
-import { ai } from '@/ai/genkit';
+// Importe seu arquivo de configuração Genkit (apenas para garantir que ele seja executado)
+// A ordem é crucial. Este import side-effect deve ser feito PRIMEIRO.
+import '@/ai/genkit';
+
+// Importe as funções e modelos diretamente das bibliotecas originais.
+import { defineFlow, generate } from 'genkit';
+import { geminiPro } from '@genkit-ai/googleai';
 import { z } from 'zod';
 
 const FillCustomerDataInputSchema = z.object({
@@ -26,41 +27,62 @@ const FillCustomerDataOutputSchema = z.object({
 export type FillCustomerDataOutput = z.infer<typeof FillCustomerDataOutputSchema>;
 
 
+// A função exportada que o front-end chamará
 export async function fillCustomerData(input: FillCustomerDataInput): Promise<FillCustomerDataOutput> {
   return fillCustomerDataFlow(input);
 }
 
 
-const fillCustomerDataFlow = ai.defineFlow(
+// O fluxo do Genkit
+const fillCustomerDataFlow = defineFlow(
   {
     name: 'fillCustomerDataFlow',
     inputSchema: FillCustomerDataInputSchema,
     outputSchema: FillCustomerDataOutputSchema,
   },
   async (input: FillCustomerDataInput) => {
+    // Mantendo os console.logs para depuração (opcional, mas útil se tiver problemas)
+    console.log("=== SERVER ACTION ENV DUMP START (FillCustomerData) ===");
+    console.log("GOOGLE_API_KEY:", process.env.GOOGLE_API_KEY ? "DEFINED" : "UNDEFINED");
+    console.log("GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "DEFINED" : "UNDEFINED");
+    console.log("GOOGLE_APPLICATION_CREDENTIALS:", process.env.GOOGLE_APPLICATION_CREDENTIALS ? "DEFINED" : "UNDEFINED");
+    console.log("=== SERVER ACTION ENV DUMP END (FillCustomerData) ===");
+
     const sanitizedInput = {
       ...input,
       cpfCnpj: input.cpfCnpj || undefined,
     };
-    const {output} = await ai.generate({
-        model: 'gemini-pro',
-        prompt: `Você é um assistente de preenchimento de dados especialista em encontrar informações públicas sobre empresas e pessoas no Brasil.
-Com base nas informações parciais fornecidas, preencha os dados restantes do cliente.
-Use fontes de dados públicas e abertas para encontrar as informações. Se não conseguir encontrar uma informação, retorne um campo vazio para ela.
-Priorize a precisão dos dados.
+    
+    try {
+        const {output} = await generate({
+            model: geminiPro,
+            prompt: `Você é um assistente de preenchimento de dados especialista em encontrar informações públicas sobre empresas e pessoas no Brasil.
+            Com base nas informações parciais fornecidas, preencha os dados restantes do cliente.
+            Use fontes de dados públicas e abertas para encontrar as informações. Se não conseguir encontrar uma informação, retorne um campo vazio para ela.
+            Priorize a precisão dos dados.
 
-Informações fornecidas:
-{{#if nome}}
-Nome: {{{nome}}}
-{{/if}}
-{{#if cpfCnpj}}
-CPF/CNPJ: {{{cpfCnpj}}}
-{{/if}}
+            Informações fornecidas:
+            {{#if nome}}
+            Nome: ${sanitizedInput.nome}
+            {{/if}}
+            {{#if cpfCnpj}}
+            CPF/CNPJ: ${sanitizedInput.cpfCnpj}
+            {{/if}}
 
-Preencha o seguinte objeto de saída com as informações completas que encontrar.
-`,
-        output: { schema: FillCustomerDataOutputSchema },
-    });
-    return output!;
+            Preencha o seguinte objeto de saída com as informações completas que encontrar.
+            `,
+            output: { schema: FillCustomerDataOutputSchema },
+        });
+        
+        if (output) {
+            return output;
+        } else {
+            console.warn("IA não conseguiu preencher os dados ou a resposta foi inesperada.");
+            return { nome: '', endereco: '', telefone: '', email: '', cpfCnpj: '' };
+        }
+    } catch (error) {
+        console.error("Erro na Server Action 'fillCustomerDataFlow':", error);
+        throw new Error(`Falha no preenchimento de dados pela IA: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 );
