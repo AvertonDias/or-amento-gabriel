@@ -1,19 +1,14 @@
 // src/ai/genkit.ts
 
-// Usaremos a importação que a própria documentação do Genkit sugere para configuração
-// Isso deve ser um named export de 'genkit'
-import { configureGenkit } from 'genkit';
+import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
 
-// A configuração é simples
-configureGenkit({
+// Esta é a maneira canônica de configurar o Genkit na v1.
+// O objeto 'ai' resultante é o ponto de entrada para todas as operações do Genkit.
+export const ai = genkit({
   plugins: [
     googleAI(),
   ],
-  logLevel: 'debug', // Manter para depuração
-  enableTracingAndMetrics: false, // Manter desativado
+  logLevel: 'debug',
+  enableTracingAndMetrics: false,
 });
-
-// Este arquivo NÃO EXPORTA nada para as Server Actions usarem.
-// As Server Actions importarão `defineFlow`, `generate` e os modelos diretamente
-// das bibliotecas 'genkit' e '@genkit-ai/googleai'.

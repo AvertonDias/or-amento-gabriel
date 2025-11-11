@@ -1,11 +1,9 @@
-/** @type {import('next').NextConfig} */
+
 import PwaPlugin from "@ducanh2912/next-pwa";
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverActions: true,
-    transpilePackages: ['@genkit-ai/googleai', 'dotprompt', 'handlebars', '@opentelemetry/sdk-node', '@opentelemetry/api', '@opentelemetry/instrumentation', '@opentelemetry/exporter-jaeger'], 
-  },
+  transpilePackages: ['@genkit-ai/googleai', 'dotprompt', 'handlebars', '@opentelemetry/sdk-node', '@opentelemetry/api', '@opentelemetry/instrumentation', '@opentelemetry/exporter-jaeger'],
 };
 
 const withPWA = PwaPlugin({

@@ -2,13 +2,7 @@
 
 'use server';
 
-// Importe seu arquivo de configuração Genkit (apenas para garantir que ele seja executado)
-// A ordem é crucial. Este import side-effect deve ser feito PRIMEIRO.
-import '@/ai/genkit';
-
-// Importe as funções e modelos diretamente das bibliotecas originais.
-import { defineFlow, generate } from 'genkit';
-import { geminiPro } from '@genkit-ai/googleai';
+import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
 const FillCustomerDataInputSchema = z.object({
@@ -27,14 +21,30 @@ const FillCustomerDataOutputSchema = z.object({
 export type FillCustomerDataOutput = z.infer<typeof FillCustomerDataOutputSchema>;
 
 
-// A função exportada que o front-end chamará
-export async function fillCustomerData(input: FillCustomerDataInput): Promise<FillCustomerDataOutput> {
-  return fillCustomerDataFlow(input);
-}
+const fillCustomerPrompt = ai.definePrompt({
+    name: 'fillCustomerPrompt',
+    input: { schema: FillCustomerDataInputSchema },
+    output: { schema: FillCustomerDataOutputSchema },
+    prompt: `Você é um assistente de preenchimento de dados especialista em encontrar informações públicas sobre empresas e pessoas no Brasil.
+            Com base nas informações parciais fornecidas, preencha os dados restantes do cliente.
+            Use fontes de dados públicas e abertas para encontrar as informações. Se não conseguir encontrar uma informação, retorne um campo vazio para ela.
+            Priorize a precisão dos dados.
+
+            Informações fornecidas:
+            {{#if nome}}
+            Nome: {{nome}}
+            {{/if}}
+            {{#if cpfCnpj}}
+            CPF/CNPJ: {{cpfCnpj}}
+            {{/if}}
+
+            Preencha o seguinte objeto de saída com as informações completas que encontrar.
+            `,
+});
 
 
 // O fluxo do Genkit
-const fillCustomerDataFlow = defineFlow(
+const fillCustomerDataFlow = ai.defineFlow(
   {
     name: 'fillCustomerDataFlow',
     inputSchema: FillCustomerDataInputSchema,
@@ -50,29 +60,12 @@ const fillCustomerDataFlow = defineFlow(
 
     const sanitizedInput = {
       ...input,
+      nome: input.nome || undefined,
       cpfCnpj: input.cpfCnpj || undefined,
     };
     
     try {
-        const {output} = await generate({
-            model: geminiPro,
-            prompt: `Você é um assistente de preenchimento de dados especialista em encontrar informações públicas sobre empresas e pessoas no Brasil.
-            Com base nas informações parciais fornecidas, preencha os dados restantes do cliente.
-            Use fontes de dados públicas e abertas para encontrar as informações. Se não conseguir encontrar uma informação, retorne um campo vazio para ela.
-            Priorize a precisão dos dados.
-
-            Informações fornecidas:
-            {{#if nome}}
-            Nome: ${sanitizedInput.nome}
-            {{/if}}
-            {{#if cpfCnpj}}
-            CPF/CNPJ: ${sanitizedInput.cpfCnpj}
-            {{/if}}
-
-            Preencha o seguinte objeto de saída com as informações completas que encontrar.
-            `,
-            output: { schema: FillCustomerDataOutputSchema },
-        });
+        const {output} = await fillCustomerPrompt(sanitizedInput);
         
         if (output) {
             return output;
@@ -86,3 +79,8 @@ const fillCustomerDataFlow = defineFlow(
     }
   }
 );
+
+// A função exportada que o front-end chamará
+export async function fillCustomerData(input: FillCustomerDataInput): Promise<FillCustomerDataOutput> {
+  return fillCustomerDataFlow(input);
+}

@@ -2,15 +2,7 @@
 
 'use server';
 
-// *** ISTO É O MAIS CRÍTICO: Importe o arquivo de configuração Genkit no topo. ***
-// Este import com side-effect TEM QUE EXECUTAR configureGenkit ANTES de qualquer outra coisa.
-// O Webpack do Next.js pode ter problemas com a ordem de execução se não for explícito.
-import '@/ai/genkit'; 
-
-// Importe as funções e modelos DIRETAMENTE de suas bibliotecas de origem.
-// ESTA É A FORMA CANÔNICA DE USAR.
-import { defineFlow, generate } from 'genkit'; // <-- De 'genkit'
-import { geminiProVision } from '@genkit-ai/googleai'; // <-- De '@genkit-ai/googleai'
+import { ai } from '@/ai/genkit'; 
 import { z } from 'zod';
 
 
@@ -35,7 +27,27 @@ const ExtractItemsOutputSchema = z.object({
 export type ExtractItemsOutput = z.infer<typeof ExtractItemsOutputSchema>;
 
 
-export const extractItemsFromDocument = defineFlow(
+const extractItemsPrompt = ai.definePrompt(
+  {
+    name: 'extractItemsPrompt',
+    input: { schema: ExtractItemsInputSchema },
+    output: { schema: ExtractItemsOutputSchema },
+    prompt: `You are an expert data entry assistant. Your task is to analyze the provided image or PDF of a shopping list or invoice and extract all items listed.
+
+    For each item, identify its description, quantity, and unit price.
+    - If the unit is not explicitly mentioned, assume it is "un" (unit).
+    - If a price is listed, ensure it is a number. If no price is found, set it to 0.
+    - If a quantity is not listed, assume it is 1.
+
+    Return the data as a structured JSON object.
+
+    Document: {{media url=documentDataUri}}
+    `,
+  }
+);
+
+
+export const extractItemsFromDocument = ai.defineFlow(
   {
     name: 'extractItemsFromDocument',
     inputSchema: ExtractItemsInputSchema,
@@ -50,22 +62,7 @@ export const extractItemsFromDocument = defineFlow(
     console.log("=== SERVER ACTION ENV DUMP END ===");
     
     try {
-        const { output } = await generate({
-            model: geminiProVision, // Usando o modelo importado diretamente
-            prompt: [{
-              text: `You are an expert data entry assistant. Your task is to analyze the provided image or PDF of a shopping list or invoice and extract all items listed.
-
-              For each item, identify its description, quantity, and unit price.
-              - If the unit is not explicitly mentioned, assume it is "un" (unit).
-              - If a price is listed, ensure it is a number. If no price is found, set it to 0.
-              - If a quantity is not listed, assume it is 1.
-
-              Return the data as a structured JSON object.`
-            }, {
-              media: { url: input.documentDataUri }
-            }],
-            output: { schema: ExtractItemsOutputSchema },
-      });
+        const { output } = await extractItemsPrompt(input);
 
       if (output?.items) {
         return { items: output.items };
