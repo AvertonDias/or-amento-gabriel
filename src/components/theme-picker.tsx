@@ -15,6 +15,7 @@ const paletas = [
   { name: "Laranja", value: "theme-orange-intense", color: "#F75E0B" },
   { name: "Ciano", value: "theme-cyan-electric", color: "#0AEEF5" },
   { name: "Vinho", value: "theme-wine", color: "#851947" },
+  { name: "Terracota", value: "theme-terracota", color: "#D9795D" },
 ];
 
 

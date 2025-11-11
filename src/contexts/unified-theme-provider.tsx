@@ -21,7 +21,8 @@ const PALETTE_CLASSES = [
     "theme-magenta",
     "theme-orange-intense",
     "theme-cyan-electric",
-    "theme-wine"
+    "theme-wine",
+    "theme-terracota"
 ];
 
 export function UnifiedThemeProvider({ children }: { children: React.ReactNode }) {

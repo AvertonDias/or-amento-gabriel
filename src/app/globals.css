@@ -399,6 +399,44 @@
     --ring: 182 92% 50%;
   }
 
+  /* Paleta TERRACOTA */
+  html.theme-terracota {
+    --background: 20 60% 96%;
+    --foreground: 20 70% 25%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 16 72% 55%;
+    --primary-foreground: 16 72% 98%;
+    --secondary: 20 60% 96%;
+    --secondary-foreground: 20 70% 25%;
+    --muted: 20 60% 96%;
+    --muted-foreground: 20 40% 50%;
+    --accent: 16 72% 55%;
+    --accent-foreground: 16 72% 98%;
+    --ring: 16 72% 55%;
+  }
+  html.dark.theme-terracota {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 16 72% 55%;
+    --primary-foreground: 16 72% 98%;
+    --secondary: 20 15% 20%;
+    --secondary-foreground: 20 60% 85%;
+    --muted: 20 15% 17%;
+    --muted-foreground: 20 30% 65%;
+    --accent: 16 72% 55%;
+    --accent-foreground: 16 72% 98%;
+    --border: 20 15% 27%;
+    --input: 20 15% 27%;
+    --ring: 16 72% 55%;
+  }
+
 
   * {
     @apply border-border;
