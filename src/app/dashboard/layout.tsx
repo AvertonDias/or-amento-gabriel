@@ -51,7 +51,7 @@ const NavLinks = ({ isCollapsed }: { isCollapsed: boolean }) => {
                 className={cn(
                   'flex items-center gap-3 rounded-lg py-2 text-muted-foreground transition-all hover:text-primary',
                   isActive && 'bg-muted text-primary',
-                  isCollapsed ? 'h-9 w-9 justify-center px-0' : 'px-3'
+                  isCollapsed ? 'h-9 w-9 justify-center' : 'px-3'
                 )}
               >
                 <item.icon className={cn('h-5 w-5', isActive && "text-primary")} />
@@ -184,7 +184,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                   <TooltipTrigger asChild>
                     <Button onClick={handleLogout} variant="ghost" className={cn(
                         'flex items-center gap-3 rounded-lg w-full text-muted-foreground transition-all hover:text-primary',
-                        isSidebarCollapsed ? 'h-9 w-9 justify-center px-0' : 'px-3 justify-start py-2'
+                        isSidebarCollapsed ? 'h-9 w-9 justify-center' : 'px-3 justify-start py-2'
                     )}>
                       <LogOut className="h-5 w-5" />
                       <span className={cn('overflow-hidden transition-all', isSidebarCollapsed ? 'w-0' : 'w-auto')}>
