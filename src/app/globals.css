@@ -247,11 +247,158 @@
     --ring: 331 68% 41%;
   }
 
-  /* Paletas que apenas mudam a cor primária (outras cores seguem o padrão) */
-  html.theme-vibrant-red { --primary: 353 100% 50%; --primary-foreground: 0 0% 100%; --ring: 353 100% 50%; }
-  html.theme-magenta { --primary: 295 92% 61%; --primary-foreground: 0 0% 100%; --ring: 295 92% 61%; }
-  html.theme-orange-intense { --primary: 23 93% 51%; --primary-foreground: 23 93% 98%; --ring: 23 93% 51%; }
-  html.theme-cyan-electric { --primary: 182 92% 50%; --primary-foreground: 182 92% 5%; --ring: 182 92% 50%; }
+  /* Paleta VERMELHO */
+  html.theme-vibrant-red {
+    --background: 0 100% 97%;
+    --foreground: 0 80% 25%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 353 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 95% 96%;
+    --secondary-foreground: 0 80% 25%;
+    --muted: 0 95% 96%;
+    --muted-foreground: 0 40% 50%;
+    --accent: 353 100% 50%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 353 100% 50%;
+  }
+  html.dark.theme-vibrant-red {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 353 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 10% 20%;
+    --secondary-foreground: 0 90% 85%;
+    --muted: 0 10% 15%;
+    --muted-foreground: 0 20% 65%;
+    --accent: 353 100% 50%;
+    --accent-foreground: 0 0% 100%;
+    --border: 0 10% 25%;
+    --input: 0 10% 25%;
+    --ring: 353 100% 50%;
+  }
+
+  /* Paleta MAGENTA */
+  html.theme-magenta {
+    --background: 300 100% 97%;
+    --foreground: 300 80% 25%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 295 92% 61%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 300 95% 96%;
+    --secondary-foreground: 300 80% 25%;
+    --muted: 300 95% 96%;
+    --muted-foreground: 300 40% 50%;
+    --accent: 295 92% 61%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 295 92% 61%;
+  }
+  html.dark.theme-magenta {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 295 92% 61%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 300 10% 20%;
+    --secondary-foreground: 300 90% 85%;
+    --muted: 300 10% 15%;
+    --muted-foreground: 300 20% 65%;
+    --accent: 295 92% 61%;
+    --accent-foreground: 0 0% 100%;
+    --border: 300 10% 25%;
+    --input: 300 10% 25%;
+    --ring: 295 92% 61%;
+  }
+
+  /* Paleta LARANJA */
+  html.theme-orange-intense {
+    --background: 30 100% 97%;
+    --foreground: 25 80% 25%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 23 93% 51%;
+    --primary-foreground: 23 93% 98%;
+    --secondary: 30 95% 96%;
+    --secondary-foreground: 25 80% 25%;
+    --muted: 30 95% 96%;
+    --muted-foreground: 25 40% 50%;
+    --accent: 23 93% 51%;
+    --accent-foreground: 23 93% 98%;
+    --ring: 23 93% 51%;
+  }
+  html.dark.theme-orange-intense {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 23 93% 51%;
+    --primary-foreground: 23 93% 98%;
+    --secondary: 25 10% 20%;
+    --secondary-foreground: 25 90% 85%;
+    --muted: 25 10% 15%;
+    --muted-foreground: 25 20% 65%;
+    --accent: 23 93% 51%;
+    --accent-foreground: 23 93% 98%;
+    --border: 25 10% 25%;
+    --input: 25 10% 25%;
+    --ring: 23 93% 51%;
+  }
+
+  /* Paleta CIANO */
+  html.theme-cyan-electric {
+    --background: 180 100% 97%;
+    --foreground: 180 80% 25%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 182 92% 50%;
+    --primary-foreground: 182 92% 5%;
+    --secondary: 180 95% 96%;
+    --secondary-foreground: 180 80% 25%;
+    --muted: 180 95% 96%;
+    --muted-foreground: 180 40% 50%;
+    --accent: 182 92% 50%;
+    --accent-foreground: 182 92% 5%;
+    --ring: 182 92% 50%;
+  }
+  html.dark.theme-cyan-electric {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 182 92% 50%;
+    --primary-foreground: 182 92% 5%;
+    --secondary: 180 10% 20%;
+    --secondary-foreground: 180 90% 85%;
+    --muted: 180 10% 15%;
+    --muted-foreground: 180 20% 65%;
+    --accent: 182 92% 50%;
+    --accent-foreground: 182 92% 5%;
+    --border: 180 10% 25%;
+    --input: 180 10% 25%;
+    --ring: 182 92% 50%;
+  }
+
 
   * {
     @apply border-border;
