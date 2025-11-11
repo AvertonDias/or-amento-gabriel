@@ -1,11 +1,15 @@
+import withPWA from "@ducanh2912/next-pwa";
 
-// Adicionado para invalidar o cache e corrigir o erro de compilação.
-const withPWA = require("@ducanh2912/next-pwa").default({
+const pwaConfig = withPWA({
   dest: "public",
-  disable: process.env.NODE_ENV === 'development',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === "development",
 });
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  // your next config here
+};
 
-export default withPWA(nextConfig);
+export default pwaConfig(nextConfig);
