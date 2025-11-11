@@ -2,9 +2,8 @@
 
 'use server';
 
-import { ai } from '@/ai/genkit'; 
+import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-
 
 const ItemSchema = z.object({
     descricao: z.string().describe('The full description of the item.'),
@@ -54,13 +53,6 @@ export const extractItemsFromDocument = ai.defineFlow(
     outputSchema: ExtractItemsOutputSchema,
   },
   async (input: ExtractItemsInput): Promise<ExtractItemsOutput> => {
-    // Mantendo os console.logs para depuração final
-    console.log("=== SERVER ACTION ENV DUMP START ===");
-    console.log("GOOGLE_API_KEY:", process.env.GOOGLE_API_KEY ? "DEFINED" : "UNDEFINED");
-    console.log("GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "DEFINED" : "UNDEFINED");
-    console.log("GOOGLE_APPLICATION_CREDENTIALS:", process.env.GOOGLE_APPLICATION_CREDENTIALS ? "DEFINED" : "UNDEFINED");
-    console.log("=== SERVER ACTION ENV DUMP END ===");
-    
     try {
         const { output } = await extractItemsPrompt(input);
 

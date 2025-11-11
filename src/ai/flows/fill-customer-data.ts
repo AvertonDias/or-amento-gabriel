@@ -51,12 +51,6 @@ const fillCustomerDataFlow = ai.defineFlow(
     outputSchema: FillCustomerDataOutputSchema,
   },
   async (input: FillCustomerDataInput) => {
-    // Mantendo os console.logs para depuração (opcional, mas útil se tiver problemas)
-    console.log("=== SERVER ACTION ENV DUMP START (FillCustomerData) ===");
-    console.log("GOOGLE_API_KEY:", process.env.GOOGLE_API_KEY ? "DEFINED" : "UNDEFINED");
-    console.log("GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "DEFINED" : "UNDEFINED");
-    console.log("GOOGLE_APPLICATION_CREDENTIALS:", process.env.GOOGLE_APPLICATION_CREDENTIALS ? "DEFINED" : "UNDEFINED");
-    console.log("=== SERVER ACTION ENV DUMP END (FillCustomerData) ===");
 
     const sanitizedInput = {
       ...input,
