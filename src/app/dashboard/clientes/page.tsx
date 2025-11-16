@@ -74,7 +74,6 @@ export default function ClientesPage() {
   const [orcamentos, setOrcamentos] = useState<Orcamento[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isContactApiSupported, setIsContactApiSupported] = useState(true);
   
   const [newClient, setNewClient] = useState(initialNewClientState);
   
@@ -87,7 +86,6 @@ export default function ClientesPage() {
   const [isDuplicateAlertOpen, setIsDuplicateAlertOpen] = useState(false);
   const [duplicateMessage, setDuplicateMessage] = useState("");
   
-  const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
   const [isApiNotSupportedAlertOpen, setIsApiNotSupportedAlertOpen] = useState(false);
 
 
@@ -120,12 +118,6 @@ export default function ClientesPage() {
       setIsLoadingData(false);
     }
   }, [user, toast]);
-
-  useEffect(() => {
-    if (typeof navigator !== 'undefined' && !('contacts' in navigator && 'select' in (navigator as any).contacts)) {
-        setIsContactApiSupported(false);
-    }
-  }, []);
 
   useEffect(() => {
     if (user) {
@@ -358,9 +350,11 @@ export default function ClientesPage() {
   };
 
   const handleImportContacts = async () => {
-    if (!isContactApiSupported) {
-        setIsApiNotSupportedAlertOpen(true);
-        return;
+    const isSupported = 'contacts' in navigator && 'select' in (navigator as any).contacts;
+  
+    if (!isSupported) {
+      setIsApiNotSupportedAlertOpen(true);
+      return;
     }
   
     try {
@@ -368,12 +362,9 @@ export default function ClientesPage() {
       const opts = { multiple: false };
       const contacts = await (navigator as any).contacts.select(props, opts);
       processSelectedContacts(contacts);
-  
     } catch (error: any) {
-      if (error instanceof TypeError) {
-          console.error('API de Contatos não suportada:', error);
-          setIsApiNotSupportedAlertOpen(true);
-      } else if (error.name === 'AbortError') {
+      if (error.name === 'AbortError') {
+        // User cancelled the picker. No action needed.
       } else if (error.name === 'NotAllowedError') {
         toast({
           title: 'Permissão Negada',
@@ -381,12 +372,9 @@ export default function ClientesPage() {
           variant: 'destructive',
         });
       } else {
+        // This will catch TypeErrors on unsupported browsers like Samsung Internet
+        setIsApiNotSupportedAlertOpen(true);
         console.error('Erro ao importar contato:', error);
-        toast({
-          title: 'Erro desconhecido',
-          description: 'Ocorreu um erro ao tentar acessar seus contatos.',
-          variant: 'destructive',
-        });
       }
     }
   };
@@ -854,3 +842,6 @@ export default function ClientesPage() {
     
     
 
+
+
+    
