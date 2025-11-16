@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -55,7 +54,7 @@ export function PwaInstallButton() {
     // Fallback for browsers that don't fire 'beforeinstallprompt' but support PWA
     const fallbackTimeout = setTimeout(() => {
         // If the event hasn't fired but the app isn't installed, we might be in a browser like Samsung Internet.
-        if (!isReadyForInstall && !isAppInstalled) {
+        if (!installPromptEvent && !isAppInstalled) {
             // Check if the app is running in standalone mode (already installed)
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
             if (!isStandalone) {
@@ -72,33 +71,33 @@ export function PwaInstallButton() {
       window.removeEventListener('appinstalled', handleAppInstalled);
       clearTimeout(fallbackTimeout);
     };
-  }, [isAppInstalled, setIsAppInstalled, isReadyForInstall]);
+  }, [isAppInstalled, setIsAppInstalled, installPromptEvent]);
 
 
   const handleInstallClick = async () => {
-    // If the native prompt is available, use it.
+    setShowDialog(false); // Hide dialog immediately on click
+
+    // If the native prompt is available, use it. This is the case for Chrome.
     if (installPromptEvent) {
         try {
             await installPromptEvent.prompt();
             const { outcome } = await installPromptEvent.userChoice;
             if (outcome === 'accepted') {
                 toast({ title: 'Aplicativo instalado com sucesso!' });
+                setIsAppInstalled(true);
             } else {
                 toast({ title: 'Instalação cancelada.' });
             }
         } catch(error) {
             toast({ title: 'Ocorreu um erro durante a instalação.', variant: 'destructive' });
-        } finally {
-            setShowDialog(false); // Hide dialog regardless of outcome
         }
     } else {
-        // If no prompt, it's a browser like Samsung Internet. Show instructions.
+        // If no prompt, it's a browser like Samsung Internet. Show instructions via a toast.
         toast({ 
             title: "Como instalar",
             description: "Procure pelo ícone de download na barra de endereço ou use a opção 'Adicionar à tela inicial' no menu do seu navegador.",
             duration: 8000, // Show for longer
         });
-        setShowDialog(false);
     }
   };
   
