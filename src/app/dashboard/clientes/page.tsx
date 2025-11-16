@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Users, PlusCircle, Pencil, Contact, RefreshCw, CheckCircle, XCircle, History, FileText, MoreVertical, AlertTriangle } from 'lucide-react';
+import { Trash2, Users, PlusCircle, Pencil, Contact, RefreshCw, CheckCircle, XCircle, History, FileText, MoreVertical, AlertTriangle, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
@@ -87,6 +87,7 @@ export default function ClientesPage() {
   const [duplicateMessage, setDuplicateMessage] = useState("");
   
   const [isApiNotSupportedAlertOpen, setIsApiNotSupportedAlertOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
 
   const { toast } = useToast();
@@ -128,6 +129,15 @@ export default function ClientesPage() {
       setIsLoadingData(false);
     }
   }, [user, loadingAuth, fetchPageData]);
+
+  const filteredClientes = useMemo(() => {
+    if (!searchTerm) {
+      return clientes;
+    }
+    return clientes.filter(cliente =>
+      cliente.nome.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [clientes, searchTerm]);
 
   const budgetCountsByClient = useMemo(() => {
     const counts: Record<string, BudgetCounts> = {};
@@ -350,32 +360,31 @@ export default function ClientesPage() {
   };
 
   const handleImportContacts = async () => {
-    const isSupported = 'contacts' in navigator && 'select' in (navigator as any).contacts;
-  
-    if (!isSupported) {
-      setIsApiNotSupportedAlertOpen(true);
-      return;
-    }
-  
-    try {
-      const props = ['name', 'email', 'tel', 'address'];
-      const opts = { multiple: false };
-      const contacts = await (navigator as any).contacts.select(props, opts);
-      processSelectedContacts(contacts);
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
-        // User cancelled the picker. No action needed.
-      } else if (error.name === 'NotAllowedError') {
-        toast({
-          title: 'Permissão Negada',
-          description: 'O acesso aos contatos foi negado. Você pode alterar isso nas configurações do seu navegador ou dispositivo.',
-          variant: 'destructive',
-        });
-      } else {
-        // This will catch TypeErrors on unsupported browsers like Samsung Internet
+    // Check for API support at the moment of click
+    if (!('contacts' in navigator && 'select' in (navigator as any).contacts)) {
         setIsApiNotSupportedAlertOpen(true);
-        console.error('Erro ao importar contato:', error);
-      }
+        return;
+    }
+
+    try {
+        const props = ['name', 'email', 'tel', 'address'];
+        const opts = { multiple: false };
+        const contacts = await (navigator as any).contacts.select(props, opts);
+        processSelectedContacts(contacts);
+    } catch (error: any) {
+        if (error.name === 'AbortError') {
+            // User cancelled the picker, do nothing.
+        } else if (error.name === 'NotAllowedError') {
+            toast({
+                title: 'Permissão Negada',
+                description: 'O acesso aos contatos foi negado. Você pode alterar isso nas configurações do seu navegador ou dispositivo.',
+                variant: 'destructive',
+            });
+        } else {
+            // Catches other errors, including TypeError for unsupported browsers
+            setIsApiNotSupportedAlertOpen(true);
+            console.error('Erro ao importar contato:', error);
+        }
     }
   };
   
@@ -563,16 +572,26 @@ export default function ClientesPage() {
             </div>
           ) : clientes.length > 0 ? (
             <div className="space-y-4">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
                 <h2 className="text-xl font-semibold">Clientes Cadastrados</h2>
-                <Button variant="ghost" size="sm" onClick={fetchPageData} disabled={isLoadingData}>
-                  <RefreshCw className={`h-4 w-4 ${isLoadingData ? 'animate-spin' : ''}`} />
-                  <span className="ml-2">Atualizar</span>
-                </Button>
+                <div className="flex w-full sm:w-auto items-center gap-2">
+                  <div className="relative flex-grow">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Input
+                          placeholder="Buscar cliente..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="w-full pl-10"
+                      />
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={fetchPageData} disabled={isLoadingData}>
+                    <RefreshCw className={`h-5 w-5 ${isLoadingData ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
               </div>
 
                <Accordion type="multiple" className="w-full">
-                  {clientes.map(item => (
+                  {filteredClientes.map(item => (
                     <AccordionItem value={item.id!} key={item.id} className="border-b">
                       <div className="flex items-center w-full group">
                           <AccordionTrigger className="flex-1 hover:no-underline py-3 px-2 rounded-t-lg data-[state=open]:bg-muted/50">
@@ -843,5 +862,7 @@ export default function ClientesPage() {
     
 
 
+
+    
 
     
