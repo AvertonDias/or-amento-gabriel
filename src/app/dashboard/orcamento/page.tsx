@@ -268,7 +268,7 @@ export default function OrcamentoPage() {
   const [margemLucroStr, setMargemLucroStr] = useState('');
   
   const [isAddingAvulso, setIsAddingAvulso] = useState(false);
-  const [itemAvulso, setItemAvulso] = useState({ descricao: '', quantidade: '1', unidade: 'un', precoFinal: '' });
+  const [itemAvulso, setItemAvulso] = useState({ descricao: '', quantidade: '', unidade: 'un', precoFinal: '' });
   const [itemAvulsoPrecoStr, setItemAvulsoPrecoStr] = useState('');
 
   const [editingItem, setEditingItem] = useState<OrcamentoItem | null>(null);
@@ -511,7 +511,7 @@ export default function OrcamentoPage() {
 
   const addLinhaAvulsa = () => {
     const { descricao, quantidade, unidade, precoFinal } = itemAvulso;
-    const numQuantidade = parseFloat(quantidade.replace(',', '.'));
+    const numQuantidade = parseFloat(quantidade.replace(',', '.')) || 1;
     const numPrecoFinal = parseFloat(precoFinal.replace(/\D/g, '')) / 100;
 
     if (!descricao.trim()) {
@@ -542,7 +542,7 @@ export default function OrcamentoPage() {
     setOrcamentoItens(prev => [...prev, novoOrcamentoItem]);
     
     // Resetar formulário avulso
-    setItemAvulso({ descricao: '', quantidade: '1', unidade: 'un', precoFinal: '' });
+    setItemAvulso({ descricao: '', quantidade: '', unidade: 'un', precoFinal: '' });
     setItemAvulsoPrecoStr('');
     setIsAddingAvulso(false); // Fecha o formulário de item avulso
 };
@@ -1246,7 +1246,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                     // Formulário para Item Avulso
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
                       <div className="lg:col-span-2"><Label htmlFor="avulso-desc">Descrição</Label><Input id="avulso-desc" value={itemAvulso.descricao} onChange={e => setItemAvulso(p => ({...p, descricao: e.target.value}))} /></div>
-                      <div><Label htmlFor="avulso-qtd">Qtd.</Label><Input id="avulso-qtd" value={itemAvulso.quantidade} onChange={e => setItemAvulso(p => ({...p, quantidade: e.target.value.replace(/[^0-9,]/g, '')}))} /></div>
+                      <div><Label htmlFor="avulso-qtd">Qtd.</Label><Input id="avulso-qtd" value={itemAvulso.quantidade} onChange={e => setItemAvulso(p => ({...p, quantidade: e.target.value.replace(/[^0-9,]/g, '')}))} placeholder="1" /></div>
                       <div>
                         <Label htmlFor="avulso-un">Unidade</Label>
                         <Select name="unidade" value={itemAvulso.unidade} onValueChange={(value) => setItemAvulso(p => ({...p, unidade: value}))}>
@@ -1507,6 +1507,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
 
 
     
+
 
 
 
