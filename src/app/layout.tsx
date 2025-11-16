@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   title: 'Meu orçamento',
   description: 'Gere orçamentos de serviços de forma rápida, precisa e profissional.',
   manifest: '/manifest.json',
+  icons: {
+    apple: "/apple-touch-icon.jpg",
+  }
 };
 
 export default function RootLayout({
@@ -28,7 +31,6 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Meu orçamento" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.jpg" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <PwaRegistry />
