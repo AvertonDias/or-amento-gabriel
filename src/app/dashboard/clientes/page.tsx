@@ -310,10 +310,11 @@ export default function ClientesPage() {
   const normalizePhoneNumber = (tel: string) => {
     if (!tel) return '';
     // Remove tudo que não for dígito
-    const onlyDigits = tel.replace(/\D/g, '');
-    // Se começar com 55 (código do Brasil), remove
+    let onlyDigits = tel.replace(/\D/g, '');
+    
+    // Remove o prefixo internacional +55
     if (onlyDigits.startsWith('55')) {
-      return onlyDigits.substring(2);
+      onlyDigits = onlyDigits.substring(2);
     }
     return onlyDigits;
   };
@@ -347,14 +348,6 @@ export default function ClientesPage() {
   };
 
   const handleImportContacts = async () => {
-    if (!('contacts' in navigator && 'select' in (navigator as any).contacts)) {
-        toast({
-            title: 'Recurso não suportado',
-            description: 'Seu navegador não oferece suporte para importação de contatos.',
-            variant: 'destructive',
-        });
-        return;
-    }
     try {
         const props = ['name', 'email', 'tel', 'address'];
         const opts = { multiple: false };
@@ -367,11 +360,17 @@ export default function ClientesPage() {
                 description: 'A seleção de contatos foi cancelada pelo usuário.',
                 variant: 'default',
             });
+        } else if (error.name === 'NotAllowedError') {
+             toast({
+                title: 'Permissão Negada',
+                description: 'O acesso aos contatos foi negado. Você pode alterar isso nas configurações do seu navegador ou dispositivo.',
+                variant: 'destructive',
+            });
         } else {
             console.error('Erro ao importar contato:', error);
             toast({
-                title: 'Erro de Permissão',
-                description: 'Não foi possível importar o contato. A permissão pode ter sido negada nas configurações do seu navegador.',
+                title: 'Recurso não suportado',
+                description: 'Seu navegador não suporta a importação de contatos ou a permissão foi negada.',
                 variant: 'destructive',
             });
         }
@@ -570,12 +569,12 @@ export default function ClientesPage() {
                       <div className="flex items-center w-full group">
                           <AccordionTrigger className="flex-1 hover:no-underline py-3 px-2 rounded-t-lg data-[state=open]:bg-muted/50">
                               <div className="flex items-center gap-3">
-                                <span className="font-medium text-lg text-primary">{item.nome}</span>
                                 {budgetCountsByClient[item.id!]?.Total > 0 && (
                                   <Badge className="h-6 w-6 rounded-full p-0 flex items-center justify-center text-xs">
                                     {budgetCountsByClient[item.id!].Total}
                                   </Badge>
                                 )}
+                                <span className="font-medium text-lg text-primary">{item.nome}</span>
                               </div>
                           </AccordionTrigger>
                           <div className="flex items-center gap-2 pr-2">
@@ -814,3 +813,5 @@ export default function ClientesPage() {
     </div>
   );
 }
+
+    
