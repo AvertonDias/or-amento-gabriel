@@ -76,29 +76,29 @@ export function PwaInstallButton() {
 
 
   const handleInstallClick = async () => {
-    if (!installPromptEvent) {
-        // This case will be for browsers that do not fire the event.
+    // If the native prompt is available, use it.
+    if (installPromptEvent) {
+        try {
+            await installPromptEvent.prompt();
+            const { outcome } = await installPromptEvent.userChoice;
+            if (outcome === 'accepted') {
+                toast({ title: 'Aplicativo instalado com sucesso!' });
+            } else {
+                toast({ title: 'Instalação cancelada.' });
+            }
+        } catch(error) {
+            toast({ title: 'Ocorreu um erro durante a instalação.', variant: 'destructive' });
+        } finally {
+            setShowDialog(false); // Hide dialog regardless of outcome
+        }
+    } else {
+        // If no prompt, it's a browser like Samsung Internet. Show instructions.
         toast({ 
             title: "Como instalar",
             description: "Procure pelo ícone de download na barra de endereço ou use a opção 'Adicionar à tela inicial' no menu do seu navegador.",
             duration: 8000, // Show for longer
         });
         setShowDialog(false);
-        return;
-    };
-
-    try {
-        await installPromptEvent.prompt();
-        const { outcome } = await installPromptEvent.userChoice;
-        if (outcome === 'accepted') {
-            toast({ title: 'Aplicativo instalado com sucesso!' });
-        } else {
-            toast({ title: 'Instalação cancelada.' });
-        }
-    } catch(error) {
-        toast({ title: 'Ocorreu um erro durante a instalação.', variant: 'destructive' });
-    } finally {
-        setShowDialog(false); // Hide dialog regardless of outcome
     }
   };
   
@@ -121,7 +121,7 @@ export function PwaInstallButton() {
                 <DialogDescription>
                     {installPromptEvent
                         ? "Instale o aplicativo em seu dispositivo para uma experiência mais rápida e para usá-lo como um app nativo, inclusive com acesso offline. É rápido e seguro!"
-                        : "Para uma experiência completa e acesso offline, instale nosso aplicativo. Procure o ícone de download na barra de endereço ou use a opção 'Adicionar à tela inicial' no menu do seu navegador."
+                        : "Para uma experiência completa e acesso offline, instale nosso aplicativo. Clique em 'Instalar' e siga as instruções do seu navegador."
                     }
                 </DialogDescription>
             </DialogHeader>
@@ -130,7 +130,7 @@ export function PwaInstallButton() {
                     Agora não
                 </Button>
                 <Button onClick={handleInstallClick}>
-                    {installPromptEvent ? 'Instalar' : 'Entendido'}
+                    Instalar
                 </Button>
             </DialogFooter>
         </DialogContent>
