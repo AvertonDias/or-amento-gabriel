@@ -614,6 +614,11 @@ export default function ClientesPage() {
                               </div>
                           </AccordionTrigger>
                           <div className="flex items-center gap-2 pr-2">
+                            {budgetCountsByClient[item.id!]?.Total > 0 && (
+                              <Badge className="h-6 w-6 rounded-full p-0 flex items-center justify-center text-xs">
+                                {budgetCountsByClient[item.id!].Total}
+                              </Badge>
+                            )}
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
@@ -655,11 +660,6 @@ export default function ClientesPage() {
                                   </AlertDialog>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                            {budgetCountsByClient[item.id!]?.Total > 0 && (
-                              <Badge className="h-6 w-6 rounded-full p-0 flex items-center justify-center text-xs">
-                                {budgetCountsByClient[item.id!].Total}
-                              </Badge>
-                            )}
                           </div>
                       </div>
                       <AccordionContent className="p-4 space-y-3">
