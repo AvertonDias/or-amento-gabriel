@@ -86,7 +86,7 @@ export const getOrcamentos = (userId: string): Promise<Orcamento[]> => {
     const q = query(
       orcamentosCollection,
       where('userId', '==', userId),
-      orderBy('numeroOrcamento', 'desc')
+      orderBy('dataCriacao', 'desc')
     );
     return getDocs(q).then(querySnapshot => {
         const orcamentos: Orcamento[] = [];
@@ -113,7 +113,7 @@ export const getNextOrcamentoNumber = (
     const q = query(
       orcamentosCollection,
       where('userId', '==', userId),
-      orderBy('numeroOrcamento', 'desc'),
+      orderBy('dataCriacao', 'desc'),
       limit(1)
     );
 
@@ -124,11 +124,12 @@ export const getNextOrcamentoNumber = (
     if (!querySnapshot.empty) {
       const lastBudget = querySnapshot.docs[0].data() as Orcamento;
       const numeroOrcamento = lastBudget.numeroOrcamento;
+      const dataCriacao = new Date(lastBudget.dataCriacao);
 
-      if (numeroOrcamento && numeroOrcamento.startsWith(`${currentYear}-`)) {
+      if (numeroOrcamento && dataCriacao.getFullYear() === currentYear) {
         const parts = numeroOrcamento.split('-');
-        if (parts.length === 2) {
-          const sequence = parseInt(parts[1], 10);
+        if (parts.length === 2 && parts[1] === String(currentYear)) {
+          const sequence = parseInt(parts[0], 10);
           if (!isNaN(sequence)) {
             lastSequence = sequence;
           }
@@ -136,10 +137,10 @@ export const getNextOrcamentoNumber = (
       }
     }
      const newSequence = lastSequence + 1;
-    const newNumeroOrcamento = `${currentYear}-${String(newSequence).padStart(
+    const newNumeroOrcamento = `${String(newSequence).padStart(
       3,
       '0'
-    )}`;
+    )}-${currentYear}`;
     console.log(
       `[ORCAMENTO SERVICE - getNextOrcamentoNumber] Última sequência para ${currentYear}: ${lastSequence}. Novo número: ${newNumeroOrcamento}`
     );
@@ -149,7 +150,7 @@ export const getNextOrcamentoNumber = (
       'Falha ao buscar número sequencial online (provavelmente offline), usando fallback:',
       error.message
     );
-    const offlineNumber = `${new Date().getFullYear()}-TEMP-${Date.now()}`;
+    const offlineNumber = `TEMP-${Date.now()}-${new Date().getFullYear()}`;
     console.log(
       `[ORCAMENTO SERVICE - getNextOrcamentoNumber] Gerando número de fallback offline: ${offlineNumber}`
     );

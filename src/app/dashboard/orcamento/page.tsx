@@ -1267,7 +1267,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                     </h4>
                     <Button variant="outline" onClick={() => setIsAddingAvulso(!isAddingAvulso)}>
                         <ArrowRightLeft className="mr-2 h-4 w-4" />
-                        <span className="hidden sm:inline">{isAddingAvulso ? 'Item da Lista' : 'Item Avulso'}</span>
+                        <span>{isAddingAvulso ? 'Item da Lista' : 'Item Avulso'}</span>
                     </Button>
                   </div>
                   
