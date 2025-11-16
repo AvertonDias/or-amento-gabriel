@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "postbuild": "echo 'Firestore rules are not deployed automatically on Vercel.'",
+    "postbuild": "firebase deploy --only firestore:rules",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
