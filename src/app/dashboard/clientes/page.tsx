@@ -38,7 +38,6 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
@@ -89,6 +88,8 @@ export default function ClientesPage() {
   const [duplicateMessage, setDuplicateMessage] = useState("");
   
   const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
+  const [isApiNotSupportedAlertOpen, setIsApiNotSupportedAlertOpen] = useState(false);
+
 
   const { toast } = useToast();
   
@@ -358,11 +359,7 @@ export default function ClientesPage() {
 
   const handleImportContacts = async () => {
     if (!isContactApiSupported) {
-        toast({
-            title: 'Recurso não suportado',
-            description: 'Seu navegador não parece suportar a API de seleção de contatos.',
-            variant: 'destructive',
-        });
+        setIsApiNotSupportedAlertOpen(true);
         return;
     }
   
@@ -375,11 +372,7 @@ export default function ClientesPage() {
     } catch (error: any) {
       if (error instanceof TypeError) {
           console.error('API de Contatos não suportada:', error);
-          toast({
-              title: 'Recurso não suportado',
-              description: 'Seu navegador não parece suportar a API de seleção de contatos.',
-              variant: 'destructive',
-          });
+          setIsApiNotSupportedAlertOpen(true);
       } else if (error.name === 'AbortError') {
       } else if (error.name === 'NotAllowedError') {
         toast({
@@ -553,30 +546,16 @@ export default function ClientesPage() {
                       {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                       Adicionar Cliente
                     </Button>
-                     <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div className="w-full sm:w-auto">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="w-full sm:w-auto"
-                                        onClick={handleImportContacts}
-                                        disabled={isSubmitting || !isContactApiSupported}
-                                        aria-disabled={!isContactApiSupported}
-                                    >
-                                        <Contact className="mr-2 h-4 w-4" />
-                                        Importar dos Contatos
-                                    </Button>
-                                </div>
-                            </TooltipTrigger>
-                            {!isContactApiSupported && (
-                                <TooltipContent>
-                                    <p>Seu navegador não suporta a importação de contatos.</p>
-                                </TooltipContent>
-                            )}
-                        </Tooltip>
-                    </TooltipProvider>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full sm:w-auto"
+                        onClick={handleImportContacts}
+                        disabled={isSubmitting}
+                    >
+                        <Contact className="mr-2 h-4 w-4" />
+                        Importar dos Contatos
+                    </Button>
                   </div>
                 </form>
               </AccordionContent>
@@ -614,11 +593,6 @@ export default function ClientesPage() {
                               </div>
                           </AccordionTrigger>
                           <div className="flex items-center gap-2 pr-2">
-                            {budgetCountsByClient[item.id!]?.Total > 0 && (
-                              <Badge className="h-6 w-6 rounded-full p-0 flex items-center justify-center text-xs">
-                                {budgetCountsByClient[item.id!].Total}
-                              </Badge>
-                            )}
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
@@ -660,6 +634,11 @@ export default function ClientesPage() {
                                   </AlertDialog>
                                 </DropdownMenuContent>
                             </DropdownMenu>
+                            {budgetCountsByClient[item.id!]?.Total > 0 && (
+                              <Badge className="h-6 w-6 rounded-full p-0 flex items-center justify-center text-xs">
+                                {budgetCountsByClient[item.id!].Total}
+                              </Badge>
+                            )}
                           </div>
                       </div>
                       <AccordionContent className="p-4 space-y-3">
@@ -851,9 +830,27 @@ export default function ClientesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <AlertDialog open={isApiNotSupportedAlertOpen} onOpenChange={setIsApiNotSupportedAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Recurso Indisponível</AlertDialogTitle>
+            <AlertDialogDescription>
+              A importação de contatos não é suportada pelo seu navegador atual. Para usar esta funcionalidade, recomendamos usar o Google Chrome ou Microsoft Edge em seu dispositivo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setIsApiNotSupportedAlertOpen(false)}>
+              Entendido
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
 
     
     
+
