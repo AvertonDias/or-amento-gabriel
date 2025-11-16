@@ -1,13 +1,13 @@
 
 'use client';
 
-import React, { useState, FormEvent, useEffect, useCallback } from 'react';
+import React, { useState, FormEvent, useEffect, useCallback, useMemo } from 'react';
 import type { MaterialItem } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Wrench, PlusCircle, Pencil, Loader2, RefreshCw, Package, Construction } from 'lucide-react';
+import { Trash2, Wrench, PlusCircle, Pencil, Loader2, RefreshCw, Package, Construction, Search, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
@@ -73,6 +73,8 @@ export default function MateriaisPage() {
 
   const [isUpdateConfirmOpen, setIsUpdateConfirmOpen] = useState(false);
   const [conflictingItem, setConflictingItem] = useState<MaterialItem | null>(null);
+  
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { toast } = useToast();
   
@@ -99,6 +101,15 @@ export default function MateriaisPage() {
     }
   }, [user, loadingAuth, fetchMateriais]);
   
+  const filteredMateriais = useMemo(() => {
+    if (!searchTerm) {
+      return materiais;
+    }
+    return materiais.filter(material =>
+      material.descricao.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [materiais, searchTerm]);
+
   const handleTabChange = (value: string) => {
     const tab = value as 'item' | 'servico';
     setActiveTab(tab);
@@ -406,12 +417,32 @@ export default function MateriaisPage() {
               </div>
             ) : materiais.length > 0 ? (
               <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
                   <h2 className="text-xl font-semibold">Itens e Serviços Cadastrados</h2>
-                  <Button variant="ghost" size="sm" onClick={() => fetchMateriais()} disabled={isLoadingData}>
-                    <RefreshCw className={`h-4 w-4 ${isLoadingData ? 'animate-spin' : ''}`} />
-                    <span className="ml-2">Atualizar</span>
-                  </Button>
+                  <div className="flex w-full sm:w-auto items-center gap-2">
+                    <div className="relative flex-grow">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar item ou serviço..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-10"
+                      />
+                      {searchTerm && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                          onClick={() => setSearchTerm('')}
+                        >
+                          <XCircle className="h-5 w-5 text-muted-foreground" />
+                        </Button>
+                      )}
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => fetchMateriais()} disabled={isLoadingData}>
+                      <RefreshCw className={`h-4 w-4 ${isLoadingData ? 'animate-spin' : ''}`} />
+                    </Button>
+                  </div>
                 </div>
                 
                 <div className="hidden md:block overflow-x-auto">
@@ -427,7 +458,7 @@ export default function MateriaisPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {materiais.map(item => {
+                      {filteredMateriais.map(item => {
                         const isStockLow = item.tipo === 'item' && item.quantidade != null && item.quantidadeMinima != null && item.quantidade <= item.quantidadeMinima;
                         return (
                           <TableRow key={item.id}>
@@ -466,7 +497,7 @@ export default function MateriaisPage() {
                 </div>
 
                 <div className="md:hidden grid grid-cols-1 gap-4">
-                  {materiais.map(item => {
+                  {filteredMateriais.map(item => {
                      const isStockLow = item.tipo === 'item' && item.quantidade != null && item.quantidadeMinima != null && item.quantidade <= item.quantidadeMinima;
                     return (
                     <Card key={item.id} className="p-0">
