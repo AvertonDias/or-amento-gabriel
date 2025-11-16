@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableTotalFooter } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, FileText, Pencil, MessageCircle, History, CheckCircle2, XCircle, Search, Loader2, RefreshCw, ArrowRight, ArrowLeft, AlertTriangle, FilterX, MoreVertical, Sparkles, ArrowRightLeft } from 'lucide-react';
+import { PlusCircle, Trash2, FileText, Pencil, MessageCircle, History, CheckCircle2, XCircle, Search, Loader2, RefreshCw, ArrowRight, ArrowLeft, AlertTriangle, FilterX, MoreVertical, ArrowRightLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone, maskCurrency } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -511,9 +511,9 @@ export default function OrcamentoPage() {
   };
 
   const addLinhaAvulsa = () => {
-    const { descricao, quantidade, unidade, precoFinal } = itemAvulso;
+    const { descricao, quantidade, unidade } = itemAvulso;
     const numQuantidade = parseFloat(quantidade.replace(',', '.')) || 1;
-    const numPrecoFinal = parseFloat(precoFinal.replace(/\D/g, '')) / 100;
+    const numPrecoFinal = parseFloat(itemAvulsoPrecoStr.replace(/\D/g, '')) / 100;
 
     if (!descricao.trim()) {
         toast({ title: "Descrição obrigatória", description: "Por favor, preencha a descrição do item avulso.", variant: "destructive" });
@@ -1235,8 +1235,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
               <h3 className="text-lg font-semibold mb-4">Adicionar Itens ao Orçamento</h3>
                
                <div className="mb-6 p-4 border rounded-lg space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-muted-foreground">Adicionar Item da Lista</h4>
+                  <div className="flex items-center justify-end">
                     <Button variant="outline" size="sm" onClick={() => setIsAddingAvulso(!isAddingAvulso)} className="md:w-auto">
                         <ArrowRightLeft className="mr-2 h-4 w-4" />
                         <span className="hidden md:inline">{isAddingAvulso ? 'Item da Lista' : 'Item Avulso'}</span>
