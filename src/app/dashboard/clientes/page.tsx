@@ -610,11 +610,6 @@ export default function ClientesPage() {
                       <div className="flex items-center w-full group">
                           <AccordionTrigger className="flex-1 hover:no-underline py-3 px-2 rounded-t-lg data-[state=open]:bg-muted/50">
                               <div className="flex items-center gap-3">
-                                {budgetCountsByClient[item.id!]?.Total > 0 && (
-                                  <Badge className="h-6 w-6 rounded-full p-0 flex items-center justify-center text-xs">
-                                    {budgetCountsByClient[item.id!].Total}
-                                  </Badge>
-                                )}
                                 <span className="font-medium text-lg text-primary">{item.nome}</span>
                               </div>
                           </AccordionTrigger>
@@ -660,6 +655,11 @@ export default function ClientesPage() {
                                   </AlertDialog>
                                 </DropdownMenuContent>
                             </DropdownMenu>
+                            {budgetCountsByClient[item.id!]?.Total > 0 && (
+                              <Badge className="h-6 w-6 rounded-full p-0 flex items-center justify-center text-xs">
+                                {budgetCountsByClient[item.id!].Total}
+                              </Badge>
+                            )}
                           </div>
                       </div>
                       <AccordionContent className="p-4 space-y-3">
