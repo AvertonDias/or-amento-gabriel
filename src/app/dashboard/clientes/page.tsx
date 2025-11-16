@@ -581,8 +581,18 @@ export default function ClientesPage() {
                           placeholder="Buscar cliente..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="w-full pl-10"
+                          className="w-full pl-10 pr-10"
                       />
+                       {searchTerm && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                            onClick={() => setSearchTerm('')}
+                          >
+                            <XCircle className="h-5 w-5 text-muted-foreground" />
+                          </Button>
+                        )}
                   </div>
                   <Button variant="ghost" size="icon" onClick={fetchPageData} disabled={isLoadingData}>
                     <RefreshCw className={`h-5 w-5 ${isLoadingData ? 'animate-spin' : ''}`} />
