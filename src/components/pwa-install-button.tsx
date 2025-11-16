@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Download } from 'lucide-react';
 
 // Define the shape of the event object for better type safety
 interface BeforeInstallPromptEvent extends Event {
@@ -29,20 +30,20 @@ export function PwaInstallButton() {
   const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [isAppInstalled, setIsAppInstalled] = useLocalStorage<boolean>('pwa-installed', false);
+  const [isReadyForInstall, setIsReadyForInstall] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       const promptEvent = event as BeforeInstallPromptEvent;
       setInstallPromptEvent(promptEvent);
-      // Only show the dialog if the app is not already marked as installed
+      setIsReadyForInstall(true);
       if (!isAppInstalled) {
         setShowDialog(true);
       }
     };
     
     const handleAppInstalled = () => {
-      // This event is fired after the user accepts the installation prompt.
       setIsAppInstalled(true);
       setShowDialog(false);
       setInstallPromptEvent(null);
@@ -51,73 +52,88 @@ export function PwaInstallButton() {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
-    // Clean up event listeners on component unmount
+    // Fallback for browsers that don't fire 'beforeinstallprompt' but support PWA
+    const fallbackTimeout = setTimeout(() => {
+        // If the event hasn't fired but the app isn't installed, we might be in a browser like Samsung Internet.
+        if (!isReadyForInstall && !isAppInstalled) {
+            // Check if the app is running in standalone mode (already installed)
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+            if (!isStandalone) {
+                setIsReadyForInstall(true); // Mark as ready to show the instructive dialog
+                setShowDialog(true);
+            } else {
+                setIsAppInstalled(true); // Correct the state if it's already installed
+            }
+        }
+    }, 3000); // Wait 3 seconds for the event
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
+      clearTimeout(fallbackTimeout);
     };
-  }, [isAppInstalled, setIsAppInstalled]);
+  }, [isAppInstalled, setIsAppInstalled, isReadyForInstall]);
 
 
   const handleInstallClick = async () => {
     if (!installPromptEvent) {
-        toast({ title: "A instalação não está disponível no momento.", variant: 'destructive'});
+        // This case will be for browsers that do not fire the event.
+        toast({ 
+            title: "Como instalar",
+            description: "Procure pelo ícone de download na barra de endereço ou use a opção 'Adicionar à tela inicial' no menu do seu navegador.",
+            duration: 8000, // Show for longer
+        });
+        setShowDialog(false);
         return;
     };
 
     try {
         await installPromptEvent.prompt();
-        // The 'userChoice' promise resolves when the user interacts with the prompt
         const { outcome } = await installPromptEvent.userChoice;
         if (outcome === 'accepted') {
             toast({ title: 'Aplicativo instalado com sucesso!' });
-            // The 'appinstalled' event will handle hiding the dialog and updating state
         } else {
             toast({ title: 'Instalação cancelada.' });
-             // If the user dismisses, we can hide the dialog for this session
-            setShowDialog(false);
         }
     } catch(error) {
         toast({ title: 'Ocorreu um erro durante a instalação.', variant: 'destructive' });
-        setShowDialog(false);
+    } finally {
+        setShowDialog(false); // Hide dialog regardless of outcome
     }
   };
   
-  if (!installPromptEvent || isAppInstalled || !showDialog) {
+  if (!isReadyForInstall || isAppInstalled || !showDialog) {
     return null;
   }
 
   return (
-     <Dialog open={showDialog} onOpenChange={(open) => {
-        // Prevent closing the dialog by clicking outside or pressing Escape
-        if (!open) {
-          setShowDialog(false);
-        }
-     }}>
+     <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent 
             className="sm:max-w-md"
-            showCloseButton={false} // Hide the 'X' button
             onEscapeKeyDown={(e) => e.preventDefault()}
             onPointerDownOutside={(e) => e.preventDefault()}
         >
             <DialogHeader>
-                <DialogTitle>Instalar Meu Orçamento</DialogTitle>
+                <DialogTitle className="flex items-center gap-2">
+                    <Download className="h-6 w-6 text-primary"/>
+                    Instalar o Aplicativo
+                </DialogTitle>
                 <DialogDescription>
-                    Instale o aplicativo em seu dispositivo para uma experiência mais rápida e para usá-lo como um app nativo,
-                    inclusive com **acesso offline**. É rápido e seguro!
+                    {installPromptEvent
+                        ? "Instale o aplicativo em seu dispositivo para uma experiência mais rápida e para usá-lo como um app nativo, inclusive com acesso offline. É rápido e seguro!"
+                        : "Para uma experiência completa e acesso offline, instale nosso aplicativo. Procure o ícone de download na barra de endereço ou use a opção 'Adicionar à tela inicial' no menu do seu navegador."
+                    }
                 </DialogDescription>
             </DialogHeader>
-            <DialogFooter className="sm:justify-center">
+            <DialogFooter className="sm:justify-center pt-4">
                  <Button type="button" variant="outline" onClick={() => setShowDialog(false)}>
                     Agora não
                 </Button>
                 <Button onClick={handleInstallClick}>
-                    Instalar
+                    {installPromptEvent ? 'Instalar' : 'Entendido'}
                 </Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
   );
 }
-
-    
