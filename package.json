@@ -5,7 +5,6 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "postbuild": "firebase deploy --only firestore:rules --project gutters-budget-pro",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
