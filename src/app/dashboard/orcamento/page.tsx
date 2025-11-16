@@ -224,6 +224,16 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
     )
 };
 
+const unidadesDeMedida = [
+  { value: 'un', label: 'Unidade (un)' },
+  { value: 'h', label: 'Hora (h)' },
+  { value: 'm', label: 'Metro (m)' },
+  { value: 'm²', label: 'Metro Quadrado (m²)' },
+  { value: 'kg', label: 'Quilograma (kg)' },
+  { value: 'L', label: 'Litro (L)' },
+  { value: 'serv', label: 'Serviço (serv)' },
+];
+
 
 export default function OrcamentoPage() {
   const [user, loadingAuth] = useAuthState(auth);
@@ -1237,7 +1247,15 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
                       <div className="lg:col-span-2"><Label htmlFor="avulso-desc">Descrição</Label><Input id="avulso-desc" value={itemAvulso.descricao} onChange={e => setItemAvulso(p => ({...p, descricao: e.target.value}))} /></div>
                       <div><Label htmlFor="avulso-qtd">Qtd.</Label><Input id="avulso-qtd" value={itemAvulso.quantidade} onChange={e => setItemAvulso(p => ({...p, quantidade: e.target.value.replace(/[^0-9,]/g, '')}))} /></div>
-                      <div><Label htmlFor="avulso-un">Unidade</Label><Input id="avulso-un" value={itemAvulso.unidade} onChange={e => setItemAvulso(p => ({...p, unidade: e.target.value}))} /></div>
+                      <div>
+                        <Label htmlFor="avulso-un">Unidade</Label>
+                        <Select name="unidade" value={itemAvulso.unidade} onValueChange={(value) => setItemAvulso(p => ({...p, unidade: value}))}>
+                            <SelectTrigger id="avulso-un"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                {unidadesDeMedida.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                      </div>
                       <div className="lg:col-span-2"><Label htmlFor="avulso-preco">Preço Final (R$)</Label><Input id="avulso-preco" value={itemAvulsoPrecoStr} onChange={e => { const val = e.target.value; setItemAvulsoPrecoStr(formatCurrency(val, false)); setItemAvulso(p => ({...p, precoFinal: val})) }} placeholder="R$ 50,00" /></div>
                       <div className="lg:col-span-1"><Button onClick={addLinhaAvulsa} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Add Avulso</Button></div>
                     </div>
@@ -1489,5 +1507,6 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
 
 
     
+
 
 
