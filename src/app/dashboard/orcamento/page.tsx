@@ -926,8 +926,18 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                       placeholder="Pesquisar por cliente ou nº do orçamento..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10"
+                      className="w-full pl-10 pr-10"
                     />
+                     {searchTerm && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                        onClick={() => setSearchTerm('')}
+                      >
+                        <XCircle className="h-5 w-5 text-muted-foreground" />
+                      </Button>
+                    )}
                   </div>
                   {clienteIdParam && (
                     <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/orcamento')}>
@@ -1411,3 +1421,4 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
 
 
     
+
