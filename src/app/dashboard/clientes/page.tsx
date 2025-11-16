@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, FormEvent, useEffect, useCallback, useMemo } from 'react';
@@ -312,7 +313,7 @@ export default function ClientesPage() {
     // Remove tudo que não for dígito
     let onlyDigits = tel.replace(/\D/g, '');
     
-    // Remove o prefixo internacional +55
+    // Remove o prefixo internacional +55 se presente no início
     if (onlyDigits.startsWith('55')) {
       onlyDigits = onlyDigits.substring(2);
     }
@@ -348,32 +349,64 @@ export default function ClientesPage() {
   };
 
   const handleImportContacts = async () => {
+    // 1. Verifica se a API de permissões existe
+    if (!navigator.permissions) {
+      toast({
+        title: 'Recurso não suportado',
+        description: 'Seu navegador não suporta a verificação de permissões para contatos.',
+        variant: 'destructive',
+      });
+      return;
+    }
+  
     try {
-        const props = ['name', 'email', 'tel', 'address'];
-        const opts = { multiple: false };
-        const contacts = await (navigator as any).contacts.select(props, opts);
-        processSelectedContacts(contacts);
+      // 2. Tenta verificar o status da permissão para 'contacts'
+      const permissionStatus = await navigator.permissions.query({ name: 'contacts' as any });
+  
+      if (permissionStatus.state === 'denied') {
+        toast({
+          title: 'Permissão Negada',
+          description: 'O acesso aos contatos foi negado. Altere a permissão nas configurações do seu navegador ou dispositivo.',
+          variant: 'destructive',
+        });
+        return;
+      }
+  
+      // 3. Procede com a tentativa de seleção de contatos
+      const props = ['name', 'email', 'tel', 'address'];
+      const opts = { multiple: false };
+      const contacts = await (navigator as any).contacts.select(props, opts);
+      processSelectedContacts(contacts);
+  
     } catch (error: any) {
-        if (error.name === 'AbortError') {
-            toast({
-                title: 'Importação Cancelada',
-                description: 'A seleção de contatos foi cancelada pelo usuário.',
-                variant: 'default',
-            });
-        } else if (error.name === 'NotAllowedError') {
-             toast({
-                title: 'Permissão Negada',
-                description: 'O acesso aos contatos foi negado. Você pode alterar isso nas configurações do seu navegador ou dispositivo.',
-                variant: 'destructive',
-            });
-        } else {
-            console.error('Erro ao importar contato:', error);
-            toast({
-                title: 'Recurso não suportado',
-                description: 'Seu navegador não suporta a importação de contatos ou a permissão foi negada.',
-                variant: 'destructive',
-            });
-        }
+      if (error instanceof TypeError) {
+          // Este erro geralmente acontece se `navigator.contacts` ou `select` não existem.
+          console.error('API de Contatos não suportada:', error);
+          toast({
+              title: 'Recurso não suportado',
+              description: 'Seu navegador não parece suportar a API de seleção de contatos.',
+              variant: 'destructive',
+          });
+      } else if (error.name === 'AbortError') {
+        toast({
+          title: 'Importação Cancelada',
+          description: 'A seleção de contatos foi cancelada pelo usuário.',
+          variant: 'default',
+        });
+      } else if (error.name === 'NotAllowedError') {
+        toast({
+          title: 'Permissão Negada',
+          description: 'O acesso aos contatos foi negado. Você pode alterar isso nas configurações do seu navegador ou dispositivo.',
+          variant: 'destructive',
+        });
+      } else {
+        console.error('Erro ao importar contato:', error);
+        toast({
+          title: 'Erro desconhecido',
+          description: 'Ocorreu um erro ao tentar acessar seus contatos.',
+          variant: 'destructive',
+        });
+      }
     }
   };
   
