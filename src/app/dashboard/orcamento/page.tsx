@@ -1232,13 +1232,11 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
 
           {wizardStep === 2 && (
             <div className="flex-grow overflow-y-auto p-1 pr-4">
-              <h3 className="text-lg font-semibold mb-4">Adicionar Itens ao Orçamento</h3>
-               
-               <div className="mb-6 p-4 border rounded-lg space-y-4">
+              <div className="mb-6 p-4 border rounded-lg space-y-4">
                   <div className="flex items-center justify-end">
-                    <Button variant="outline" size="sm" onClick={() => setIsAddingAvulso(!isAddingAvulso)} className="md:w-auto">
+                    <Button variant="outline" onClick={() => setIsAddingAvulso(!isAddingAvulso)}>
                         <ArrowRightLeft className="mr-2 h-4 w-4" />
-                        <span className="hidden md:inline">{isAddingAvulso ? 'Item da Lista' : 'Item Avulso'}</span>
+                        {isAddingAvulso ? 'Item da Lista' : 'Item Avulso'}
                     </Button>
                   </div>
                   
@@ -1264,7 +1262,6 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                             onChange={e => {
                                 const maskedValue = maskCurrency(e.target.value);
                                 setItemAvulsoPrecoStr(maskedValue);
-                                setItemAvulso(p => ({...p, precoFinal: maskedValue}));
                             }} 
                             placeholder="R$ 50,00" 
                         />
