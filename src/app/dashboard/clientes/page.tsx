@@ -388,11 +388,7 @@ export default function ClientesPage() {
               variant: 'destructive',
           });
       } else if (error.name === 'AbortError') {
-        toast({
-          title: 'Importação Cancelada',
-          description: 'A seleção de contatos foi cancelada pelo usuário.',
-          variant: 'default',
-        });
+        // Não mostra toast se o usuário simplesmente cancelou a seleção.
       } else if (error.name === 'NotAllowedError') {
         toast({
           title: 'Permissão Negada',
