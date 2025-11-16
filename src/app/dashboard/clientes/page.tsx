@@ -38,6 +38,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
@@ -74,6 +75,7 @@ export default function ClientesPage() {
   const [orcamentos, setOrcamentos] = useState<Orcamento[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isContactApiSupported, setIsContactApiSupported] = useState(true);
   
   const [newClient, setNewClient] = useState(initialNewClientState);
   
@@ -117,6 +119,12 @@ export default function ClientesPage() {
       setIsLoadingData(false);
     }
   }, [user, toast]);
+
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && !('contacts' in navigator && 'select' in (navigator as any).contacts)) {
+        setIsContactApiSupported(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -349,30 +357,16 @@ export default function ClientesPage() {
   };
 
   const handleImportContacts = async () => {
-    // 1. Verifica se a API de permissões existe
-    if (!navigator.permissions) {
-      toast({
-        title: 'Recurso não suportado',
-        description: 'Seu navegador não suporta a verificação de permissões para contatos.',
-        variant: 'destructive',
-      });
-      return;
+    if (!isContactApiSupported) {
+        toast({
+            title: 'Recurso não suportado',
+            description: 'Seu navegador não parece suportar a API de seleção de contatos.',
+            variant: 'destructive',
+        });
+        return;
     }
   
     try {
-      // 2. Tenta verificar o status da permissão para 'contacts'
-      const permissionStatus = await navigator.permissions.query({ name: 'contacts' as any });
-  
-      if (permissionStatus.state === 'denied') {
-        toast({
-          title: 'Permissão Negada',
-          description: 'O acesso aos contatos foi negado. Altere a permissão nas configurações do seu navegador ou dispositivo.',
-          variant: 'destructive',
-        });
-        return;
-      }
-  
-      // 3. Procede com a tentativa de seleção de contatos
       const props = ['name', 'email', 'tel', 'address'];
       const opts = { multiple: false };
       const contacts = await (navigator as any).contacts.select(props, opts);
@@ -380,7 +374,6 @@ export default function ClientesPage() {
   
     } catch (error: any) {
       if (error instanceof TypeError) {
-          // Este erro geralmente acontece se `navigator.contacts` ou `select` não existem.
           console.error('API de Contatos não suportada:', error);
           toast({
               title: 'Recurso não suportado',
@@ -388,7 +381,6 @@ export default function ClientesPage() {
               variant: 'destructive',
           });
       } else if (error.name === 'AbortError') {
-        // Não mostra toast se o usuário simplesmente cancelou a seleção.
       } else if (error.name === 'NotAllowedError') {
         toast({
           title: 'Permissão Negada',
@@ -561,10 +553,30 @@ export default function ClientesPage() {
                       {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                       Adicionar Cliente
                     </Button>
-                    <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleImportContacts} disabled={isSubmitting}>
-                      <Contact className="mr-2 h-4 w-4" />
-                      Importar dos Contatos
-                    </Button>
+                     <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="w-full sm:w-auto">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full sm:w-auto"
+                                        onClick={handleImportContacts}
+                                        disabled={isSubmitting || !isContactApiSupported}
+                                        aria-disabled={!isContactApiSupported}
+                                    >
+                                        <Contact className="mr-2 h-4 w-4" />
+                                        Importar dos Contatos
+                                    </Button>
+                                </div>
+                            </TooltipTrigger>
+                            {!isContactApiSupported && (
+                                <TooltipContent>
+                                    <p>Seu navegador não suporta a importação de contatos.</p>
+                                </TooltipContent>
+                            )}
+                        </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </form>
               </AccordionContent>
@@ -843,4 +855,5 @@ export default function ClientesPage() {
   );
 }
 
+    
     
