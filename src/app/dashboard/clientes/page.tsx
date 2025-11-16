@@ -307,6 +307,17 @@ export default function ClientesPage() {
     return parts.join(', ');
 };
 
+  const normalizePhoneNumber = (tel: string) => {
+    if (!tel) return '';
+    // Remove tudo que não for dígito
+    const onlyDigits = tel.replace(/\D/g, '');
+    // Se começar com 55 (código do Brasil), remove
+    if (onlyDigits.startsWith('55')) {
+      return onlyDigits.substring(2);
+    }
+    return onlyDigits;
+  };
+
   const processSelectedContacts = (contacts: any[]) => {
     if (contacts.length > 0) {
       const contact = contacts[0];
@@ -317,11 +328,12 @@ export default function ClientesPage() {
         setIsContactSelectionModalOpen(true);
       } else {
         const formattedAddress = contact.address?.[0] ? formatAddress(contact.address[0]) : '';
+        const phoneNumber = normalizePhoneNumber(contact.tel?.[0] || '');
         
         const partialClient = {
           nome: contact.name?.[0] || '',
           email: contact.email?.[0] || '',
-          telefone: contact.tel?.[0] ? maskTelefone(contact.tel[0]) : '',
+          telefone: phoneNumber ? maskTelefone(phoneNumber) : '',
           endereco: formattedAddress,
           cpfCnpj: '',
         };
@@ -371,7 +383,7 @@ export default function ClientesPage() {
     if (!selectedContactDetails) return;
 
     const formData = new FormData(e.target as HTMLFormElement);
-    const selectedTel = formData.get('tel') as string || '';
+    const selectedTelRaw = formData.get('tel') as string || '';
     const selectedEmail = formData.get('email') as string || '';
     const selectedAddressString = formData.get('address') as string || '';
     
@@ -385,10 +397,12 @@ export default function ClientesPage() {
       }
     }
 
+    const phoneNumber = normalizePhoneNumber(selectedTelRaw);
+
     const partialClient = {
       nome: selectedContactDetails.name?.[0] || '',
       email: selectedEmail,
-      telefone: selectedTel ? maskTelefone(selectedTel) : '',
+      telefone: phoneNumber ? maskTelefone(phoneNumber) : '',
       endereco: formattedAddress,
       cpfCnpj: '',
     };
@@ -800,5 +814,3 @@ export default function ClientesPage() {
     </div>
   );
 }
-
-    
