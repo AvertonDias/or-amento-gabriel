@@ -4,7 +4,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { UnifiedThemeProvider } from "@/contexts/unified-theme-provider";
-import PwaRegistry from '@/components/PwaRegistry';
+import PwaRegistry from '@/app/pwa-registry';
 
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
