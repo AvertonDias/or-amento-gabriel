@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, FileText, Pencil, MessageCircle, History, CheckCircle2, XCircle, Search, Loader2, RefreshCw, ArrowRight, ArrowLeft, AlertTriangle, FilterX, MoreVertical, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone } from '@/lib/utils';
+import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone, maskCurrency } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -1256,7 +1256,19 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                             </SelectContent>
                         </Select>
                       </div>
-                      <div className="lg:col-span-2"><Label htmlFor="avulso-preco">Preço Final (R$)</Label><Input id="avulso-preco" value={itemAvulsoPrecoStr} onChange={e => { const val = e.target.value; setItemAvulsoPrecoStr(formatCurrency(val, false)); setItemAvulso(p => ({...p, precoFinal: val})) }} placeholder="R$ 50,00" /></div>
+                      <div className="lg:col-span-2">
+                        <Label htmlFor="avulso-preco">Preço Final (R$)</Label>
+                        <Input 
+                            id="avulso-preco" 
+                            value={itemAvulsoPrecoStr} 
+                            onChange={e => {
+                                const maskedValue = maskCurrency(e.target.value);
+                                setItemAvulsoPrecoStr(maskedValue);
+                                setItemAvulso(p => ({...p, precoFinal: maskedValue}));
+                            }} 
+                            placeholder="R$ 50,00" 
+                        />
+                      </div>
                       <div className="lg:col-span-1"><Button onClick={addLinhaAvulsa} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Add Avulso</Button></div>
                     </div>
                   ) : (
@@ -1507,6 +1519,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
 
 
     
+
 
 
 
