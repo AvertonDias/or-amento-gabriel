@@ -306,6 +306,9 @@ export default function OrcamentoPage() {
   const [isAddingAvulsoInEdit, setIsAddingAvulsoInEdit] = useState(false);
   const [itemAvulsoInEdit, setItemAvulsoInEdit] = useState({ descricao: '', quantidade: '', unidade: 'un', precoFinal: '' });
   const [itemAvulsoInEditPrecoStr, setItemAvulsoInEditPrecoStr] = useState('');
+  
+  const [clientSearchTerm, setClientSearchTerm] = useState('');
+
 
  const fetchAllData = useCallback(async (isRefresh = false) => {
     if (!user) return;
@@ -434,6 +437,7 @@ export default function OrcamentoPage() {
     setClienteData({ id: undefined, nome: '', endereco: '', telefone: '', email: '', cpfCnpj: ''});
     setValidadeDias('7');
     setIsAddingAvulso(false);
+    setClientSearchTerm('');
     setWizardStep(1);
     setIsWizardOpen(true);
   };
@@ -980,6 +984,15 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
 
   const anyLoading = loadingAuth || Object.values(isLoading).some(Boolean);
   const clienteFiltrado = clienteIdParam ? clientes.find(c => c.id === clienteIdParam) : null;
+  
+  const filteredClientsForSelect = useMemo(() => {
+    if (!clientSearchTerm) {
+        return clientes;
+    }
+    return clientes.filter(c => 
+        c.nome.toLowerCase().includes(clientSearchTerm.toLowerCase())
+    );
+  }, [clientes, clientSearchTerm]);
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
@@ -1225,12 +1238,39 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                 <h3 className="text-lg font-semibold">Selecione o Cliente</h3>
                 <div className="space-y-2">
                   <Label htmlFor="cliente-select">Cliente Salvo</Label>
-                  <Select onValueChange={(clientId) => {
-                      const selected = clientes.find(c => c.id === clientId);
-                      if (selected) setClienteData(selected);
-                  }}>
-                      <SelectTrigger id="cliente-select"><SelectValue placeholder="Selecionar cliente da lista..." /></SelectTrigger>
-                      <SelectContent>{clientes.map(c => <SelectItem key={c.id} value={c.id!}>{c.nome}</SelectItem>)}</SelectContent>
+                  <Select
+                    onValueChange={(clientId) => {
+                      const selected = clientes.find((c) => c.id === clientId);
+                      if (selected) {
+                        setClienteData(selected);
+                        // Limpa o termo de busca após a seleção
+                        setClientSearchTerm('');
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="cliente-select">
+                      <SelectValue placeholder="Selecionar cliente da lista..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <div className="p-2">
+                        <Input
+                          placeholder="Buscar cliente..."
+                          className="w-full"
+                          value={clientSearchTerm}
+                          onChange={(e) => setClientSearchTerm(e.target.value)}
+                        />
+                      </div>
+                      {filteredClientsForSelect.map((c) => (
+                        <SelectItem key={c.id} value={c.id!}>
+                          {c.nome}
+                        </SelectItem>
+                      ))}
+                      {filteredClientsForSelect.length === 0 && (
+                        <div className="p-2 text-center text-sm text-muted-foreground">
+                          Nenhum cliente encontrado.
+                        </div>
+                      )}
+                    </SelectContent>
                   </Select>
                 </div>
 
@@ -1262,7 +1302,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
             <div className="flex-grow overflow-y-auto p-1 pr-4">
               <div className="mb-6 p-4 border rounded-lg space-y-4">
                   <div className="flex items-center justify-between">
-                     <h4 className="font-semibold text-muted-foreground">
+                    <h4 className="font-semibold text-muted-foreground">
                         {isAddingAvulso ? 'Adicionar Item Avulso' : 'Adicionar Item'}
                     </h4>
                     <Button variant="outline" onClick={() => setIsAddingAvulso(!isAddingAvulso)}>
