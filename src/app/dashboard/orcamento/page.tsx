@@ -302,6 +302,11 @@ export default function OrcamentoPage() {
   const router = useRouter();
   const clienteIdParam = searchParams.get('clienteId');
 
+  // State for adding "avulso" item in edit modal
+  const [isAddingAvulsoInEdit, setIsAddingAvulsoInEdit] = useState(false);
+  const [itemAvulsoInEdit, setItemAvulsoInEdit] = useState({ descricao: '', quantidade: '', unidade: 'un', precoFinal: '' });
+  const [itemAvulsoInEditPrecoStr, setItemAvulsoInEditPrecoStr] = useState('');
+
  const fetchAllData = useCallback(async (isRefresh = false) => {
     if (!user) return;
     
@@ -578,6 +583,29 @@ export default function OrcamentoPage() {
     setNewItemForEdit({ materialId: '', quantidade: '', margemLucro: '' });
     setNewItemQtyStr('');
     setNewItemMarginStr('');
+  };
+
+  const handleAddItemAvulsoToEditBudget = () => {
+    const { descricao, quantidade, unidade } = itemAvulsoInEdit;
+    const numQuantidade = parseFloat(quantidade.replace(',', '.')) || 1;
+    const numPrecoFinal = parseFloat(itemAvulsoInEditPrecoStr.replace(/\D/g, '')) / 100;
+
+    if (!descricao.trim()) { toast({ title: "Descrição obrigatória", variant: "destructive" }); return; }
+    if (isNaN(numQuantidade) || numQuantidade <= 0) { toast({ title: "Quantidade inválida", variant: "destructive" }); return; }
+    if (isNaN(numPrecoFinal) || numPrecoFinal <= 0) { toast({ title: "Preço inválido", variant: "destructive" }); return; }
+
+    const novoOrcamentoItem: OrcamentoItem = {
+      id: crypto.randomUUID(), materialId: 'avulso-' + crypto.randomUUID(),
+      materialNome: descricao, unidade: unidade || 'un',
+      quantidade: numQuantidade, precoUnitario: numPrecoFinal / numQuantidade,
+      total: numPrecoFinal, margemLucro: 0, precoVenda: numPrecoFinal,
+    };
+
+    setEditingBudgetItens(prev => [...prev, novoOrcamentoItem]);
+
+    setItemAvulsoInEdit({ descricao: '', quantidade: '', unidade: 'un', precoFinal: '' });
+    setItemAvulsoInEditPrecoStr('');
+    setIsAddingAvulsoInEdit(false);
   };
 
   const removeLinha = (id: string) => {
@@ -1239,7 +1267,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                     </h4>
                     <Button variant="outline" onClick={() => setIsAddingAvulso(!isAddingAvulso)}>
                         <ArrowRightLeft className="mr-2 h-4 w-4" />
-                        {isAddingAvulso ? 'Item da Lista' : 'Item Avulso'}
+                        <span className="hidden sm:inline">{isAddingAvulso ? 'Item da Lista' : 'Item Avulso'}</span>
                     </Button>
                   </div>
                   
@@ -1436,23 +1464,53 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                 <h3 className="text-lg font-semibold border-b pb-2">Itens do Orçamento</h3>
                 
                 {/* Form to add new items */}
-                <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 p-2 border rounded-lg items-end">
-                    <div className="col-span-2 lg:col-span-2">
-                      <Label htmlFor="edit-material-select" className="text-xs">Novo Item</Label>
-                       <Select value={newItemForEdit.materialId} onValueChange={(val) => handleNewItemForEditChange('materialId', val)}>
-                        <SelectTrigger id="edit-material-select" className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                        <SelectContent>
-                          {materiais.map(mat => (<SelectItem key={mat.id} value={mat.id}>{`${mat.descricao} (${formatCurrency(mat.precoUnitario)}/${mat.unidade})`}</SelectItem>))}
-                        </SelectContent>
-                      </Select>
+                <div className="p-2 border rounded-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">{isAddingAvulsoInEdit ? 'Novo Item Avulso' : 'Novo Item da Lista'}</Label>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsAddingAvulsoInEdit(!isAddingAvulsoInEdit)}>
+                      <ArrowRightLeft className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {isAddingAvulsoInEdit ? (
+                    <div className="grid grid-cols-2 gap-2 items-end">
+                      <div className="col-span-2"><Label htmlFor="edit-avulso-desc" className="text-xs">Descrição</Label><Input id="edit-avulso-desc" className="h-8" value={itemAvulsoInEdit.descricao} onChange={e => setItemAvulsoInEdit(p => ({...p, descricao: e.target.value}))} /></div>
+                      <div><Label htmlFor="edit-avulso-qtd" className="text-xs">Qtd</Label><Input id="edit-avulso-qtd" className="h-8" value={itemAvulsoInEdit.quantidade} onChange={e => setItemAvulsoInEdit(p => ({...p, quantidade: e.target.value.replace(/[^0-9,]/g, '')}))} placeholder="1" /></div>
+                      <div>
+                        <Label htmlFor="edit-avulso-un" className="text-xs">Unidade</Label>
+                        <Select value={itemAvulsoInEdit.unidade} onValueChange={(value) => setItemAvulsoInEdit(p => ({...p, unidade: value}))}>
+                          <SelectTrigger id="edit-avulso-un" className="h-8"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {unidadesDeMedida.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-2">
+                        <Label htmlFor="edit-avulso-preco" className="text-xs">Preço Final (R$)</Label>
+                        <Input id="edit-avulso-preco" className="h-8" value={itemAvulsoInEditPrecoStr} onChange={e => setItemAvulsoInEditPrecoStr(maskCurrency(e.target.value))} placeholder="R$ 50,00" />
+                      </div>
+                      <div className="col-span-2"><Button onClick={handleAddItemAvulsoToEditBudget} size="sm" className="w-full h-8"><PlusCircle className="mr-1 h-4 w-4" />Add Avulso</Button></div>
                     </div>
-                    {selectedMaterialForEdit && (
-                      <>
-                        <div><Label htmlFor="edit-quantidade-novo" className="text-xs">Qtd</Label><Input id="edit-quantidade-novo" className="h-8" type="text" inputMode='decimal' value={newItemQtyStr} onChange={e => handleNewItemForEditChange('quantidade', e.target.value)} /></div>
-                        <div><Label htmlFor="edit-margem-novo" className="text-xs">Acr.(%)</Label><Input id="edit-margem-novo" className="h-8" type="text" inputMode='decimal' value={newItemMarginStr} onChange={e => handleNewItemForEditChange('margemLucro', e.target.value)} /></div>
-                        <div><Button onClick={handleAddItemToEditBudget} size="sm" className="w-full h-8"><PlusCircle className="mr-1 h-4 w-4" />Add</Button></div>
-                      </>
-                    )}
+                  ) : (
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 items-end">
+                      <div className="col-span-2 lg:col-span-2">
+                        <Label htmlFor="edit-material-select" className="text-xs">Novo Item</Label>
+                        <Select value={newItemForEdit.materialId} onValueChange={(val) => handleNewItemForEditChange('materialId', val)}>
+                          <SelectTrigger id="edit-material-select" className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectContent>
+                            {materiais.map(mat => (<SelectItem key={mat.id} value={mat.id}>{`${mat.descricao} (${formatCurrency(mat.precoUnitario)}/${mat.unidade})`}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {selectedMaterialForEdit && (
+                        <>
+                          <div><Label htmlFor="edit-quantidade-novo" className="text-xs">Qtd</Label><Input id="edit-quantidade-novo" className="h-8" type="text" inputMode='decimal' value={newItemQtyStr} onChange={e => handleNewItemForEditChange('quantidade', e.target.value)} /></div>
+                          <div><Label htmlFor="edit-margem-novo" className="text-xs">Acr.(%)</Label><Input id="edit-margem-novo" className="h-8" type="text" inputMode='decimal' value={newItemMarginStr} onChange={e => handleNewItemForEditChange('margemLucro', e.target.value)} /></div>
+                          <div><Button onClick={handleAddItemToEditBudget} size="sm" className="w-full h-8"><PlusCircle className="mr-1 h-4 w-4" />Add</Button></div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Table of existing items */}
