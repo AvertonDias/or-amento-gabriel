@@ -531,7 +531,7 @@ export default function OrcamentoPage() {
     const novoOrcamentoItem: OrcamentoItem = {
       id: crypto.randomUUID(),
       materialId: 'avulso-' + crypto.randomUUID(), // ID único para item avulso
-      materialNome: `(Avulso) ${descricao}`,
+      materialNome: descricao,
       unidade: unidade || 'un',
       quantidade: numQuantidade,
       precoUnitario: numPrecoFinal / numQuantidade, // Custo é calculado a partir do preço de venda
@@ -1233,7 +1233,10 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
           {wizardStep === 2 && (
             <div className="flex-grow overflow-y-auto p-1 pr-4">
               <div className="mb-6 p-4 border rounded-lg space-y-4">
-                  <div className="flex items-center justify-end">
+                  <div className="flex items-center justify-between">
+                     <h4 className="font-semibold text-muted-foreground">
+                        {isAddingAvulso ? 'Adicionar Item Avulso' : 'Adicionar Item'}
+                    </h4>
                     <Button variant="outline" onClick={() => setIsAddingAvulso(!isAddingAvulso)}>
                         <ArrowRightLeft className="mr-2 h-4 w-4" />
                         {isAddingAvulso ? 'Item da Lista' : 'Item Avulso'}
@@ -1259,10 +1262,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                         <Input 
                             id="avulso-preco" 
                             value={itemAvulsoPrecoStr} 
-                            onChange={e => {
-                                const maskedValue = maskCurrency(e.target.value);
-                                setItemAvulsoPrecoStr(maskedValue);
-                            }} 
+                            onChange={e => setItemAvulsoPrecoStr(maskCurrency(e.target.value))}
                             placeholder="R$ 50,00" 
                         />
                       </div>
