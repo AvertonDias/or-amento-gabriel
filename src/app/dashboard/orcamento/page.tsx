@@ -256,6 +256,10 @@ export default function OrcamentoPage() {
   const [novoItem, setNovoItem] = useState({ materialId: '', quantidade: '', margemLucro: '' });
   const [quantidadeStr, setQuantidadeStr] = useState('');
   const [margemLucroStr, setMargemLucroStr] = useState('');
+  
+  const [isAddingAvulso, setIsAddingAvulso] = useState(false);
+  const [itemAvulso, setItemAvulso] = useState({ descricao: '', quantidade: '1', unidade: 'un', precoFinal: '' });
+  const [itemAvulsoPrecoStr, setItemAvulsoPrecoStr] = useState('');
 
   const [editingItem, setEditingItem] = useState<OrcamentoItem | null>(null);
   const [editingQuantidadeStr, setEditingQuantidadeStr] = useState('');
@@ -413,6 +417,7 @@ export default function OrcamentoPage() {
     setOrcamentoItens([]);
     setClienteData({ id: undefined, nome: '', endereco: '', telefone: '', email: '', cpfCnpj: ''});
     setValidadeDias('7');
+    setIsAddingAvulso(false);
     setWizardStep(1);
     setIsWizardOpen(true);
   };
@@ -493,6 +498,45 @@ export default function OrcamentoPage() {
     setQuantidadeStr('');
     setMargemLucroStr('');
   };
+
+  const addLinhaAvulsa = () => {
+    const { descricao, quantidade, unidade, precoFinal } = itemAvulso;
+    const numQuantidade = parseFloat(quantidade.replace(',', '.'));
+    const numPrecoFinal = parseFloat(precoFinal.replace(/\D/g, '')) / 100;
+
+    if (!descricao.trim()) {
+        toast({ title: "Descrição obrigatória", description: "Por favor, preencha a descrição do item avulso.", variant: "destructive" });
+        return;
+    }
+    if (isNaN(numQuantidade) || numQuantidade <= 0) {
+        toast({ title: "Quantidade inválida", description: "A quantidade do item avulso deve ser maior que zero.", variant: "destructive" });
+        return;
+    }
+    if (isNaN(numPrecoFinal) || numPrecoFinal <= 0) {
+        toast({ title: "Preço inválido", description: "O preço final do item avulso deve ser maior que zero.", variant: "destructive" });
+        return;
+    }
+
+    const novoOrcamentoItem: OrcamentoItem = {
+      id: crypto.randomUUID(),
+      materialId: 'avulso-' + crypto.randomUUID(), // ID único para item avulso
+      materialNome: `(Avulso) ${descricao}`,
+      unidade: unidade || 'un',
+      quantidade: numQuantidade,
+      precoUnitario: numPrecoFinal / numQuantidade, // Custo é calculado a partir do preço de venda
+      total: numPrecoFinal, // Custo e venda são iguais, margem é 0
+      margemLucro: 0,
+      precoVenda: numPrecoFinal,
+    };
+
+    setOrcamentoItens(prev => [...prev, novoOrcamentoItem]);
+    
+    // Resetar formulário avulso
+    setItemAvulso({ descricao: '', quantidade: '1', unidade: 'un', precoFinal: '' });
+    setItemAvulsoPrecoStr('');
+    setIsAddingAvulso(false); // Fecha o formulário de item avulso
+};
+
 
   const handleAddItemToEditBudget = () => {
     if (!selectedMaterialForEdit) {
@@ -1178,24 +1222,48 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
           {wizardStep === 2 && (
             <div className="flex-grow overflow-y-auto p-1 pr-4">
               <h3 className="text-lg font-semibold mb-4">Adicionar Itens ao Orçamento</h3>
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 p-4 border rounded-lg items-end">
-                <div className="sm:col-span-2">
-                  <Label htmlFor="material-select">Item / Serviço</Label>
-                   <Select value={novoItem.materialId} onValueChange={(val) => handleNovoItemChange('materialId', val)}>
-                    <SelectTrigger id="material-select"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      {materiais.map(mat => (<SelectItem key={mat.id} value={mat.id}>{`${mat.descricao} (${formatCurrency(mat.precoUnitario)}/${mat.unidade})`}</SelectItem>))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {selectedMaterial && (
-                  <>
-                    <div><Label htmlFor="quantidade">Qtd ({selectedMaterial.unidade})</Label><Input ref={quantidadeInputRef} id="quantidade" type="text" inputMode='decimal' placeholder="1,5" value={quantidadeStr} onChange={e => handleNovoItemChange('quantidade', e.target.value)} /></div>
-                    <div><Label htmlFor="margem-lucro">Acréscimo (%)</Label><Input id="margem-lucro" type="text" inputMode='decimal' placeholder="10" value={margemLucroStr} onChange={e => handleNovoItemChange('margemLucro', e.target.value)} /></div>
-                    <div className="lg:col-span-1"><Button onClick={addLinha} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Add</Button></div>
-                  </>
-                )}
-              </div>
+               
+               <div className="mb-6 p-4 border rounded-lg space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-muted-foreground">Adicionar Item da Lista</h4>
+                    <Button variant="outline" size="sm" onClick={() => setIsAddingAvulso(!isAddingAvulso)}>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      {isAddingAvulso ? 'Usar Item da Lista' : 'Adicionar Item Avulso'}
+                    </Button>
+                  </div>
+                  
+                  {isAddingAvulso ? (
+                    // Formulário para Item Avulso
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                      <div className="lg:col-span-2"><Label htmlFor="avulso-desc">Descrição</Label><Input id="avulso-desc" value={itemAvulso.descricao} onChange={e => setItemAvulso(p => ({...p, descricao: e.target.value}))} /></div>
+                      <div><Label htmlFor="avulso-qtd">Qtd.</Label><Input id="avulso-qtd" value={itemAvulso.quantidade} onChange={e => setItemAvulso(p => ({...p, quantidade: e.target.value.replace(/[^0-9,]/g, '')}))} /></div>
+                      <div><Label htmlFor="avulso-un">Unidade</Label><Input id="avulso-un" value={itemAvulso.unidade} onChange={e => setItemAvulso(p => ({...p, unidade: e.target.value}))} /></div>
+                      <div className="lg:col-span-2"><Label htmlFor="avulso-preco">Preço Final (R$)</Label><Input id="avulso-preco" value={itemAvulsoPrecoStr} onChange={e => { const val = e.target.value; setItemAvulsoPrecoStr(formatCurrency(val, false)); setItemAvulso(p => ({...p, precoFinal: val})) }} placeholder="R$ 50,00" /></div>
+                      <div className="lg:col-span-1"><Button onClick={addLinhaAvulsa} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Add Avulso</Button></div>
+                    </div>
+                  ) : (
+                    // Formulário para Item da Lista
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                      <div className="sm:col-span-2">
+                        <Label htmlFor="material-select">Item / Serviço</Label>
+                         <Select value={novoItem.materialId} onValueChange={(val) => handleNovoItemChange('materialId', val)}>
+                          <SelectTrigger id="material-select"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectContent>
+                            {materiais.map(mat => (<SelectItem key={mat.id} value={mat.id}>{`${mat.descricao} (${formatCurrency(mat.precoUnitario)}/${mat.unidade})`}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {selectedMaterial && (
+                        <>
+                          <div><Label htmlFor="quantidade">Qtd ({selectedMaterial.unidade})</Label><Input ref={quantidadeInputRef} id="quantidade" type="text" inputMode='decimal' placeholder="1,5" value={quantidadeStr} onChange={e => handleNovoItemChange('quantidade', e.target.value)} /></div>
+                          <div><Label htmlFor="margem-lucro">Acréscimo (%)</Label><Input id="margem-lucro" type="text" inputMode='decimal' placeholder="10" value={margemLucroStr} onChange={e => handleNovoItemChange('margemLucro', e.target.value)} /></div>
+                          <div className="lg:col-span-1"><Button onClick={addLinha} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Add</Button></div>
+                        </>
+                      )}
+                    </div>
+                  )}
+               </div>
+
               {orcamentoItens.length > 0 && (
                  <>
                     <div className="overflow-x-auto">
@@ -1421,4 +1489,5 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
 
 
     
+
 
