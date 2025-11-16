@@ -1,49 +1,50 @@
 # Anúncio: Transforme Seus Orçamentos com o "Meu Orçamento"
 
-**Título do Anúncio:** Cansado de perder tempo e dinheiro com orçamentos? Experimente Meu Orçamento Grátis e impulsione seu negócio!
+**Título do Anúncio:** Cansado de perder tempo e dinheiro com orçamentos? Diga adeus às planilhas e modernize seu negócio com o Meu Orçamento!
 
 **Público-Alvo:** Profissionais de calhas, serralheiros, empreiteiros, autônomos da construção civil e pequenas empresas de serviços.
 
 ---
 
-### Transforme a maneira como você faz negócios.
+### Chega de papel e caneta. É hora de lucrar mais com orçamentos profissionais e rápidos.
 
-Você é um profissional dedicado, mas a papelada e os cálculos complexos dos orçamentos estão consumindo seu tempo e diminuindo seus lucros? Apresentamos o **Meu Orçamento**, a ferramenta definitiva projetada para simplificar sua vida e impulsionar seus resultados. Comece agora, é grátis!
+Você trabalha duro, mas a burocracia dos orçamentos consome seu tempo e corrói sua margem de lucro? Apresentamos o **Meu Orçamento**, a ferramenta digital definitiva, criada para simplificar sua gestão, impressionar seus clientes e colocar mais dinheiro no seu bolso.
 
-Com nosso aplicativo, você abandona as planilhas confusas e os cadernos desorganizados para abraçar uma solução moderna, rápida e 100% digital.
+Com nosso aplicativo, você abandona as contas complexas e os cadernos desorganizados para abraçar uma solução moderna que funciona até sem internet.
 
-### Principais Funcionalidades Que Vão Revolucionar Seu Trabalho: (Algumas disponíveis na versão Gratuita, outras no Premium)
+### Funcionalidades que Vão Revolucionar o seu Dia a Dia:
 
-**1. Conversor Inteligente de Bobinas (PREMIUM):**
-- **O Problema:** Calcular o custo real por metro de uma bobina de alumínio ou aço galvanizado é um desafio.
-- **Nossa Solução:** Insira o peso, a largura, a espessura e o valor pago pela bobina, e nosso sistema calcula instantaneamente o **custo exato por metro linear**. Diga adeus ao "chute" e garanta sua margem de lucro em cada centímetro de material vendido. *Disponível no plano Premium.*
+**1. Orçamentos Inteligentes e Personalizados:**
+- **Crie propostas em minutos:** Adicione itens do seu catálogo ou crie itens "avulsos" na hora. Defina quantidades, aplique suas margens de lucro e veja o valor total ser calculado instantaneamente, sem erros.
+- **Salve e gerencie tudo:** Seus orçamentos ficam salvos na nuvem, com numeração automática que reinicia a cada ano (`001-2025`, `002-2025`, etc.).
+- **Impressione seu cliente:** Envie o orçamento direto para o WhatsApp do cliente com uma mensagem pronta ou gere um PDF profissional com o logo da sua empresa.
 
-**2. Criação de Orçamentos Dinâmicos e Profissionais (GRATUITO com limites, PREMIUM ilimitado):**
-- Crie orçamentos detalhados em minutos, não em horas. Adicione itens (como calhas, parafusos, selante) e serviços (como mão de obra por hora ou metro) diretamente de seu catálogo pessoal.
-- O sistema calcula automaticamente os subtotais e o valor total, aplicando suas margens de lucro com precisão. Chega de erros de cálculo que custam caro.
-- **No Plano Gratuito:** Crie até 5 orçamentos ativos por vez. **Ilimitado no Premium.**
+**2. Conversor de Bobinas para Calheiros e Serralheiros:**
+- **Chega de "chutômetro":** Insira o peso, a largura, a espessura e o valor pago pela bobina (de alumínio ou aço galvanizado).
+- **Nossa Solução:** O sistema calcula o **custo exato por metro** e o rendimento total da bobina. Com um clique, adicione o material calculado diretamente ao seu estoque com o preço de custo correto, garantindo seu lucro em cada centímetro.
 
-**3. Gestão Centralizada de Clientes e Materiais (GRATUITO com limites, PREMIUM ilimitado):**
-- **Clientes:** Mantenha um cadastro completo e organizado de todos os seus clientes. Acesse informações como nome, telefone e endereço com apenas um clique. **Importação de contatos (PREMIUM).**
-- **Itens e Serviços:** Cadastre todos os seus produtos e serviços uma única vez, com seus respectivos custos e unidades de medida (un, m, m², kg, h). Use-os em todos os futuros orçamentos sem precisar digitar tudo de novo. **Até 20 itens no Plano Gratuito. Ilimitado no Premium.**
+**3. Gestão Completa de Clientes (CRM):**
+- **Agenda Digital:** Cadastre todos os seus clientes com nome, telefone, endereço, e-mail e CPF/CNPJ.
+- **Importe Contatos:** Adicione um novo cliente diretamente da agenda do seu celular com apenas um toque.
+- **Histórico Completo:** Veja todos os orçamentos (pendentes, aceitos, recusados) de um cliente em um só lugar.
 
-**4. Geração e Envio de PDFs Profissionais (PREMIUM):**
-- Impressione seus clientes com orçamentos em PDF limpos, profissionais e com o logo da sua empresa.
-- Exporte duas versões do documento: uma para o **cliente**, com os preços de venda, e uma **versão interna**, detalhando seus custos e lucros por item.
-- Envie a proposta diretamente para o WhatsApp do cliente com uma mensagem automática, agilizando o processo de aprovação. *Disponível apenas no plano Premium.*
+**4. Estoque de Itens e Catálogo de Serviços:**
+- **Organização Total:** Cadastre todos os seus produtos e mão de obra uma única vez. Defina o preço de custo, a unidade de medida (un, m, m², kg, h) e o tipo (item ou serviço).
+- **Controle de Estoque:** Para produtos, defina a quantidade atual e um estoque mínimo. O sistema te avisa quando o material está acabando!
 
-**5. Totalmente Offline e Multiplataforma (PWA) (GRATUITO & PREMIUM):**
-- O aplicativo pode ser "instalado" no seu celular, tablet ou computador, funcionando como um app nativo.
-- **Continue trabalhando mesmo sem internet!** Crie e edite orçamentos onde estiver. O sistema sincroniza todos os dados automaticamente assim que você se reconectar. Desfrute da liberdade de trabalhar de qualquer lugar, com ou sem internet.
+**5. Relatórios em PDF (Para você e para o cliente):**
+- **PDF para o Cliente:** Um documento limpo, profissional, com os dados da sua empresa, do cliente e a lista de itens com o preço de venda final.
+- **PDF Interno:** Um relatório para seu controle, detalhando os custos, as margens de lucro e o lucro total de cada orçamento. Tenha a visão completa da saúde do seu negócio.
 
-**6. Personalização Visual (GRATUITO & PREMIUM):**
-- Deixe o aplicativo com a sua cara! Escolha entre diversos temas de cores e alterne entre o modo claro e escuro para uma visualização mais confortável.
+**6. Personalização e Flexibilidade:**
+- **Aparência do App:** Deixe o aplicativo com a sua cara! Escolha entre diversos temas de cores e alterne entre o modo claro e escuro.
+- **Funciona Offline:** Crie e edite orçamentos onde estiver, mesmo em locais sem sinal de internet. Os dados são sincronizados automaticamente assim que você se reconectar.
 
 ### Por que escolher o Meu Orçamento?
 
-- **Economize Tempo:** Reduza drasticamente o tempo gasto em tarefas administrativas.
-- **Aumente Seus Lucros:** Calcule preços com precisão e evite prejuízos.
-- **Profissionalize Sua Imagem:** Apresente propostas modernas e organizadas.
-- **Tenha Total Controle:** Gerencie seu negócio de qualquer lugar, a qualquer hora.
+-   **Economize Tempo:** Automatize cálculos e reduza drasticamente o tempo gasto em tarefas administrativas.
+-   **Aumente Seus Lucros:** Calcule preços com precisão e garanta sua margem em cada serviço.
+-   **Profissionalize Sua Imagem:** Apresente propostas modernas que transmitem confiança.
+-   **Tenha Total Controle:** Gerencie seu negócio na palma da sua mão, de qualquer lugar, a qualquer hora.
 
-**Não perca mais tempo com processos ultrapassados. Experimente o Meu Orçamento GRATUITAMENTE hoje mesmo e leve sua empresa para o próximo nível!**
+**Não perca mais tempo e dinheiro com métodos ultrapassados. Experimente o Meu Orçamento e leve sua empresa para o próximo nível!**
