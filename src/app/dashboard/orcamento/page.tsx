@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableTotalFooter } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, FileText, Pencil, MessageCircle, History, CheckCircle2, XCircle, Search, Loader2, RefreshCw, ArrowRight, ArrowLeft, AlertTriangle, FilterX, MoreVertical, ArrowRightLeft } from 'lucide-react';
+import { PlusCircle, Trash2, FileText, Pencil, MessageCircle, History, CheckCircle2, XCircle, Search, Loader2, RefreshCw, ArrowRight, ArrowLeft, AlertTriangle, FilterX, MoreVertical, ArrowRightLeft, ChevronsUpDown, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone, maskCurrency } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -35,6 +35,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Separator } from '@/components/ui/separator';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 
 
@@ -307,7 +309,7 @@ export default function OrcamentoPage() {
   const [itemAvulsoInEdit, setItemAvulsoInEdit] = useState({ descricao: '', quantidade: '', unidade: 'un', precoFinal: '' });
   const [itemAvulsoInEditPrecoStr, setItemAvulsoInEditPrecoStr] = useState('');
   
-  const [clientSearchTerm, setClientSearchTerm] = useState('');
+  const [isClientPopoverOpen, setIsClientPopoverOpen] = useState(false);
 
 
  const fetchAllData = useCallback(async (isRefresh = false) => {
@@ -437,7 +439,6 @@ export default function OrcamentoPage() {
     setClienteData({ id: undefined, nome: '', endereco: '', telefone: '', email: '', cpfCnpj: ''});
     setValidadeDias('7');
     setIsAddingAvulso(false);
-    setClientSearchTerm('');
     setWizardStep(1);
     setIsWizardOpen(true);
   };
@@ -984,15 +985,6 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
 
   const anyLoading = loadingAuth || Object.values(isLoading).some(Boolean);
   const clienteFiltrado = clienteIdParam ? clientes.find(c => c.id === clienteIdParam) : null;
-  
-  const filteredClientsForSelect = useMemo(() => {
-    if (!clientSearchTerm) {
-        return clientes;
-    }
-    return clientes.filter(c => 
-        c.nome.toLowerCase().includes(clientSearchTerm.toLowerCase())
-    );
-  }, [clientes, clientSearchTerm]);
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
@@ -1238,40 +1230,49 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                 <h3 className="text-lg font-semibold">Selecione o Cliente</h3>
                 <div className="space-y-2">
                   <Label htmlFor="cliente-select">Cliente Salvo</Label>
-                  <Select
-                    onValueChange={(clientId) => {
-                      const selected = clientes.find((c) => c.id === clientId);
-                      if (selected) {
-                        setClienteData(selected);
-                        // Limpa o termo de busca após a seleção
-                        setClientSearchTerm('');
-                      }
-                    }}
-                  >
-                    <SelectTrigger id="cliente-select">
-                      <SelectValue placeholder="Selecionar cliente da lista..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <div className="p-2">
-                        <Input
-                          placeholder="Buscar cliente..."
-                          className="w-full"
-                          value={clientSearchTerm}
-                          onChange={(e) => setClientSearchTerm(e.target.value)}
-                        />
-                      </div>
-                      {filteredClientsForSelect.map((c) => (
-                        <SelectItem key={c.id} value={c.id!}>
-                          {c.nome}
-                        </SelectItem>
-                      ))}
-                      {filteredClientsForSelect.length === 0 && (
-                        <div className="p-2 text-center text-sm text-muted-foreground">
-                          Nenhum cliente encontrado.
-                        </div>
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={isClientPopoverOpen} onOpenChange={setIsClientPopoverOpen}>
+                      <PopoverTrigger asChild>
+                          <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={isClientPopoverOpen}
+                              className="w-full justify-between"
+                          >
+                              {clienteData.id
+                                  ? clientes.find((c) => c.id === clienteData.id)?.nome
+                                  : "Selecionar cliente..."}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                          <Command>
+                              <CommandInput placeholder="Buscar cliente..." />
+                              <CommandList>
+                                  <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                                  <CommandGroup>
+                                      {clientes.map((c) => (
+                                          <CommandItem
+                                              key={c.id}
+                                              value={c.nome}
+                                              onSelect={() => {
+                                                  setClienteData(c);
+                                                  setIsClientPopoverOpen(false);
+                                              }}
+                                          >
+                                              <Check
+                                                  className={cn(
+                                                      "mr-2 h-4 w-4",
+                                                      clienteData.id === c.id ? "opacity-100" : "opacity-0"
+                                                  )}
+                                              />
+                                              {c.nome}
+                                          </CommandItem>
+                                      ))}
+                                  </CommandGroup>
+                              </CommandList>
+                          </Command>
+                      </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div className="relative py-2">
