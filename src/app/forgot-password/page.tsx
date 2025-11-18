@@ -84,10 +84,7 @@ export default function ForgotPasswordPage() {
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input 
-                id="email" 
-                type="email" 
-                placeholder="seuemail@exemplo.com" 
-                required
+                id="email" atype="email" placeholder="seuemail@exemplo.com" required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
