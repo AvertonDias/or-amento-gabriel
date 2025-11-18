@@ -1,4 +1,3 @@
-
 'use client';
 
 import { FormEvent, useState } from "react";
@@ -68,7 +67,7 @@ export default function ForgotPasswordPage() {
           <div className="flex justify-center items-center mb-4">
             <img
               src="/apple-touch-icon.jpg"
-              alt="Logo do Site"
+              alt="Logo do App"
               width={80}
               height={80}
               className="rounded-lg"

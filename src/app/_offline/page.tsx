@@ -9,7 +9,7 @@ export default function OfflinePage() {
         <CardHeader className="items-center">
            <img
             src="/apple-touch-icon.jpg"
-            alt="Logo da Empresa"
+            alt="Logo do App"
             width={80}
             height={80}
             className="mb-4 rounded-lg"

@@ -73,7 +73,7 @@ export default function LoginPage() {
           <div className="flex justify-center items-center flex-col gap-2 mb-4">
             <img
               src="/apple-touch-icon.jpg"
-              alt="Logo do Site"
+              alt="Logo do App"
               width={80}
               height={80}
               className="rounded-lg"
