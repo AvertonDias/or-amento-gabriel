@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +9,7 @@ export default function OfflinePage() {
       <Card className="w-full max-w-md text-center">
         <CardHeader className="items-center">
            <img
-            src="/apple-touch-icon.jpg"
+            src="/apple-touch-icon.jpg?v=2"
             alt="Logo do App"
             width={80}
             height={80}
