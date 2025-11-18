@@ -164,13 +164,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                   isSidebarCollapsed ? "justify-center" : "px-4 lg:px-6"
               )}>
                 <Link href="/dashboard/orcamento" className="flex items-center gap-2 font-semibold">
-                  <img
-                      src="/ico?v=3"
-                      alt="Logo do App"
-                      width={32}
-                      height={32}
-                      className="rounded-md bg-white p-1"
-                  />
+                  <div className="bg-white rounded-md p-1">
+                    <img
+                        src="/ico?v=3"
+                        alt="Logo do App"
+                        width={32}
+                        height={32}
+                    />
+                  </div>
                   <span className={cn('transition-all overflow-hidden', isSidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100')}>Meu orçamento</span>
                 </Link>
               </div>
@@ -233,13 +234,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               <SheetContent side="left" className="flex flex-col p-4">
                 <div className="flex h-14 items-center border-b px-2 mb-4">
                   <Link href="/dashboard/orcamento" className="flex items-center gap-2 font-semibold" onClick={() => setIsMobileMenuOpen(false)}>
-                    <img
-                        src="/ico?v=3"
-                        alt="Logo do App"
-                        width={32}
-                        height={32}
-                        className="rounded-md bg-white p-1"
-                    />
+                    <div className="bg-white rounded-md p-1">
+                      <img
+                          src="/ico?v=3"
+                          alt="Logo do App"
+                          width={32}
+                          height={32}
+                      />
+                    </div>
                     <span className="">Meu orçamento</span>
                   </Link>
                 </div>

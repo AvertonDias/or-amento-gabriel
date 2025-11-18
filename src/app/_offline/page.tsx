@@ -8,13 +8,14 @@ export default function OfflinePage() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md text-center">
         <CardHeader className="items-center">
-           <img
-            src="/ico?v=3"
-            alt="Logo do App"
-            width={80}
-            height={80}
-            className="mb-4 rounded-lg bg-white p-2"
-          />
+           <div className="bg-white rounded-lg p-2 mb-4">
+            <img
+              src="/ico?v=3"
+              alt="Logo do App"
+              width={80}
+              height={80}
+            />
+          </div>
           <CardTitle>Você está offline</CardTitle>
         </CardHeader>
         <CardContent>

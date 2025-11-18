@@ -72,13 +72,14 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="flex justify-center items-center flex-col gap-2 mb-4">
-            <img
-              src="/ico?v=3"
-              alt="Logo do App"
-              width={80}
-              height={80}
-              className="rounded-lg bg-white p-2"
-            />
+            <div className="bg-white rounded-lg p-2">
+              <img
+                src="/ico?v=3"
+                alt="Logo do App"
+                width={80}
+                height={80}
+              />
+            </div>
             <h1 className="text-2xl font-bold">Meu orçamento</h1>
           </div>
           <CardTitle className="text-2xl">Login</CardTitle>
