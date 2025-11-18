@@ -1,6 +1,6 @@
 {
-  "name": "Meu Orçamento",
-  "short_name": "Meu Orçamento",
+  "name": "Meu orçamento",
+  "short_name": "Meu orçamento",
   "description": "Gere orçamentos de serviços de forma rápida, precisa e profissional.",
   "start_url": "/",
   "display": "standalone",
