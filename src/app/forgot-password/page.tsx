@@ -71,7 +71,7 @@ export default function ForgotPasswordPage() {
               alt="Logo do App"
               width={80}
               height={80}
-              className="rounded-lg"
+              className="rounded-lg bg-white p-2"
             />
           </div>
           <CardTitle className="text-2xl">Recuperar Senha</CardTitle>

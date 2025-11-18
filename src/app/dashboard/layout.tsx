@@ -169,7 +169,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                       alt="Logo do App"
                       width={32}
                       height={32}
-                      className="rounded-md"
+                      className="rounded-md bg-white p-1"
                   />
                   <span className={cn('transition-all overflow-hidden', isSidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100')}>Meu orçamento</span>
                 </Link>
@@ -238,7 +238,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                         alt="Logo do App"
                         width={32}
                         height={32}
-                        className="rounded-md"
+                        className="rounded-md bg-white p-1"
                     />
                     <span className="">Meu orçamento</span>
                   </Link>

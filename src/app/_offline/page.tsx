@@ -13,7 +13,7 @@ export default function OfflinePage() {
             alt="Logo do App"
             width={80}
             height={80}
-            className="mb-4 rounded-lg"
+            className="mb-4 rounded-lg bg-white p-2"
           />
           <CardTitle>Você está offline</CardTitle>
         </CardHeader>

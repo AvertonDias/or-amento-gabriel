@@ -77,7 +77,7 @@ export default function LoginPage() {
               alt="Logo do App"
               width={80}
               height={80}
-              className="rounded-lg"
+              className="rounded-lg bg-white p-2"
             />
             <h1 className="text-2xl font-bold">Meu orçamento</h1>
           </div>
