@@ -10,7 +10,7 @@ export default function OfflinePage() {
         <CardHeader className="items-center">
            <div className="bg-white rounded-lg p-2 mb-4">
             <img
-              src="/ico_v2"
+              src="/ico_v2.jpg"
               alt="Logo do App"
               width={80}
               height={80}
