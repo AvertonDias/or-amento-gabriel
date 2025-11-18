@@ -74,7 +74,7 @@ export default function LoginPage() {
           <div className="flex justify-center items-center flex-col gap-2 mb-4">
             <div className="bg-white rounded-lg p-2">
               <img
-                src="/ico?v=3"
+                src="/ico_v2"
                 alt="Logo do App"
                 width={80}
                 height={80}

@@ -68,7 +68,7 @@ export default function ForgotPasswordPage() {
           <div className="flex justify-center items-center mb-4">
             <div className="bg-white rounded-lg p-2">
               <img
-                src="/ico?v=3"
+                src="/ico_v2"
                 alt="Logo do App"
                 width={80}
                 height={80}
