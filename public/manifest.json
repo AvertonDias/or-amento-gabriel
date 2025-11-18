@@ -3,19 +3,19 @@
   "short_name": "Meu orçamento",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#E3F2FD",
-  "theme_color": "#64B5F6",
-  "description": "Gere orçamentos de serviços de forma rápida, precisa e profissional.",
+  "background_color": "#ffffff",
+  "description": "Gere orçamentos de forma rápida e profissional.",
   "icons": [
     {
-      "src": "/apple-touch-icon.png?v=3",
+      "src": "/ico?v=3",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/apple-touch-icon.png?v=3",
+      "src": "/ico?v=3",
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "theme_color": "#64B5F6"
 }
