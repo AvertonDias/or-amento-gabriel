@@ -40,6 +40,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 // --- Imports para Capacitor ---
 import { Capacitor } from '@capacitor/core';
+import { Contacts } from '@capacitor-community/contacts';
 
 
 const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
@@ -346,69 +347,87 @@ export default function ClientesPage() {
     return onlyDigits;
   };
   
-  const processSelectedContacts = (contacts: any[]) => {
-    if (contacts.length === 0) return;
-  
-    const contact = contacts[0];
-    
-    // Adaptar a estrutura de dados do Capacitor para a estrutura esperada
-    const adaptedContact = {
-      name: contact.name ? [contact.name.display] : [],
-      email: contact.emailAddresses ? contact.emailAddresses.map((e: any) => e.address) : [],
-      tel: contact.phoneNumbers ? contact.phoneNumbers.map((p: any) => p.number) : [],
-      address: contact.postalAddresses ? contact.postalAddresses.map((a: any) => ({
-          street: a.street,
-          city: a.city,
-          state: a.state,
-          postalCode: a.postalCode,
-          country: a.country,
-      })) : [],
-    };
-  
-    // Merge com os dados da API Web, se houver
-    const finalContact = {
-        name: contact.name || adaptedContact.name,
-        email: contact.email || adaptedContact.email,
-        tel: contact.tel || adaptedContact.tel,
-        address: contact.address || adaptedContact.address,
-    };
-  
-    const hasMultipleOptions = (finalContact.tel?.length > 1 || finalContact.email?.length > 1 || finalContact.address?.length > 1);
-  
-    if (hasMultipleOptions) {
-      setSelectedContactDetails(finalContact);
-      setIsContactSelectionModalOpen(true);
-    } else {
-      const formattedAddress = finalContact.address?.[0] ? formatAddress(finalContact.address[0]) : '';
-      const phoneNumber = normalizePhoneNumber(finalContact.tel?.[0] || '');
-      
-      const partialClient = {
-        nome: finalContact.name?.[0] || '',
-        email: finalContact.email?.[0] || '',
-        telefone: phoneNumber ? maskTelefone(phoneNumber) : '',
-        endereco: formattedAddress,
-        cpfCnpj: '',
-      };
-      setNewClient(partialClient);
-      toast({
-        title: 'Contato Importado!',
-        description: 'Os dados do contato foram preenchidos no formulário.',
-      });
-    }
-  };
+const processSelectedContacts = (contacts: any[]) => {
+    if (!contacts || contacts.length === 0) return;
 
-  const handleImportContacts = async () => {
+    const contact = contacts[0];
+    let adaptedContact;
+
+    // Adaptar a estrutura de dados do Capacitor para a estrutura esperada
     if (Capacitor.isNativePlatform()) {
-        // --- Lógica para Capacitor ---
-        // A API de contatos do Capacitor foi removida para resolver o problema de instalação.
-        toast({ 
-            title: "Função indisponível no app",
-            description: "Para importar contatos, por favor, use a versão web do aplicativo.",
-            variant: "destructive",
-            duration: 8000,
-        });
+        adaptedContact = {
+            name: contact.name?.display ? [contact.name.display] : [],
+            email: contact.emailAddresses?.map((e: any) => e.address) || [],
+            tel: contact.phoneNumbers?.map((p: any) => p.number) || [],
+            address: contact.postalAddresses?.map((a: any) => ({
+                street: a.street, city: a.city, state: a.state,
+                postalCode: a.postalCode, country: a.country,
+            })) || [],
+        };
     } else {
-        // --- Lógica para Web API (navegador) ---
+        // Estrutura da API Web
+        adaptedContact = {
+            name: contact.name || [],
+            email: contact.email || [],
+            tel: contact.tel || [],
+            address: contact.address || [],
+        };
+    }
+
+    const hasMultipleOptions = (adaptedContact.tel?.length > 1 || adaptedContact.email?.length > 1 || adaptedContact.address?.length > 1);
+
+    if (hasMultipleOptions) {
+        setSelectedContactDetails(adaptedContact);
+        setIsContactSelectionModalOpen(true);
+    } else {
+        const formattedAddress = adaptedContact.address?.[0] ? formatAddress(adaptedContact.address[0]) : '';
+        const phoneNumber = normalizePhoneNumber(adaptedContact.tel?.[0] || '');
+
+        const partialClient = {
+            nome: adaptedContact.name?.[0] || '',
+            email: adaptedContact.email?.[0] || '',
+            telefone: phoneNumber ? maskTelefone(phoneNumber) : '',
+            endereco: formattedAddress,
+            cpfCnpj: '',
+        };
+        setNewClient(partialClient);
+        toast({
+            title: 'Contato Importado!',
+            description: 'Os dados do contato foram preenchidos no formulário.',
+        });
+    }
+};
+
+const handleImportContacts = async () => {
+    if (Capacitor.isNativePlatform()) {
+        try {
+            const permission = await Contacts.getPermissions();
+            if (permission.contacts !== 'granted') {
+                 toast({
+                    title: "Permissão necessária",
+                    description: "Por favor, conceda acesso aos contatos nas configurações do seu celular.",
+                    variant: "destructive",
+                });
+                return;
+            }
+            const result = await Contacts.getContacts({
+                projection: {
+                    name: true,
+                    phones: true,
+                    emails: true,
+                    addresses: true,
+                }
+            });
+            processSelectedContacts(result.contacts);
+        } catch (error) {
+            console.error('Erro ao buscar contatos no Capacitor:', error);
+            toast({
+                title: 'Erro ao importar',
+                description: 'Não foi possível ler os contatos do dispositivo.',
+                variant: 'destructive',
+            });
+        }
+    } else {
         if (!('contacts' in navigator && 'select' in (navigator as any).contacts)) {
             setIsApiNotSupportedAlertOpen(true);
             return;
@@ -419,14 +438,13 @@ export default function ClientesPage() {
             const contacts = await (navigator as any).contacts.select(props, opts);
             processSelectedContacts(contacts);
         } catch (error: any) {
-            if (error.name === 'AbortError') { /* User cancelled */ }
-            else {
+            if (error.name !== 'AbortError') {
                 setIsApiNotSupportedAlertOpen(true);
                 console.error('Erro ao importar contato via Web API:', error);
             }
         }
     }
-  };
+};
   
   const handleConfirmContactSelection = (e: FormEvent) => {
     e.preventDefault();
