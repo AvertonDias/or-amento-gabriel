@@ -428,15 +428,7 @@ const processSelectedContacts = (contacts: any[]) => {
 const handleImportContacts = async () => {
     if (Capacitor.isNativePlatform()) {
         try {
-            const permission = await Contacts.getPermissions();
-            if (permission.contacts !== 'granted') {
-                 toast({
-                    title: "Permissão necessária",
-                    description: "Por favor, conceda acesso aos contatos nas configurações do seu celular.",
-                    variant: "destructive",
-                });
-                return;
-            }
+            // O plugin pedirá a permissão automaticamente na primeira vez
             const result = await Contacts.getContacts({
                 projection: {
                     name: true,
@@ -445,14 +437,31 @@ const handleImportContacts = async () => {
                     addresses: true,
                 }
             });
+            // O usuário pode não ter retornado nenhum contato
+            if (result.contacts.length === 0) {
+              toast({
+                  title: 'Nenhum contato selecionado',
+                  description: 'Você não selecionou nenhum contato para importar.',
+              });
+              return;
+            }
             processSelectedContacts(result.contacts);
-        } catch (error) {
-            console.error('Erro ao buscar contatos no Capacitor:', error);
-            toast({
-                title: 'Erro ao importar',
-                description: 'Não foi possível ler os contatos do dispositivo.',
-                variant: 'destructive',
-            });
+        } catch (error: any) {
+            // Verifica se o erro é de permissão negada
+            if (error.message && error.message.toLowerCase().includes('permission was denied')) {
+                 toast({
+                    title: "Permissão necessária",
+                    description: "Por favor, conceda acesso aos contatos nas configurações do seu celular.",
+                    variant: "destructive",
+                });
+            } else {
+                console.error('Erro ao buscar contatos no Capacitor:', error);
+                toast({
+                    title: 'Erro ao importar',
+                    description: 'Não foi possível ler os contatos do dispositivo.',
+                    variant: 'destructive',
+                });
+            }
         }
     } else {
         if (!('contacts' in navigator && 'select' in (navigator as any).contacts)) {
