@@ -41,6 +41,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 // --- Imports para Capacitor ---
 import { Capacitor } from '@capacitor/core';
 import { Contacts } from '@capacitor-community/contacts';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 
 const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
@@ -132,6 +133,45 @@ export default function ClientesPage() {
       setIsLoadingData(false);
     }
   }, [user, loadingAuth, fetchPageData]);
+
+  // UseEffect para solicitar permissões de notificação e contatos
+  useEffect(() => {
+    const requestPermissions = async () => {
+        if (Capacitor.isNativePlatform()) {
+            // Permissão para Notificações no Nativo
+            try {
+                const notifStatus = await LocalNotifications.checkPermissions();
+                if (notifStatus.display === 'prompt') {
+                    await LocalNotifications.requestPermissions();
+                }
+            } catch (e) {
+                console.warn("Could not request notification permissions on native.", e);
+            }
+
+            // Permissão para Contatos no Nativo
+            try {
+                const contactStatus = await Contacts.getPermissions();
+                if (contactStatus.contacts === 'prompt') {
+                    // A solicitação de permissão de contatos é geralmente feita no momento do uso (clique no botão),
+                    // mas pode ser solicitada antecipadamente se desejado.
+                    // Para uma melhor UX, é melhor pedir quando o usuário clica em "Importar".
+                }
+            } catch (e) {
+                console.warn("Could not request contact permissions on native.", e);
+            }
+
+        } else {
+            // Permissão para Notificações na Web
+            if ('Notification' in window && Notification.permission === 'prompt') {
+                await Notification.requestPermission();
+            }
+        }
+    };
+    
+    // Roda um pouco depois para não bloquear a renderização inicial
+    const timer = setTimeout(requestPermissions, 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const filteredClientes = useMemo(() => {
     if (!searchTerm) {
