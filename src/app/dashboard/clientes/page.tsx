@@ -149,7 +149,7 @@ export default function ClientesPage() {
             }
         } else {
             // Permissão para Notificações na Web
-            if ('Notification' in window && Notification.permission === 'prompt') {
+            if ('Notification' in window && Notification.permission === 'default') {
                 await Notification.requestPermission();
             }
         }
