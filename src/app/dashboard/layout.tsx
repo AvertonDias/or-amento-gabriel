@@ -14,7 +14,7 @@ import { ThemeMenuButton } from '@/components/theme-menu-button';
 import { PwaInstallButton } from '@/components/pwa-install-button';
 import { 
   Menu, 
-  Building, 
+  Settings, 
   Wrench, 
   Home, 
   PanelLeftClose, 
@@ -22,7 +22,6 @@ import {
   Loader2,
   LogOut,
   Users,
-  User,
   Ruler
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -33,8 +32,7 @@ const navItems = [
   { href: '/dashboard/clientes', label: 'Clientes', icon: Users },
   { href: '/dashboard/materiais', label: 'Itens e Serviços', icon: Wrench },
   { href: '/dashboard/conversoes', label: 'Conversões', icon: Ruler },
-  { href: '/dashboard/empresa', label: 'Dados da Empresa', icon: Building },
-  { href: '/dashboard/minhas-informacoes', label: 'Minhas Informações', icon: User },
+  { href: '/dashboard/configuracoes', label: 'Configurações', icon: Settings },
 ];
 
 const NavLinks = ({ isCollapsed }: { isCollapsed: boolean }) => {
