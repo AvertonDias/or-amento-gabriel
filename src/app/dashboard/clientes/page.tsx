@@ -434,7 +434,7 @@ const handleImportContacts = async () => {
                     name: true,
                     phones: true,
                     emails: true,
-                    addresses: true,
+                    postalAddresses: true,
                 }
             });
             // O usuário pode não ter retornado nenhum contato
