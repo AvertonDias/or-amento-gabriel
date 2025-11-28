@@ -134,7 +134,7 @@ export default function ClientesPage() {
     }
   }, [user, loadingAuth, fetchPageData]);
 
-  // UseEffect para solicitar permissões de notificação e contatos
+  // UseEffect para solicitar permissão de notificação (a de contatos é pedida no clique)
   useEffect(() => {
     const requestPermissions = async () => {
         if (Capacitor.isNativePlatform()) {
@@ -147,19 +147,6 @@ export default function ClientesPage() {
             } catch (e) {
                 console.warn("Could not request notification permissions on native.", e);
             }
-
-            // Permissão para Contatos no Nativo
-            try {
-                const contactStatus = await Contacts.getPermissions();
-                if (contactStatus.contacts === 'prompt') {
-                    // A solicitação de permissão de contatos é geralmente feita no momento do uso (clique no botão),
-                    // mas pode ser solicitada antecipadamente se desejado.
-                    // Para uma melhor UX, é melhor pedir quando o usuário clica em "Importar".
-                }
-            } catch (e) {
-                console.warn("Could not request contact permissions on native.", e);
-            }
-
         } else {
             // Permissão para Notificações na Web
             if ('Notification' in window && Notification.permission === 'prompt') {
