@@ -26,6 +26,8 @@ import {
   Ruler
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 
 const navItems = [
@@ -93,12 +95,30 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         router.push('/login');
       } else {
         setIsCheckingAuth(false);
-        // Request FCM token as soon as user is authenticated
+        // Request FCM token and notification permissions as soon as user is authenticated
         requestForToken();
+        requestNotificationPermission();
       }
     });
     return () => unsubscribe();
   }, [router]);
+
+  const requestNotificationPermission = async () => {
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const notifStatus = await LocalNotifications.checkPermissions();
+        if (notifStatus.display !== 'granted') {
+          await LocalNotifications.requestPermissions();
+        }
+      } else {
+        if ('Notification' in window && Notification.permission === 'default') {
+          await Notification.requestPermission();
+        }
+      }
+    } catch(e) {
+      console.warn("Erro ao solicitar permissão de notificação:", e);
+    }
+  };
   
   const handleLogout = async () => {
     try {

@@ -41,7 +41,6 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 // --- Imports para Capacitor ---
 import { Capacitor } from '@capacitor/core';
 import { Contacts } from '@capacitor-community/contacts';
-import { LocalNotifications } from '@capacitor/local-notifications';
 
 
 const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
@@ -133,30 +132,6 @@ export default function ClientesPage() {
       setIsLoadingData(false);
     }
   }, [user, loadingAuth, fetchPageData]);
-
-  // UseEffect para solicitar permissão de notificação (a de contatos é pedida no clique)
-  useEffect(() => {
-    const requestNotificationPermission = async () => {
-        if (Capacitor.isNativePlatform()) {
-            // Permissão para Notificações no Nativo
-            try {
-                const notifStatus = await LocalNotifications.checkPermissions();
-                if (notifStatus.display === 'prompt') {
-                    await LocalNotifications.requestPermissions();
-                }
-            } catch (e) {
-                console.warn("Could not request notification permissions on native.", e);
-            }
-        } else {
-            // Permissão para Notificações na Web
-            if ('Notification' in window && Notification.permission === 'default') {
-                await Notification.requestPermission();
-            }
-        }
-    };
-    
-    requestNotificationPermission();
-  }, []);
 
   const filteredClientes = useMemo(() => {
     if (!searchTerm) {
