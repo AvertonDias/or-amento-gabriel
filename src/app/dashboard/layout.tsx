@@ -28,6 +28,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import Image from 'next/image';
 
 
 const navItems = [
@@ -187,7 +188,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               )}>
                 <Link href="/dashboard/orcamento" className="flex items-center gap-2 font-semibold">
                   <div className="bg-white rounded-md p-1">
-                    <img
+                    <Image
                         src="/ico_v2.jpg"
                         alt="Logo do App"
                         width={32}
@@ -257,7 +258,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 <div className="flex h-14 items-center border-b px-2 mb-4">
                   <Link href="/dashboard/orcamento" className="flex items-center gap-2 font-semibold" onClick={() => setIsMobileMenuOpen(false)}>
                     <div className="bg-white rounded-md p-1">
-                      <img
+                      <Image
                           src="/ico_v2.jpg"
                           alt="Logo do App"
                           width={32}
