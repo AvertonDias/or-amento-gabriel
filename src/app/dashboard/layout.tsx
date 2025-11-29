@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/comp
 import { useToast } from '@/hooks/use-toast';
 import { ThemeMenuButton } from '@/components/theme-menu-button';
 import { PwaInstallButton } from '@/components/pwa-install-button';
+import { requestForToken } from '@/lib/fcm';
 import { 
   Menu, 
   Settings, 
@@ -92,6 +93,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         router.push('/login');
       } else {
         setIsCheckingAuth(false);
+        // Request FCM token as soon as user is authenticated
+        requestForToken();
       }
     });
     return () => unsubscribe();

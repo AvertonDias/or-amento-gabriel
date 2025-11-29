@@ -3,6 +3,7 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { initializeFirestore, CACHE_SIZE_UNLIMITED, persistentLocalCache } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getMessaging } from 'firebase/messaging';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDiKZq6bOkazeGAbh-bpjePrOeT5EhPX_0",
@@ -26,4 +27,7 @@ const db = initializeFirestore(app, {
 
 const storage = getStorage(app);
 
-export { app, auth, db, storage };
+// Initialize Firebase Cloud Messaging and get a reference to the service
+const messaging = (typeof window !== 'undefined') ? getMessaging(app) : null;
+
+export { app, auth, db, storage, messaging };
