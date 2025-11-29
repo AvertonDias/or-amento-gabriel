@@ -1,8 +1,13 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { initializeFirestore, CACHE_SIZE_UNLIMITED, persistentLocalCache, type Firestore } from "firebase/firestore";
-import { getStorage, type FirebaseStorage } from "firebase/storage";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { 
+  initializeFirestore, 
+  CACHE_SIZE_UNLIMITED, 
+  persistentLocalCache, 
+  type Firestore,
+  connectFirestoreEmulator
+} from "firebase/firestore";
 import { getMessaging, type Messaging } from 'firebase/messaging';
 
 const firebaseConfig = {
@@ -14,35 +19,42 @@ const firebaseConfig = {
   appId: "1:766057124102:web:a8b2ed8d064964e4980e87"
 };
 
-// Singleton pattern to ensure single instance
+// --- Singleton pattern to ensure single instance ---
 let app: FirebaseApp;
 let auth: ReturnType<typeof getAuth>;
 let db: Firestore;
-let storage: FirebaseStorage;
 let messaging: Messaging | null = null;
+let initialized = false;
 
-
+// This function can be called multiple times, but it will only initialize once
 function initializeFirebase() {
+  if (initialized) {
+    return;
+  }
+
   if (getApps().length === 0) {
     app = initializeApp(firebaseConfig);
-    // Initialize Firestore with offline persistence
-    db = initializeFirestore(app, {
-        localCache: persistentLocalCache({ 
-            cacheSizeBytes: CACHE_SIZE_UNLIMITED
-        })
-    });
   } else {
     app = getApp();
-    db = initializeFirestore(app, {
-        localCache: persistentLocalCache({ 
-            cacheSizeBytes: CACHE_SIZE_UNLIMITED
-        })
-    });
   }
+
+  // --- Initialize Auth ---
   auth = getAuth(app);
-  storage = getStorage(app);
-  
-  // Check if running in browser before initializing messaging
+
+  // --- Initialize Firestore with offline persistence ---
+  // Using initializeFirestore instead of getFirestore to enable persistence
+  try {
+     db = initializeFirestore(app, {
+      localCache: persistentLocalCache({ cacheSizeBytes: CACHE_SIZE_UNLIMITED })
+    });
+  } catch(e) {
+    console.error("Error initializing Firestore with persistence, falling back.", e);
+    // Fallback for environments where persistence is not supported (e.g. some Safari versions in private mode)
+    db = initializeFirestore(app, {});
+  }
+
+
+  // --- Initialize Messaging (only on client-side) ---
   if (typeof window !== 'undefined' && 'Notification' in window) {
     try {
       messaging = getMessaging(app);
@@ -50,9 +62,12 @@ function initializeFirebase() {
       console.error("Could not initialize messaging", e);
     }
   }
+  
+  initialized = true;
 }
 
-// Initialize on first load
+// Call initialization
 initializeFirebase();
 
-export { app, auth, db, storage, messaging };
+// Export the instances
+export { app, auth, db, messaging };

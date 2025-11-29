@@ -11,9 +11,9 @@ import { Building, Save, CheckCircle, XCircle, Upload, Trash2, KeyRound, Mail, S
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { maskCpfCnpj, maskTelefone, validateCpfCnpj } from '@/lib/utils';
-import { auth, storage } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { getEmpresaData, saveEmpresaData, uploadLogo, deleteLogo } from '@/services/empresaService';
+import { getEmpresaData, saveEmpresaData } from '@/services/empresaService';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -35,8 +35,6 @@ export default function ConfiguracoesPage() {
   const [empresa, setEmpresa] = useState<EmpresaData | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
   
   const { toast } = useToast();
 
@@ -81,41 +79,48 @@ export default function ConfiguracoesPage() {
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const maxSize = 5 * 1024 * 1024; // 5MB
-
-      if (file.size > maxSize) {
-        toast({
-          title: "Arquivo muito grande",
-          description: "O logo deve ter no máximo 5MB.",
-          variant: "destructive",
-        });
-        return;
-      }
-      setLogoFile(file);
-      
       const reader = new FileReader();
+
       reader.onload = (loadEvent) => {
-        const base64 = loadEvent.target?.result as string;
-        setEmpresa(prev => (prev ? { ...prev, logo: base64 } : null));
+        const img = document.createElement('img');
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 200;
+          const MAX_HEIGHT = 200;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Converte para JPEG com qualidade de 80% para compressão
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          
+          setEmpresa(prev => (prev ? { ...prev, logo: dataUrl } : null));
+        };
+        img.src = loadEvent.target?.result as string;
       };
+      
       reader.readAsDataURL(file);
     }
   };
 
   const removeLogo = async () => {
     if (!empresa) return;
-
-    if (empresa.logo && empresa.logo.includes('firebasestorage')) {
-        try {
-            await deleteLogo(empresa.logo);
-        } catch(error) {
-            console.error("Erro ao tentar remover logo antigo do storage", error)
-            toast({ title: "Aviso", description: "Não foi possível remover a logo antiga do armazenamento, mas ela será substituída." });
-        }
-    }
-
     setEmpresa(prev => (prev ? { ...prev, logo: '' } : null));
-    setLogoFile(null);
     toast({ title: "Logo removido" });
   };
 
@@ -134,36 +139,27 @@ export default function ConfiguracoesPage() {
       toast({ title: "Documento inválido", description: "O CPF/CNPJ inserido não é válido.", variant: "destructive" });
       return;
     }
-    
-    setIsSaving(true);
-    let finalLogoUrl = empresa.logo;
 
-    if (logoFile) {
-        setIsUploading(true);
-        try {
-            // Deleta a logo antiga do Storage antes de enviar a nova
-            if (empresa.logo && empresa.logo.includes('firebasestorage')) {
-                await deleteLogo(empresa.logo);
-            }
-            finalLogoUrl = await uploadLogo(user.uid, logoFile);
-        } catch(error) {
-            toast({ title: "Erro no Upload", description: "Não foi possível carregar a nova logo.", variant: 'destructive' });
-            setIsSaving(false);
-            setIsUploading(false);
-            return;
-        }
-        setIsUploading(false);
+    if (empresa.logo && empresa.logo.length > 900 * 1024) { // Aproximadamente 900KB
+        toast({
+            title: "Imagem muito grande",
+            description: "A imagem da logo, mesmo comprimida, é muito grande para salvar. Por favor, escolha uma imagem com menor resolução.",
+            variant: "destructive",
+            duration: 8000
+        });
+        return;
     }
     
+    setIsSaving(true);
+    
     try {
-      const dataToSave = { ...empresa, logo: finalLogoUrl };
+      const dataToSave = { ...empresa };
       if (!dataToSave.userId) {
           dataToSave.userId = user.uid;
       }
       
       const savedData = await saveEmpresaData(user.uid, dataToSave);
       setEmpresa(savedData);
-      setLogoFile(null); // Limpa o arquivo após o sucesso
       toast({
         title: 'Sucesso!',
         description: 'Os dados da empresa foram salvos com sucesso.',
@@ -172,6 +168,8 @@ export default function ConfiguracoesPage() {
        let description = 'Não foi possível salvar os dados no Firestore.';
        if (error.code === 'permission-denied') {
           description = 'Você não tem permissão para salvar estes dados. Verifique as regras de segurança do Firestore.';
+       } else if (error.code === 'resource-exhausted' || (error.message && error.message.includes('too large'))) {
+          description = 'A imagem da logo é muito grande. Escolha uma imagem menor.';
        } else if (error.message) {
           description = error.message;
        }
@@ -268,7 +266,7 @@ export default function ConfiguracoesPage() {
                                 </Label>
                             </Button>
                             <Input id="logo-upload" type="file" className="sr-only" accept="image/png, image/jpeg, image/webp" onChange={handleLogoChange}/>
-                            <p className="text-xs text-muted-foreground mt-2">PNG, JPG ou WEBP (Max 5MB).</p>
+                            <p className="text-xs text-muted-foreground mt-2">A imagem será comprimida para caber no banco de dados.</p>
                             </div>
                         </div>
                         </div>
@@ -305,7 +303,7 @@ export default function ConfiguracoesPage() {
                         </div>
                         <Button type="submit" className="w-full sm:w-auto" disabled={isSaving || isCpfCnpjInvalid}>
                             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                            {isUploading ? "Enviando logo..." : isSaving ? "Salvando..." : "Salvar Dados da Empresa"}
+                            {isSaving ? "Salvando..." : "Salvar Dados da Empresa"}
                         </Button>
                     </form>
                 ) : (
