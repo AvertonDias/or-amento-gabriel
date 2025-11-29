@@ -43,7 +43,7 @@ function initializeFirebase() {
   storage = getStorage(app);
   
   // Check if running in browser before initializing messaging
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && 'Notification' in window) {
     try {
       messaging = getMessaging(app);
     } catch (e) {

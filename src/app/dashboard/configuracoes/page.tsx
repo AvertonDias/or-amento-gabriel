@@ -11,9 +11,9 @@ import { Building, Save, CheckCircle, XCircle, Upload, Trash2, KeyRound, Mail, S
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { maskCpfCnpj, maskTelefone, validateCpfCnpj } from '@/lib/utils';
-import { auth } from '@/lib/firebase';
+import { auth, storage } from '@/lib/firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { getEmpresaData, saveEmpresaData } from '@/services/empresaService';
+import { getEmpresaData, saveEmpresaData, uploadLogo, deleteLogo } from '@/services/empresaService';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -35,6 +35,8 @@ export default function ConfiguracoesPage() {
   const [empresa, setEmpresa] = useState<EmpresaData | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   
   const { toast } = useToast();
 
@@ -79,16 +81,17 @@ export default function ConfiguracoesPage() {
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const maxSize = 2 * 1024 * 1024; // 2MB
+      const maxSize = 5 * 1024 * 1024; // 5MB
 
       if (file.size > maxSize) {
         toast({
           title: "Arquivo muito grande",
-          description: "O logo deve ter no máximo 2MB.",
+          description: "O logo deve ter no máximo 5MB.",
           variant: "destructive",
         });
         return;
       }
+      setLogoFile(file);
       
       const reader = new FileReader();
       reader.onload = (loadEvent) => {
@@ -99,8 +102,20 @@ export default function ConfiguracoesPage() {
     }
   };
 
-  const removeLogo = () => {
+  const removeLogo = async () => {
+    if (!empresa) return;
+
+    if (empresa.logo && empresa.logo.includes('firebasestorage')) {
+        try {
+            await deleteLogo(empresa.logo);
+        } catch(error) {
+            console.error("Erro ao tentar remover logo antigo do storage", error)
+            toast({ title: "Aviso", description: "Não foi possível remover a logo antiga do armazenamento, mas ela será substituída." });
+        }
+    }
+
     setEmpresa(prev => (prev ? { ...prev, logo: '' } : null));
+    setLogoFile(null);
     toast({ title: "Logo removido" });
   };
 
@@ -119,26 +134,36 @@ export default function ConfiguracoesPage() {
       toast({ title: "Documento inválido", description: "O CPF/CNPJ inserido não é válido.", variant: "destructive" });
       return;
     }
-
-    // Checagem de tamanho do logo (base64)
-    if (empresa.logo && empresa.logo.length * 0.75 > 900 * 1024) { // ~900KB, margem de segurança para o limite de 1MB do Firestore
-        toast({
-            title: "Logo muito grande",
-            description: "A imagem da logo é muito grande para ser salva. Por favor, use uma imagem menor ou mais comprimida.",
-            variant: "destructive"
-        });
-        return;
-    }
     
     setIsSaving(true);
+    let finalLogoUrl = empresa.logo;
+
+    if (logoFile) {
+        setIsUploading(true);
+        try {
+            // Deleta a logo antiga do Storage antes de enviar a nova
+            if (empresa.logo && empresa.logo.includes('firebasestorage')) {
+                await deleteLogo(empresa.logo);
+            }
+            finalLogoUrl = await uploadLogo(user.uid, logoFile);
+        } catch(error) {
+            toast({ title: "Erro no Upload", description: "Não foi possível carregar a nova logo.", variant: 'destructive' });
+            setIsSaving(false);
+            setIsUploading(false);
+            return;
+        }
+        setIsUploading(false);
+    }
+    
     try {
-      const dataToSave = { ...empresa };
+      const dataToSave = { ...empresa, logo: finalLogoUrl };
       if (!dataToSave.userId) {
           dataToSave.userId = user.uid;
       }
       
       const savedData = await saveEmpresaData(user.uid, dataToSave);
       setEmpresa(savedData);
+      setLogoFile(null); // Limpa o arquivo após o sucesso
       toast({
         title: 'Sucesso!',
         description: 'Os dados da empresa foram salvos com sucesso.',
@@ -147,8 +172,6 @@ export default function ConfiguracoesPage() {
        let description = 'Não foi possível salvar os dados no Firestore.';
        if (error.code === 'permission-denied') {
           description = 'Você não tem permissão para salvar estes dados. Verifique as regras de segurança do Firestore.';
-       } else if (error.message && error.message.toLowerCase().includes('entity too large')) {
-          description = 'O total de dados, incluindo a logo, excedeu o limite de armazenamento. Tente usar uma imagem menor.';
        } else if (error.message) {
           description = error.message;
        }
@@ -227,7 +250,7 @@ export default function ConfiguracoesPage() {
                         <div className="mt-2 flex items-center gap-4">
                             {empresa.logo ? (
                             <div className="relative">
-                                <Image src={empresa.logo} alt="Logo" width={80} height={80} className="rounded-lg object-contain border bg-muted" />
+                                <Image src={empresa.logo} alt="Logo" width={80} height={80} className="rounded-lg object-contain border bg-muted" unoptimized />
                                 <Button type="button" size="icon" variant="destructive" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={removeLogo}>
                                 <Trash2 className="h-3 w-3" />
                                 </Button>
@@ -238,12 +261,14 @@ export default function ConfiguracoesPage() {
                             </div>
                             )}
                             <div className="flex-1">
-                            <Label htmlFor="logo-upload" className={cn("cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2")}>
-                                <Upload className="mr-2 h-4 w-4" />
-                                Carregar Imagem
-                            </Label>
+                            <Button asChild variant="outline" className="cursor-pointer">
+                                <Label htmlFor="logo-upload" className="cursor-pointer flex items-center gap-2">
+                                    <Upload className="mr-2 h-4 w-4" />
+                                    Carregar Imagem
+                                </Label>
+                            </Button>
                             <Input id="logo-upload" type="file" className="sr-only" accept="image/png, image/jpeg, image/webp" onChange={handleLogoChange}/>
-                            <p className="text-xs text-muted-foreground mt-2">PNG, JPG ou WEBP (Max 2MB).</p>
+                            <p className="text-xs text-muted-foreground mt-2">PNG, JPG ou WEBP (Max 5MB).</p>
                             </div>
                         </div>
                         </div>
@@ -280,7 +305,7 @@ export default function ConfiguracoesPage() {
                         </div>
                         <Button type="submit" className="w-full sm:w-auto" disabled={isSaving || isCpfCnpjInvalid}>
                             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                            Salvar Dados da Empresa
+                            {isUploading ? "Enviando logo..." : isSaving ? "Salvando..." : "Salvar Dados da Empresa"}
                         </Button>
                     </form>
                 ) : (

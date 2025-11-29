@@ -1,6 +1,7 @@
 
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
 import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import type { EmpresaData } from '@/lib/types';
 
 const EMPRESA_COLLECTION = 'empresa';
@@ -13,17 +14,14 @@ export const saveEmpresaData = async (userId: string, data: Omit<EmpresaData, 'i
 
   const empresaDocRef = doc(db, EMPRESA_COLLECTION, userId);
   
-  // Ensure userId is in the object to be saved for security rules
   const dataToSave: EmpresaData = {
       ...data,
       userId: userId,
   };
 
   try {
-    // A função setDoc com merge:true atualiza os campos ou cria o documento se ele não existir.
     await setDoc(empresaDocRef, dataToSave, { merge: true });
     
-    // Retorna os dados completos após salvar
     const finalDataSnapshot = await getDoc(empresaDocRef);
     const finalData = finalDataSnapshot.data() as EmpresaData;
     return { id: userId, ...finalData };
@@ -49,4 +47,33 @@ export const getEmpresaData = (userId: string): Promise<EmpresaData | null> => {
         }
         return { id: docSnap.id, ...docSnap.data() } as EmpresaData;
     });
+};
+
+export const uploadLogo = async (userId: string, file: File): Promise<string> => {
+    if (!userId) throw new Error("Usuário não autenticado.");
+    
+    const storageRef = ref(storage, `logos/${userId}/${file.name}`);
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+    return downloadURL;
+};
+
+export const deleteLogo = async (logoUrl: string): Promise<void> => {
+    // A URL tem que ser do Firebase Storage para funcionar
+    if (!logoUrl.includes('firebasestorage.googleapis.com')) {
+        console.warn("URL da logo não pertence ao Firebase Storage, pulando exclusão.");
+        return;
+    }
+    try {
+        const storageRef = ref(storage, logoUrl);
+        await deleteObject(storageRef);
+    } catch (error: any) {
+        // Se o arquivo não existir, o Firebase retorna um erro 'storage/object-not-found', que podemos ignorar.
+        if (error.code === 'storage/object-not-found') {
+            console.warn("Tentativa de excluir uma logo que não existe mais no Storage.");
+        } else {
+            console.error("Erro ao excluir a logo antiga:", error);
+            throw error; // Relança outros erros
+        }
+    }
 };
