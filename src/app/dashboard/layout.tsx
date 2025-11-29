@@ -88,21 +88,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const { toast } = useToast();
   
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.push('/login');
-      } else {
-        setIsCheckingAuth(false);
-        // Request FCM token and notification permissions as soon as user is authenticated
-        requestForToken();
-        requestNotificationPermission();
-      }
-    });
-    return () => unsubscribe();
-  }, [router]);
-
   const requestNotificationPermission = async () => {
     try {
       if (Capacitor.isNativePlatform()) {
@@ -119,6 +104,22 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       console.warn("Erro ao solicitar permissão de notificação:", e);
     }
   };
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.push('/login');
+      } else {
+        setIsCheckingAuth(false);
+        // Request FCM token and notification permissions as soon as user is authenticated
+        requestNotificationPermission().then(() => {
+          requestForToken();
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
+
   
   const handleLogout = async () => {
     try {
