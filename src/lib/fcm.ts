@@ -10,8 +10,14 @@ export const requestForToken = () => {
     return null;
   }
 
+  const vapidKey = process.env.NEXT_PUBLIC_FCM_VAPID_KEY;
+  if (!vapidKey) {
+    console.error("VAPID key is missing. Make sure NEXT_PUBLIC_FCM_VAPID_KEY is set in your .env file.");
+    return null;
+  }
+
   console.log("Requesting FCM token...");
-  return getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_FCM_VAPID_KEY })
+  return getToken(messaging, { vapidKey })
     .then((currentToken) => {
       if (currentToken) {
         console.log('FCM Token obtido:', currentToken);

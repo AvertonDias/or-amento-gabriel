@@ -31,10 +31,6 @@ function initializeFirebase() {
             cacheSizeBytes: CACHE_SIZE_UNLIMITED
         })
     });
-    // Check if running in browser before initializing messaging
-    if (typeof window !== 'undefined') {
-        messaging = getMessaging(app);
-    }
   } else {
     app = getApp();
     db = initializeFirestore(app, {
@@ -42,12 +38,18 @@ function initializeFirebase() {
             cacheSizeBytes: CACHE_SIZE_UNLIMITED
         })
     });
-    if (typeof window !== 'undefined') {
-        messaging = getMessaging(app);
-    }
   }
   auth = getAuth(app);
   storage = getStorage(app);
+  
+  // Check if running in browser before initializing messaging
+  if (typeof window !== 'undefined') {
+    try {
+      messaging = getMessaging(app);
+    } catch (e) {
+      console.error("Could not initialize messaging", e);
+    }
+  }
 }
 
 // Initialize on first load
