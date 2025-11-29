@@ -32,6 +32,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu"
 import { Separator } from '@/components/ui/separator';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -1080,8 +1084,15 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                         </CardContent>
                         <CardFooter className="flex flex-wrap justify-end gap-2 bg-muted/50 p-4">
                             <div className="hidden md:flex flex-wrap justify-end gap-2">
-                                <Button variant="outline" size="sm" onClick={() => handleGerarPDF(orcamento)}><FileText className="mr-2 h-4 w-4" />PDF Cliente</Button>
-                                <Button variant="outline" size="sm" onClick={() => handleGerarPDFInterno(orcamento)}><FileText className="mr-2 h-4 w-4" />PDF Interno</Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="sm"><FileText className="mr-2 h-4 w-4" />Gerar PDF</Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                                 <Button variant="outline" size="sm" onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}><MessageCircle className="mr-2 h-4 w-4" />Enviar</Button>
                                 <Button variant="outline" size="sm" onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}><Pencil className="mr-2 h-4 w-4" />Editar</Button>
                                 {orcamento.status === 'Pendente' && (
@@ -1172,12 +1183,18 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                     <DropdownMenuItem onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}>
                                       <Pencil className="mr-2 h-4 w-4" />Editar
                                     </DropdownMenuItem>
-                                     <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>
-                                      <FileText className="mr-2 h-4 w-4" />PDF Cliente
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>
-                                      <FileText className="mr-2 h-4 w-4" />PDF Interno
-                                    </DropdownMenuItem>
+                                     <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger>
+                                            <FileText className="mr-2 h-4 w-4" />
+                                            <span>Gerar PDF</span>
+                                        </DropdownMenuSubTrigger>
+                                        <DropdownMenuPortal>
+                                            <DropdownMenuSubContent>
+                                                <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
+                                            </DropdownMenuSubContent>
+                                        </DropdownMenuPortal>
+                                    </DropdownMenuSub>
                                     <DropdownMenuItem onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}>
                                       <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
                                     </DropdownMenuItem>
