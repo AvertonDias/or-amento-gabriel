@@ -7,6 +7,7 @@ export interface EmpresaData {
   telefone: string;
   cnpj: string;
   logo?: string;
+  fcmToken?: string; // Adicionado para salvar o token de notificação
 }
 
 export interface ClienteData {

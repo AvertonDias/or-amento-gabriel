@@ -2,7 +2,8 @@
 'use client';
 
 import { getToken, onMessage, getMessaging, isSupported } from 'firebase/messaging';
-import { app } from './firebase';
+import { app, auth } from './firebase';
+import { saveFcmToken } from '@/services/empresaService';
 
 export const requestForToken = async () => {
   try {
@@ -11,7 +12,7 @@ export const requestForToken = async () => {
       console.log("Firebase Messaging não é suportado neste navegador.");
       return null;
     }
-
+    
     const messaging = getMessaging(app);
     const vapidKey = process.env.NEXT_PUBLIC_FCM_VAPID_KEY;
     
@@ -25,7 +26,13 @@ export const requestForToken = async () => {
     
     if (currentToken) {
       console.log('Token FCM obtido:', currentToken);
-      // Você pode enviar este token para seu servidor para enviar notificações para este dispositivo
+      const user = auth.currentUser;
+      if (user) {
+        await saveFcmToken(user.uid, currentToken);
+        console.log("Token FCM salvo no Firestore.");
+      } else {
+        console.warn("Usuário não autenticado, não foi possível salvar o token FCM.");
+      }
     } else {
       console.log('Nenhum token de registro disponível. Solicite permissão para gerar um.');
     }

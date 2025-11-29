@@ -1,6 +1,6 @@
 
 import { db } from '@/lib/firebase';
-import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import type { EmpresaData } from '@/lib/types';
 
 const EMPRESA_COLLECTION = 'empresa';
@@ -46,4 +46,27 @@ export const getEmpresaData = (userId: string): Promise<EmpresaData | null> => {
         }
         return { id: docSnap.id, ...docSnap.data() } as EmpresaData;
     });
+};
+
+// Function to save only the FCM token
+export const saveFcmToken = async (userId: string, token: string): Promise<void> => {
+  if (!userId) {
+    throw new Error('User ID é obrigatório para salvar o token FCM.');
+  }
+  const empresaDocRef = doc(db, EMPRESA_COLLECTION, userId);
+  
+  try {
+    // Use updateDoc to add or update the fcmToken field without overwriting the whole document
+    await updateDoc(empresaDocRef, {
+      fcmToken: token,
+    });
+  } catch (error: any) {
+     // If the document doesn't exist, updateDoc fails. We can use setDoc with merge instead.
+     if (error.code === 'not-found') {
+        await setDoc(empresaDocRef, { fcmToken: token }, { merge: true });
+     } else {
+        console.error("Erro ao salvar o token FCM:", error);
+        throw error;
+     }
+  }
 };
