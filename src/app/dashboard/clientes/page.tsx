@@ -136,7 +136,7 @@ export default function ClientesPage() {
 
   // UseEffect para solicitar permissão de notificação (a de contatos é pedida no clique)
   useEffect(() => {
-    const requestPermissions = async () => {
+    const requestNotificationPermission = async () => {
         if (Capacitor.isNativePlatform()) {
             // Permissão para Notificações no Nativo
             try {
@@ -155,9 +155,7 @@ export default function ClientesPage() {
         }
     };
     
-    // Roda um pouco depois para não bloquear a renderização inicial
-    const timer = setTimeout(requestPermissions, 2000);
-    return () => clearTimeout(timer);
+    requestNotificationPermission();
   }, []);
 
   const filteredClientes = useMemo(() => {
