@@ -1,23 +1,10 @@
 
 'use client';
 
-import { getMessaging, getToken, onMessage } from 'firebase/messaging';
-import { app } from './firebase';
-
-// Variável para armazenar a instância do Messaging
-let messagingInstance: ReturnType<typeof getMessaging> | null = null;
-
-// Função para inicializar o Messaging de forma segura no cliente
-const getMessagingInstance = () => {
-  if (typeof window !== 'undefined' && !messagingInstance) {
-    messagingInstance = getMessaging(app);
-  }
-  return messagingInstance;
-};
-
+import { getToken, onMessage } from 'firebase/messaging';
+import { messaging } from './firebase'; // Import the initialized messaging instance
 
 export const requestForToken = () => {
-  const messaging = getMessagingInstance();
   if (!messaging) {
     console.log("Messaging service not available.");
     return null;
@@ -28,7 +15,7 @@ export const requestForToken = () => {
     .then((currentToken) => {
       if (currentToken) {
         console.log('FCM Token obtido:', currentToken);
-        // Você pode enviar este token para seu servidor para enviar notificações para este dispositivo
+        // You can send this token to your server to send notifications to this device
       } else {
         console.log('Nenhum token de registro disponível. Solicite permissão para gerar um.');
       }
@@ -39,7 +26,6 @@ export const requestForToken = () => {
 };
 
 export const onMessageListener = () => {
-    const messaging = getMessagingInstance();
     if (!messaging) {
         console.log("Messaging service not available for listener.");
         return Promise.reject("Messaging not supported");

@@ -1,9 +1,9 @@
 
-import { initializeApp, getApps, getApp } from "firebase/app";
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { initializeFirestore, CACHE_SIZE_UNLIMITED, persistentLocalCache } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
-import { getMessaging } from 'firebase/messaging';
+import { initializeFirestore, CACHE_SIZE_UNLIMITED, persistentLocalCache, type Firestore } from "firebase/firestore";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
+import { getMessaging, type Messaging } from 'firebase/messaging';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDiKZq6bOkazeGAbh-bpjePrOeT5EhPX_0",
@@ -14,20 +14,43 @@ const firebaseConfig = {
   appId: "1:766057124102:web:a8b2ed8d064964e4980e87"
 };
 
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
+// Singleton pattern to ensure single instance
+let app: FirebaseApp;
+let auth: ReturnType<typeof getAuth>;
+let db: Firestore;
+let storage: FirebaseStorage;
+let messaging: Messaging | null = null;
 
-// Initialize Firestore with offline persistence
-const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({ 
-    cacheSizeBytes: CACHE_SIZE_UNLIMITED
-  })
-});
 
-const storage = getStorage(app);
+function initializeFirebase() {
+  if (getApps().length === 0) {
+    app = initializeApp(firebaseConfig);
+    // Initialize Firestore with offline persistence
+    db = initializeFirestore(app, {
+        localCache: persistentLocalCache({ 
+            cacheSizeBytes: CACHE_SIZE_UNLIMITED
+        })
+    });
+    // Check if running in browser before initializing messaging
+    if (typeof window !== 'undefined') {
+        messaging = getMessaging(app);
+    }
+  } else {
+    app = getApp();
+    db = initializeFirestore(app, {
+        localCache: persistentLocalCache({ 
+            cacheSizeBytes: CACHE_SIZE_UNLIMITED
+        })
+    });
+    if (typeof window !== 'undefined') {
+        messaging = getMessaging(app);
+    }
+  }
+  auth = getAuth(app);
+  storage = getStorage(app);
+}
 
-// Initialize Firebase Cloud Messaging and get a reference to the service
-const messaging = (typeof window !== 'undefined') ? getMessaging(app) : null;
+// Initialize on first load
+initializeFirebase();
 
 export { app, auth, db, storage, messaging };

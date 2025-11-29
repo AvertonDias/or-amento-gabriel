@@ -85,7 +85,7 @@ export default function ConversoesPage() {
   const [convType, setConvType] = useState('length');
   const [unitValue, setUnitValue] = useState('');
   const [fromUnit, setFromUnit] = useState('m');
-  const [toUnit, setToUnit] = useState('cm';
+  const [toUnit, setToUnit] = useState('cm');
   
   // Estado para materiais e confirmação de atualização
   const [materiais, setMateriais] = useState<MaterialItem[]>([]);
