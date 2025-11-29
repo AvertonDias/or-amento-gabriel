@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Ruler, Weight, BetweenHorizonalStart, Bot, ArrowRightLeft, DollarSign, PackagePlus, Loader2 } from 'lucide-react';
+import { Ruler, Weight, BetweenHorizonalStart, Bot, ArrowRightLeft, DollarSign, PackagePlus, Loader2, Beaker } from 'lucide-react';
 import { formatNumber, formatCurrency, maskCurrency, maskDecimal } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -30,15 +30,21 @@ const CONVERSION_FACTORS: Record<string, Record<string, number>> = {
     mm: 1000,
     in: 39.3701,
     ft: 3.28084,
-    yd: 1.09361
+    yd: 1.09361,
   },
   mass: {
     kg: 1,
     g: 1000,
     mg: 1000000,
     lb: 2.20462,
-    oz: 35.274
+    oz: 35.274,
   },
+  volume: {
+    L: 1,
+    ml: 1000,
+    gal: 0.264172,
+    'fl-oz': 33.814,
+  }
 };
 
 const UNIT_LABELS: Record<string, Record<string, string>> = {
@@ -57,6 +63,12 @@ const UNIT_LABELS: Record<string, Record<string, string>> = {
         lb: 'Libra (lb)',
         oz: 'Onça (oz)',
     },
+    volume: {
+        L: 'Litro (L)',
+        ml: 'Mililitro (ml)',
+        gal: 'Galão (gal)',
+        'fl-oz': 'Onça Líquida (fl oz)',
+    }
 }
 
 type PriceInputMode = 'kg' | 'total';
@@ -160,6 +172,9 @@ export default function ConversoesPage() {
     } else if (type === 'mass') {
         setFromUnit('kg');
         setToUnit('g');
+    } else if (type === 'volume') {
+        setFromUnit('L');
+        setToUnit('ml');
     }
   }
 
@@ -382,7 +397,7 @@ export default function ConversoesPage() {
             Conversor de Unidades
           </CardTitle>
           <CardDescription>
-            Converta rapidamente unidades de comprimento e massa.
+            Converta rapidamente unidades de comprimento, massa e volume.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -395,6 +410,7 @@ export default function ConversoesPage() {
                     <SelectContent>
                         <SelectItem value="length">Comprimento</SelectItem>
                         <SelectItem value="mass">Massa</SelectItem>
+                        <SelectItem value="volume">Volume (Líquidos)</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
