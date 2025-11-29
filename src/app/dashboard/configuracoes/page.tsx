@@ -119,6 +119,16 @@ export default function ConfiguracoesPage() {
       toast({ title: "Documento inválido", description: "O CPF/CNPJ inserido não é válido.", variant: "destructive" });
       return;
     }
+
+    // Checagem de tamanho do logo (base64)
+    if (empresa.logo && empresa.logo.length * 0.75 > 900 * 1024) { // ~900KB, margem de segurança para o limite de 1MB do Firestore
+        toast({
+            title: "Logo muito grande",
+            description: "A imagem da logo é muito grande para ser salva. Por favor, use uma imagem menor ou mais comprimida.",
+            variant: "destructive"
+        });
+        return;
+    }
     
     setIsSaving(true);
     try {
@@ -134,9 +144,18 @@ export default function ConfiguracoesPage() {
         description: 'Os dados da empresa foram salvos com sucesso.',
       });
     } catch(error: any) {
+       let description = 'Não foi possível salvar os dados no Firestore.';
+       if (error.code === 'permission-denied') {
+          description = 'Você não tem permissão para salvar estes dados. Verifique as regras de segurança do Firestore.';
+       } else if (error.message && error.message.toLowerCase().includes('entity too large')) {
+          description = 'O total de dados, incluindo a logo, excedeu o limite de armazenamento. Tente usar uma imagem menor.';
+       } else if (error.message) {
+          description = error.message;
+       }
+
        toast({
         title: 'Erro ao Salvar',
-        description: error.message || 'Não foi possível salvar os dados no Firestore.',
+        description: description,
         variant: 'destructive',
       });
       console.error("Erro ao salvar dados da empresa:", error);
