@@ -12,14 +12,6 @@ const config: CapacitorConfig = {
     Contacts: {
       useLegacyIntent: false
     }
-  },
-  android: {
-    permissions: [
-      {
-        alias: 'contacts',
-        name: 'android.permission.READ_CONTACTS'
-      }
-    ]
   }
 };
 
