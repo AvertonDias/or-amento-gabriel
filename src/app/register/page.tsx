@@ -115,6 +115,7 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
@@ -128,6 +129,7 @@ export default function RegisterPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
                   className="pr-10"
+                  autoComplete="new-password"
                 />
                 <button 
                   type="button" 
@@ -149,6 +151,7 @@ export default function RegisterPage() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={isLoading}
                   className="pr-10"
+                  autoComplete="new-password"
                 />
                  <button 
                   type="button" 
