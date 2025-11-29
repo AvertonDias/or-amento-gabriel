@@ -24,7 +24,7 @@ import { getMateriais, updateEstoque } from '@/services/materiaisService';
 import { getClientes, addCliente, updateCliente } from '@/services/clientesService';
 import { getEmpresaData } from '@/services/empresaService';
 import { addOrcamento, deleteOrcamento, getOrcamentos, getNextOrcamentoNumber, updateOrcamento, updateOrcamentoStatus } from '@/services/orcamentosService';
-import { addDays, parseISO, format, isBefore, startOfToday } from 'date-fns';
+import { addDays, parseISO, format, isBefore, startOfToday, differenceInHours } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import {
   DropdownMenu,
@@ -42,6 +42,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 
 
 // Componente para o layout do PDF do Cliente
@@ -366,7 +368,50 @@ export default function OrcamentoPage() {
     window.addEventListener('online', handleOnline);
     return () => window.removeEventListener('online', handleOnline);
   }, [user, fetchAllData, toast]);
-  
+
+  const scheduleNotification = async (orcamento: Orcamento, type: 'expiring' | 'expired') => {
+    if (Capacitor.isNativePlatform() && (await LocalNotifications.checkPermissions()).display === 'granted') {
+      const storageKey = `notif_${type}_${orcamento.id}`;
+      if (localStorage.getItem(storageKey)) return; // Já notificado
+
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            title: type === 'expiring' ? `Orçamento quase vencendo` : `Orçamento Vencido`,
+            body: `O orçamento #${orcamento.numeroOrcamento} para ${orcamento.cliente.nome} ${type === 'expiring' ? 'vence em 24 horas.' : 'venceu hoje.'}`,
+            id: new Date().getTime(), // ID único
+            schedule: { at: new Date(Date.now() + 1000) }, // Agendar para agora
+            smallIcon: "res://mipmap/ic_launcher",
+            iconColor: "#64B5F6",
+          },
+        ],
+      });
+      localStorage.setItem(storageKey, 'true');
+    }
+  };
+
+  useEffect(() => {
+    if (orcamentosSalvos.length === 0) return;
+    const now = new Date();
+
+    orcamentosSalvos.forEach(orcamento => {
+      if (orcamento.status !== 'Pendente') return;
+
+      const dataCriacao = parseISO(orcamento.dataCriacao);
+      const validadeDiasNum = parseInt(orcamento.validadeDias, 10);
+      if (isNaN(validadeDiasNum)) return;
+
+      const dataValidade = addDays(dataCriacao, validadeDiasNum);
+      const hoursUntilExpiry = differenceInHours(dataValidade, now);
+
+      // Checa se está prestes a vencer (nas próximas 24h)
+      if (hoursUntilExpiry > 0 && hoursUntilExpiry <= 24) {
+        scheduleNotification(orcamento, 'expiring');
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orcamentosSalvos]);
+
   useEffect(() => {
     if (orcamentosSalvos.length > 0) {
       const today = startOfToday();
@@ -383,6 +428,7 @@ export default function OrcamentoPage() {
         const updatedBudgets = [...orcamentosSalvos];
         budgetsToExpire.forEach(orcamento => {
           updateOrcamentoStatus(orcamento.id, 'Vencido', { dataRecusa: null, dataAceite: null });
+          scheduleNotification(orcamento, 'expired');
           const index = updatedBudgets.findIndex(o => o.id === orcamento.id);
           if (index !== -1) {
             updatedBudgets[index] = { ...updatedBudgets[index], status: 'Vencido' };
@@ -1089,8 +1135,15 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                         <Button variant="outline" size="sm"><FileText className="mr-2 h-4 w-4" />Gerar PDF</Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
+                                      <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" />Gerar PDF</DropdownMenuSubTrigger>
+                                        <DropdownMenuPortal>
+                                            <DropdownMenuSubContent>
+                                                <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
+                                            </DropdownMenuSubContent>
+                                        </DropdownMenuPortal>
+                                      </DropdownMenuSub>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                                 <Button variant="outline" size="sm" onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}><MessageCircle className="mr-2 h-4 w-4" />Enviar</Button>
@@ -1181,11 +1234,11 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                     <DropdownMenuItem onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}>
                                       <Pencil className="mr-2 h-4 w-4" />Editar
                                     </DropdownMenuItem>
-                                    {orcamento.status === 'Pendente' && (
-                                      <DropdownMenuSub>
-                                        <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" />Gerar PDF</DropdownMenuSubTrigger>
-                                        <DropdownMenuPortal><DropdownMenuSubContent><DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem><DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem></DropdownMenuSubContent></DropdownMenuPortal>
-                                      </DropdownMenuSub>
+                                    {orcamento.status !== 'Pendente' && (
+                                        <DropdownMenuSub>
+                                            <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" />Gerar PDF</DropdownMenuSubTrigger>
+                                            <DropdownMenuPortal><DropdownMenuSubContent><DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem><DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem></DropdownMenuSubContent></DropdownMenuPortal>
+                                        </DropdownMenuSub>
                                     )}
                                     <DropdownMenuItem onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}>
                                       <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
