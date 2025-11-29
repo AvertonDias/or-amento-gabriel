@@ -24,13 +24,39 @@ const DENSIDADES: Record<string, number> = {
 };
 
 const CONVERSION_FACTORS: Record<string, Record<string, number>> = {
-  length: { m: 1, cm: 100, mm: 1000 },
-  mass: { kg: 1, g: 1000, mg: 1000000 },
+  length: {
+    m: 1,
+    cm: 100,
+    mm: 1000,
+    in: 39.3701,
+    ft: 3.28084,
+    yd: 1.09361
+  },
+  mass: {
+    kg: 1,
+    g: 1000,
+    mg: 1000000,
+    lb: 2.20462,
+    oz: 35.274
+  },
 };
 
 const UNIT_LABELS: Record<string, Record<string, string>> = {
-    length: { m: 'Metro (m)', cm: 'Centímetro (cm)', mm: 'Milímetro (mm)' },
-    mass: { kg: 'Quilograma (kg)', g: 'Grama (g)', mg: 'Miligrama (mg)' },
+    length: {
+        m: 'Metro (m)',
+        cm: 'Centímetro (cm)',
+        mm: 'Milímetro (mm)',
+        in: 'Polegada (in)',
+        ft: 'Pé (ft)',
+        yd: 'Jarda (yd)',
+    },
+    mass: {
+        kg: 'Quilograma (kg)',
+        g: 'Grama (g)',
+        mg: 'Miligrama (mg)',
+        lb: 'Libra (lb)',
+        oz: 'Onça (oz)',
+    },
 }
 
 type PriceInputMode = 'kg' | 'total';
@@ -59,7 +85,7 @@ export default function ConversoesPage() {
   const [convType, setConvType] = useState('length');
   const [unitValue, setUnitValue] = useState('');
   const [fromUnit, setFromUnit] = useState('m');
-  const [toUnit, setToUnit] = useState('cm');
+  const [toUnit, setToUnit] = useState('cm';
   
   // Estado para materiais e confirmação de atualização
   const [materiais, setMateriais] = useState<MaterialItem[]>([]);
