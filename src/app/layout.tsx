@@ -13,7 +13,10 @@ export const metadata: Metadata = {
   title: 'Meu orçamento',
   description: 'Gere orçamentos de serviços de forma rápida, precisa e profissional.',
   manifest: '/manifest.json',
-  icons: false, // Desabilita a geração automática de ícones
+  icons: {
+    icon: '/ico_v2.jpg', // Define o ícone padrão
+    apple: '/ico_v2.jpg', // Define o ícone para dispositivos Apple
+  },
 };
 
 export const viewport: Viewport = {
@@ -32,7 +35,6 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Meu orçamento" />
-        <link rel="apple-touch-icon" href="/ico_v2.jpg" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <PwaRegistry />
