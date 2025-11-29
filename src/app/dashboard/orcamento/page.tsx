@@ -1143,7 +1143,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                             </div>
 
                             <div className="flex w-full items-center justify-end gap-2 md:hidden">
-                                {orcamento.status === 'Pendente' && (
+                                {orcamento.status === 'Pendente' ? (
                                     <>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild><Button variant="outline" size="sm" className="flex-1"><XCircle className="mr-2 h-4 w-4"/>Recusar</Button></AlertDialogTrigger>
@@ -1160,6 +1160,16 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                             </AlertDialogContent>
                                         </AlertDialog>
                                     </>
+                                ) : (
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="outline" size="sm" className="flex-1"><FileText className="mr-2 h-4 w-4" />Gerar PDF</Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 )}
                                <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
@@ -1171,10 +1181,12 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                     <DropdownMenuItem onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}>
                                       <Pencil className="mr-2 h-4 w-4" />Editar
                                     </DropdownMenuItem>
-                                    <DropdownMenuSub>
-                                      <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" />Gerar PDF</DropdownMenuSubTrigger>
-                                      <DropdownMenuPortal><DropdownMenuSubContent><DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem><DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem></DropdownMenuSubContent></DropdownMenuPortal>
-                                    </DropdownMenuSub>
+                                    {orcamento.status === 'Pendente' && (
+                                      <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" />Gerar PDF</DropdownMenuSubTrigger>
+                                        <DropdownMenuPortal><DropdownMenuSubContent><DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem><DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem></DropdownMenuSubContent></DropdownMenuPortal>
+                                      </DropdownMenuSub>
+                                    )}
                                     <DropdownMenuItem onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}>
                                       <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
                                     </DropdownMenuItem>
