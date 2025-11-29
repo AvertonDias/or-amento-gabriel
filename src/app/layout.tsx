@@ -14,8 +14,8 @@ export const metadata: Metadata = {
   description: 'Gere orçamentos de serviços de forma rápida, precisa e profissional.',
   manifest: '/manifest.json',
   icons: {
-    icon: '/ico_v2.jpg', // Define o ícone padrão
-    apple: '/ico_v2.jpg', // Define o ícone para dispositivos Apple
+    icon: '/ico_v2.jpg',
+    apple: '/ico_v2.jpg',
   },
 };
 
