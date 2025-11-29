@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import Image from "next/image";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -89,7 +90,7 @@ export default function RegisterPage() {
         <CardHeader className="text-center">
           <div className="flex justify-center items-center flex-col gap-2 mb-4">
             <div className="bg-white rounded-lg p-2">
-              <img
+              <Image
                 src="/ico_v2.jpg"
                 alt="Logo do App"
                 width={80}
