@@ -30,7 +30,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -44,7 +43,6 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from '@/lib/utils';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
-import { Directory, Filesystem } from '@capacitor/filesystem';
 
 
 // Componente para o layout do PDF do Cliente
@@ -824,6 +822,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
 
   const savePdfToFile = async (pdf: jsPDF, fileName: string) => {
     try {
+      const { Filesystem, Directory } = await import('@capacitor/filesystem');
       // Solicita permissão para escrever (necessário para Android >= Q)
       const permStatus = await Filesystem.checkPermissions();
       if (permStatus.publicStorage !== 'granted') {
