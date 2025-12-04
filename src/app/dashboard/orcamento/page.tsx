@@ -822,9 +822,12 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
   };
 
   const savePdfToFile = async (pdf: jsPDF, fileName: string) => {
+    if (!Capacitor.isNativePlatform()) {
+      pdf.save(fileName);
+      return;
+    }
     try {
       const { Filesystem, Directory } = await import('@capacitor/filesystem');
-      // Solicita permissão para escrever (necessário para Android >= Q)
       const permStatus = await Filesystem.checkPermissions();
       if (permStatus.publicStorage !== 'granted') {
         const permResult = await Filesystem.requestPermissions();
@@ -847,7 +850,6 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     } catch (e) {
       console.error("Erro ao salvar PDF no dispositivo", e);
       toast({ title: "Erro ao salvar", description: "Não foi possível salvar o PDF no dispositivo.", variant: "destructive" });
-      // Fallback para download normal caso o salvamento nativo falhe
       pdf.save(fileName);
     }
   };
@@ -873,12 +875,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
 
     const fileName = `orcamento-${orcamento.cliente.nome.toLowerCase().replace(/ /g, '_')}-${orcamento.numeroOrcamento}.pdf`;
 
-    if (Capacitor.isNativePlatform()) {
-      await savePdfToFile(pdf, fileName);
-    } else {
-      pdf.save(fileName);
-    }
-
+    await savePdfToFile(pdf, fileName);
     setPdfBudget(null);
   };
   
@@ -903,12 +900,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     
     const fileName = `interno-${orcamento.cliente.nome.toLowerCase().replace(/ /g, '_')}-${orcamento.numeroOrcamento}.pdf`;
 
-    if (Capacitor.isNativePlatform()) {
-      await savePdfToFile(pdf, fileName);
-    } else {
-      pdf.save(fileName);
-    }
-
+    await savePdfToFile(pdf, fileName);
     setPdfBudget(null);
   };
   
@@ -1263,7 +1255,9 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                           </AlertDialog>
                                       </>
                                   ) : (
-                                    <div/>
+                                    <Button size="sm" className="flex-1" onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}>
+                                      <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
+                                    </Button>
                                   )}
                                  <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -1272,9 +1266,14 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}>
-                                        <Pencil className="mr-2 h-4 w-4" />Editar
-                                      </DropdownMenuItem>
+                                      {orcamento.status === 'Pendente' && (
+                                        <>
+                                          <DropdownMenuItem onClick={() => handleOpenEditBudgetModal(orcamento)}>
+                                            <Pencil className="mr-2 h-4 w-4" />Editar
+                                          </DropdownMenuItem>
+                                          <DropdownMenuSeparator />
+                                        </>
+                                      )}
                                       <DropdownMenuSub>
                                           <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" />Gerar PDF</DropdownMenuSubTrigger>
                                           <DropdownMenuPortal>
