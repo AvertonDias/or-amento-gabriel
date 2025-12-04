@@ -1283,12 +1283,15 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                       <DropdownMenuItem onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}>
                                         <Pencil className="mr-2 h-4 w-4" />Editar
                                       </DropdownMenuItem>
-                                      {orcamento.status !== 'Pendente' && (
-                                          <DropdownMenuSub>
-                                              <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" />Gerar PDF</DropdownMenuSubTrigger>
-                                              <DropdownMenuPortal><DropdownMenuSubContent><DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem><DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem></DropdownMenuSubContent></DropdownMenuPortal>
-                                          </DropdownMenuSub>
-                                      )}
+                                      <DropdownMenuSub>
+                                          <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" />Gerar PDF</DropdownMenuSubTrigger>
+                                          <DropdownMenuPortal>
+                                            <DropdownMenuSubContent>
+                                              <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
+                                            </DropdownMenuSubContent>
+                                          </DropdownMenuPortal>
+                                      </DropdownMenuSub>
                                       <DropdownMenuItem onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}>
                                         <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
                                       </DropdownMenuItem>
