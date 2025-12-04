@@ -20,12 +20,12 @@ import Image from 'next/image';
 import { User as FirebaseUser, sendPasswordResetEmail } from 'firebase/auth';
 import { ThemePicker } from '@/components/theme-picker';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Separator } from '@/components/ui/separator';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const initialEmpresaState: Omit<EmpresaData, 'id' | 'userId'> = {
   nome: '',
   endereco: '',
-  telefones: [{ nome: 'Principal', numero: '' }],
+  telefones: [{ nome: 'Principal', numero: '', principal: true }],
   cnpj: '',
   logo: ''
 };
@@ -82,11 +82,21 @@ export default function ConfiguracoesPage() {
     setEmpresa({ ...empresa, telefones: novosTelefones });
   };
 
+  const handlePrincipalTelefoneChange = (selectedIndex: number) => {
+    if (!empresa) return;
+    const novosTelefones = empresa.telefones.map((tel, index) => ({
+      ...tel,
+      principal: index === selectedIndex,
+    }));
+    setEmpresa({ ...empresa, telefones: novosTelefones });
+  };
+
+
   const addTelefone = () => {
     if (!empresa) return;
     setEmpresa({
       ...empresa,
-      telefones: [...empresa.telefones, { nome: '', numero: '' }]
+      telefones: [...empresa.telefones, { nome: '', numero: '', principal: false }]
     });
   };
 
@@ -96,6 +106,12 @@ export default function ConfiguracoesPage() {
         return;
     }
     const novosTelefones = empresa.telefones.filter((_, i) => i !== index);
+    
+    // Se o telefone principal foi removido, define o primeiro da lista como principal
+    if (!novosTelefones.some(t => t.principal)) {
+      novosTelefones[0].principal = true;
+    }
+
     setEmpresa({ ...empresa, telefones: novosTelefones });
   };
 
@@ -309,43 +325,38 @@ export default function ConfiguracoesPage() {
                         </div>
 
                         <div className="space-y-4">
-                          <Label>Telefones de Contato</Label>
-                          {empresa.telefones.map((tel, index) => (
-                            <div key={index} className="flex flex-col sm:flex-row items-center gap-2 p-3 border rounded-md">
-                              <div className="w-full sm:w-1/3">
-                                <Label htmlFor={`tel-nome-${index}`} className="text-xs text-muted-foreground">Apelido</Label>
-                                <Input
-                                  id={`tel-nome-${index}`}
-                                  value={tel.nome}
-                                  onChange={(e) => handleTelefoneChange(index, 'nome', e.target.value)}
-                                  placeholder="Ex: Vendas"
-                                />
-                              </div>
-                              <div className="w-full sm:w-2/3">
-                                <Label htmlFor={`tel-numero-${index}`} className="text-xs text-muted-foreground">Número</Label>
-                                <Input
-                                  id={`tel-numero-${index}`}
-                                  value={tel.numero}
-                                  onChange={(e) => handleTelefoneChange(index, 'numero', e.target.value)}
-                                  placeholder="(DD) XXXXX-XXXX"
-                                />
-                              </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeTelefone(index)}
-                                disabled={empresa.telefones.length <= 1}
-                                className="mt-4 sm:mt-0"
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
-                          ))}
-                           <Button type="button" variant="outline" onClick={addTelefone} className="w-full sm:w-auto">
-                              <PlusCircle className="mr-2 h-4 w-4" />
-                              Adicionar Telefone
-                          </Button>
+                            <Label>Telefones de Contato</Label>
+                            <RadioGroup
+                                value={empresa.telefones.findIndex(t => t.principal).toString()}
+                                onValueChange={(value) => handlePrincipalTelefoneChange(parseInt(value, 10))}
+                                className="space-y-2"
+                            >
+                                {empresa.telefones.map((tel, index) => (
+                                <div key={index} className="flex items-center gap-2 p-3 border rounded-md">
+                                    <div className="flex items-center h-full">
+                                    <RadioGroupItem value={index.toString()} id={`tel-principal-${index}`} />
+                                    </div>
+                                    <div className="flex-grow grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <div className="sm:col-span-1">
+                                        <Label htmlFor={`tel-nome-${index}`} className="text-xs text-muted-foreground">Apelido</Label>
+                                        <Input id={`tel-nome-${index}`} value={tel.nome} onChange={(e) => handleTelefoneChange(index, 'nome', e.target.value)} placeholder="Ex: Vendas" />
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                        <Label htmlFor={`tel-numero-${index}`} className="text-xs text-muted-foreground">Número</Label>
+                                        <Input id={`tel-numero-${index}`} value={tel.numero} onChange={(e) => handleTelefoneChange(index, 'numero', e.target.value)} placeholder="(DD) XXXXX-XXXX" />
+                                    </div>
+                                    </div>
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeTelefone(index)} disabled={empresa.telefones.length <= 1}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </div>
+                                ))}
+                            </RadioGroup>
+                            <Label className="text-xs text-muted-foreground">Selecione o telefone que aparecerá no orçamento.</Label>
+                            <Button type="button" variant="outline" onClick={addTelefone} className="w-full sm:w-auto">
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Adicionar Telefone
+                            </Button>
                         </div>
                         
                         <div>

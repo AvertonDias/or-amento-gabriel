@@ -36,7 +36,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 // --- Imports para Capacitor ---
 import { Capacitor } from '@capacitor/core';
@@ -47,7 +47,7 @@ const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
   nome: '',
   cpfCnpj: '',
   endereco: '',
-  telefones: [{ nome: 'Principal', numero: '' }],
+  telefones: [{ nome: 'Principal', numero: '', principal: true }],
   email: '',
 };
 
@@ -181,13 +181,25 @@ export default function ClientesPage() {
     });
   };
 
+  const handlePrincipalTelefoneChange = (selectedIndex: number, targetState: 'new' | 'edit') => {
+      const setter = targetState === 'new' ? setNewClient : setEditingClient;
+      setter(prev => {
+          if (!prev) return null;
+          const novosTelefones = prev.telefones.map((tel, index) => ({
+              ...tel,
+              principal: index === selectedIndex,
+          }));
+          return { ...prev, telefones: novosTelefones };
+      });
+  };
+
   const addTelefone = (targetState: 'new' | 'edit') => {
       const setter = targetState === 'new' ? setNewClient : setEditingClient;
       setter(prev => {
           if (!prev) return null;
           return {
               ...prev,
-              telefones: [...prev.telefones, { nome: '', numero: '' }]
+              telefones: [...prev.telefones, { nome: '', numero: '', principal: false }]
           };
       });
   };
@@ -201,6 +213,9 @@ export default function ClientesPage() {
               return prev;
           }
           const novosTelefones = prev.telefones.filter((_, i) => i !== index);
+          if (!novosTelefones.some(t => t.principal)) {
+              novosTelefones[0].principal = true;
+          }
           return { ...prev, telefones: novosTelefones };
       });
   };
@@ -301,13 +316,15 @@ export default function ClientesPage() {
   };
   
   const handleEditClick = (client: ClienteData) => {
-    // Garantir que telefones seja um array
     const clientWithTelefones = {
         ...client,
         telefones: Array.isArray(client.telefones) && client.telefones.length > 0
             ? client.telefones
-            : [{ nome: 'Principal', numero: (client as any).telefone || '' }]
+            : [{ nome: 'Principal', numero: '', principal: true }]
     };
+    if (!clientWithTelefones.telefones.some(t => t.principal)) {
+      clientWithTelefones.telefones[0].principal = true;
+    }
     setEditingClient(clientWithTelefones);
     setIsEditModalOpen(true);
   };
@@ -429,7 +446,7 @@ const processSelectedContacts = (contacts: any[]) => {
         const partialClient = {
             nome: adaptedContact.name?.[0] || '',
             email: adaptedContact.email?.[0] || '',
-            telefones: [{ nome: 'Principal', numero: phoneNumber ? maskTelefone(phoneNumber) : '' }],
+            telefones: [{ nome: 'Principal', numero: phoneNumber ? maskTelefone(phoneNumber) : '', principal: true }],
             endereco: formattedAddress,
             cpfCnpj: '',
         };
@@ -524,7 +541,7 @@ const handleImportContacts = async () => {
     const partialClient = {
       nome: selectedContactDetails.name?.[0] || '',
       email: selectedEmail,
-      telefones: [{ nome: 'Principal', numero: phoneNumber ? maskTelefone(phoneNumber) : '' }],
+      telefones: [{ nome: 'Principal', numero: phoneNumber ? maskTelefone(phoneNumber) : '', principal: true }],
       endereco: formattedAddress,
       cpfCnpj: '',
     };
@@ -641,23 +658,33 @@ const handleImportContacts = async () => {
                       <Label htmlFor="endereco">Endereço Completo</Label>
                       <Input id="endereco" name="endereco" value={newClient.endereco} onChange={handleNewClientChange} placeholder="Rua, Número, Bairro, Cidade - UF" />
                     </div>
-                     <div className="md:col-span-2 space-y-4">
-                        <Label>Telefones de Contato</Label>
+                    <div className="md:col-span-2 space-y-4">
+                      <Label>Telefones de Contato</Label>
+                      <RadioGroup
+                        value={newClient.telefones.findIndex(t => t.principal).toString()}
+                        onValueChange={(value) => handlePrincipalTelefoneChange(parseInt(value, 10), 'new')}
+                        className="space-y-2"
+                      >
                         {newClient.telefones.map((tel, index) => (
-                          <div key={index} className="flex flex-col sm:flex-row items-center gap-2 p-3 border rounded-md">
-                            <div className="w-full sm:w-1/3">
-                              <Label htmlFor={`new-tel-nome-${index}`} className="text-xs text-muted-foreground">Apelido</Label>
-                              <Input id={`new-tel-nome-${index}`} value={tel.nome} onChange={(e) => handleTelefoneChange(index, 'nome', e.target.value, 'new')} placeholder="Ex: Principal" />
+                          <div key={index} className="flex items-center gap-2 p-3 border rounded-md">
+                             <div className="flex items-center h-full"><RadioGroupItem value={index.toString()} id={`new-tel-principal-${index}`} /></div>
+                            <div className="flex-grow grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div className="sm:col-span-1">
+                                <Label htmlFor={`new-tel-nome-${index}`} className="text-xs text-muted-foreground">Apelido</Label>
+                                <Input id={`new-tel-nome-${index}`} value={tel.nome} onChange={(e) => handleTelefoneChange(index, 'nome', e.target.value, 'new')} placeholder="Ex: Principal" />
+                                </div>
+                                <div className="sm:col-span-2">
+                                <Label htmlFor={`new-tel-numero-${index}`} className="text-xs text-muted-foreground">Número</Label>
+                                <Input id={`new-tel-numero-${index}`} value={tel.numero} onChange={(e) => handleTelefoneChange(index, 'numero', e.target.value, 'new')} placeholder="(DD) XXXXX-XXXX" />
+                                </div>
                             </div>
-                            <div className="w-full sm:w-2/3">
-                              <Label htmlFor={`new-tel-numero-${index}`} className="text-xs text-muted-foreground">Número</Label>
-                              <Input id={`new-tel-numero-${index}`} value={tel.numero} onChange={(e) => handleTelefoneChange(index, 'numero', e.target.value, 'new')} placeholder="(DD) XXXXX-XXXX" />
-                            </div>
-                            <Button type="button" variant="ghost" size="icon" onClick={() => removeTelefone(index, 'new')} disabled={newClient.telefones.length <= 1} className="mt-4 sm:mt-0">
+                            <Button type="button" variant="ghost" size="icon" onClick={() => removeTelefone(index, 'new')} disabled={newClient.telefones.length <= 1}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
                         ))}
+                      </RadioGroup>
+                       <Label className="text-xs text-muted-foreground">Selecione o telefone principal para contato.</Label>
                          <Button type="button" variant="outline" size="sm" onClick={() => addTelefone('new')} className="w-full sm:w-auto">
                             <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Telefone
                         </Button>
@@ -792,7 +819,7 @@ const handleImportContacts = async () => {
                           {item.cpfCnpj && <p className="text-sm"><span className="font-medium text-muted-foreground">CPF/CNPJ:</span> {item.cpfCnpj}</p>}
                           {item.telefones?.map((tel, index) => (
                             <p key={index} className="text-sm">
-                                <span className="font-medium text-muted-foreground">{tel.nome || 'Telefone'}:</span> {tel.numero}
+                                <span className="font-medium text-muted-foreground">{tel.nome || 'Telefone'}{tel.principal && " (Principal)"}:</span> {tel.numero}
                             </p>
                           ))}
                           {item.email && <p className="text-sm"><span className="font-medium text-muted-foreground">Email:</span> {item.email}</p>}
@@ -871,21 +898,30 @@ const handleImportContacts = async () => {
                 
                 <div className="md:col-span-2 space-y-4">
                     <Label>Telefones de Contato</Label>
+                    <RadioGroup
+                        value={editingClient.telefones.findIndex(t => t.principal).toString()}
+                        onValueChange={(value) => handlePrincipalTelefoneChange(parseInt(value, 10), 'edit')}
+                        className="space-y-2"
+                    >
                     {editingClient.telefones.map((tel, index) => (
-                      <div key={index} className="flex flex-col sm:flex-row items-center gap-2 p-3 border rounded-md">
-                        <div className="w-full sm:w-1/3">
-                          <Label htmlFor={`edit-tel-nome-${index}`} className="text-xs text-muted-foreground">Apelido</Label>
-                          <Input id={`edit-tel-nome-${index}`} value={tel.nome} onChange={(e) => handleTelefoneChange(index, 'nome', e.target.value, 'edit')} placeholder="Ex: Principal" />
+                      <div key={index} className="flex items-center gap-2 p-3 border rounded-md">
+                        <div className="flex items-center h-full"><RadioGroupItem value={index.toString()} id={`edit-tel-principal-${index}`} /></div>
+                        <div className="flex-grow grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div className="sm:col-span-1">
+                                <Label htmlFor={`edit-tel-nome-${index}`} className="text-xs text-muted-foreground">Apelido</Label>
+                                <Input id={`edit-tel-nome-${index}`} value={tel.nome} onChange={(e) => handleTelefoneChange(index, 'nome', e.target.value, 'edit')} placeholder="Ex: Principal" />
+                            </div>
+                            <div className="sm:col-span-2">
+                                <Label htmlFor={`edit-tel-numero-${index}`} className="text-xs text-muted-foreground">Número</Label>
+                                <Input id={`edit-tel-numero-${index}`} value={tel.numero} onChange={(e) => handleTelefoneChange(index, 'numero', e.target.value, 'edit')} placeholder="(DD) XXXXX-XXXX" />
+                            </div>
                         </div>
-                        <div className="w-full sm:w-2/3">
-                          <Label htmlFor={`edit-tel-numero-${index}`} className="text-xs text-muted-foreground">Número</Label>
-                          <Input id={`edit-tel-numero-${index}`} value={tel.numero} onChange={(e) => handleTelefoneChange(index, 'numero', e.target.value, 'edit')} placeholder="(DD) XXXXX-XXXX" />
-                        </div>
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeTelefone(index, 'edit')} disabled={editingClient.telefones.length <= 1} className="mt-4 sm:mt-0">
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeTelefone(index, 'edit')} disabled={editingClient.telefones.length <= 1}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
                     ))}
+                    </RadioGroup>
                      <Button type="button" variant="outline" size="sm" onClick={() => addTelefone('edit')} className="w-full sm:w-auto">
                         <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Telefone
                     </Button>

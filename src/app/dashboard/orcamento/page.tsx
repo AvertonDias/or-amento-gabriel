@@ -2,6 +2,7 @@
 
 
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, FormEvent, useRef, useCallback } from 'react';
@@ -62,6 +63,9 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
     const dataAceite = orcamento.dataAceite ? parseISO(orcamento.dataAceite) : null;
     const dataRecusa = orcamento.dataRecusa ? parseISO(orcamento.dataRecusa) : null;
 
+    const telefonePrincipalEmpresa = empresa?.telefones.find(t => t.principal) || empresa?.telefones[0];
+    const telefonePrincipalCliente = orcamento.cliente.telefones.find(t => t.principal) || orcamento.cliente.telefones[0];
+
     return (
       <div className="p-8 font-sans bg-white text-black text-xs">
         <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
@@ -75,7 +79,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
             <div>
               <h1 className="text-xl font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
               <p>{empresa?.endereco}</p>
-              <p>{empresa?.telefones?.[0]?.numero}</p>
+              {telefonePrincipalEmpresa && <p>{telefonePrincipalEmpresa.numero}</p>}
               <p>{empresa?.cnpj}</p>
             </div>
           </div>
@@ -101,7 +105,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
             <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
             {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
             {orcamento.cliente.endereco && <p><span className="font-medium">Endereço:</span> {orcamento.cliente.endereco}</p>}
-            <p><span className="font-medium">Telefone:</span> {orcamento.cliente.telefones?.[0]?.numero}</p>
+            {telefonePrincipalCliente && <p><span className="font-medium">Telefone:</span> {telefonePrincipalCliente.numero}</p>}
             {orcamento.cliente.email && <p><span className="font-medium">Email:</span> {orcamento.cliente.email}</p>}
           </div>
         </section>
@@ -151,6 +155,9 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
     const dataAceite = orcamento.dataAceite ? parseISO(orcamento.dataAceite) : null;
     const dataRecusa = orcamento.dataRecusa ? parseISO(orcamento.dataRecusa) : null;
 
+    const telefonePrincipalEmpresa = empresa?.telefones.find(t => t.principal) || empresa?.telefones[0];
+    const telefonePrincipalCliente = orcamento.cliente.telefones.find(t => t.principal) || orcamento.cliente.telefones[0];
+
     return (
       <div className="p-8 font-sans bg-white text-black text-xs">
         <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
@@ -164,7 +171,7 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
               <div>
                 <h1 className="text-xl font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
                 <p>{empresa?.endereco}</p>
-                <p>{empresa?.telefones?.[0]?.numero}</p>
+                {telefonePrincipalEmpresa && <p>{telefonePrincipalEmpresa.numero}</p>}
                 <p>{empresa?.cnpj}</p>
               </div>
             </div>
@@ -191,7 +198,7 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
               <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
               {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
               {orcamento.cliente.endereco && <p><span className="font-medium">Endereço:</span> {orcamento.cliente.endereco}</p>}
-              <p><span className="font-medium">Telefone:</span> {orcamento.cliente.telefones?.[0]?.numero}</p>
+              {telefonePrincipalCliente && <p><span className="font-medium">Telefone:</span> {telefonePrincipalCliente.numero}</p>}
               {orcamento.cliente.email && <p><span className="font-medium">Email:</span> {orcamento.cliente.email}</p>}
             </div>
         </section>
@@ -259,7 +266,7 @@ export default function OrcamentoPage() {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [orcamentoItens, setOrcamentoItens] = useState<OrcamentoItem[]>([]);
-  const [clienteData, setClienteData] = useState<Omit<ClienteData, 'userId' | 'id'> & {id?: string}>({ id: undefined, nome: '', endereco: '', telefones: [{nome: 'Principal', numero: ''}], email: '', cpfCnpj: ''});
+  const [clienteData, setClienteData] = useState<Omit<ClienteData, 'userId' | 'id'> & {id?: string}>({ id: undefined, nome: '', endereco: '', telefones: [{nome: 'Principal', numero: '', principal: true}], email: '', cpfCnpj: ''});
   const [validadeDias, setValidadeDias] = useState('7');
   
   const [isLoading, setIsLoading] = useState({
@@ -495,7 +502,7 @@ export default function OrcamentoPage() {
   const handleOpenWizard = () => {
     // Reset state before opening
     setOrcamentoItens([]);
-    setClienteData({ id: undefined, nome: '', endereco: '', telefones: [{nome: 'Principal', numero: ''}], email: '', cpfCnpj: ''});
+    setClienteData({ id: undefined, nome: '', endereco: '', telefones: [{nome: 'Principal', numero: '', principal: true}], email: '', cpfCnpj: ''});
     setValidadeDias('7');
     setIsAddingAvulso(false);
     setWizardStep(1);
@@ -524,7 +531,7 @@ export default function OrcamentoPage() {
   const handleClientAddTelefone = () => {
     setClienteData(prev => ({
         ...prev,
-        telefones: [...prev.telefones, { nome: '', numero: '' }]
+        telefones: [...prev.telefones, { nome: '', numero: '', principal: false }]
     }));
   };
 
@@ -535,9 +542,24 @@ export default function OrcamentoPage() {
             return prev;
         }
         const novosTelefones = prev.telefones.filter((_, i) => i !== index);
+        if (!novosTelefones.some(t => t.principal)) {
+          novosTelefones[0].principal = true;
+        }
         return { ...prev, telefones: novosTelefones };
     });
   };
+
+  const handleClientPrincipalTelefoneChange = (selectedIndex: number) => {
+    setClienteData(prev => {
+      if (!prev) return prev;
+      const novosTelefones = prev.telefones.map((tel, index) => ({
+        ...tel,
+        principal: index === selectedIndex,
+      }));
+      return { ...prev, telefones: novosTelefones };
+    });
+  };
+
 
   const handleNovoItemChange = (field: keyof typeof novoItem, value: string) => {
     if (field === 'materialId') {
@@ -853,7 +875,8 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     } else {
       // Abre o modal de seleção se tiver múltiplos números
       setCurrentBudgetForWpp(orcamento);
-      setSelectedPhone(empresa.telefones[0].numero);
+      const principalPhone = empresa.telefones.find(t => t.principal) || empresa.telefones[0];
+      setSelectedPhone(principalPhone.numero);
       setIsPhoneSelectionOpen(true);
     }
   };
@@ -868,8 +891,9 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
   
   const sendWhatsAppMessage = (orcamento: Orcamento, companyPhone: string) => {
     const cleanCompanyPhone = companyPhone.replace(/\D/g, '');
+    const telefonePrincipalCliente = orcamento.cliente.telefones.find(t => t.principal) || orcamento.cliente.telefones[0];
     let mensagem = `✅ *Orçamento Aceito!*\n\n*Nº do Orçamento:* ${orcamento.numeroOrcamento}\n*Cliente:* ${orcamento.cliente.nome}\n`;
-    if (orcamento.cliente.telefones?.[0]?.numero) mensagem += `*Tel. Cliente:* ${orcamento.cliente.telefones[0].numero}\n`;
+    if (telefonePrincipalCliente?.numero) mensagem += `*Tel. Cliente:* ${telefonePrincipalCliente.numero}\n`;
     if (orcamento.cliente.endereco) mensagem += `*Endereço:* ${orcamento.cliente.endereco}\n`;
     mensagem += `*Valor Total:* ${formatCurrency(orcamento.totalVenda)}\n\n*Itens do Serviço:*\n`;
     orcamento.itens.forEach(item => {
@@ -966,7 +990,8 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
   };
   
   const handleEnviarWhatsApp = (orcamento: Orcamento) => {
-    const telefoneLimpo = orcamento.cliente.telefones?.[0]?.numero.replace(/\D/g, '');
+    const telefonePrincipalCliente = orcamento.cliente.telefones.find(t => t.principal) || orcamento.cliente.telefones[0];
+    const telefoneLimpo = telefonePrincipalCliente?.numero.replace(/\D/g, '');
     if (!telefoneLimpo) { toast({ title: 'Telefone do Cliente inválido.', variant: 'destructive' }); return; }
     let mensagem = `*Orçamento de ${empresa?.nome || 'Serviços'}*\n\n*Nº do Orçamento:* ${orcamento.numeroOrcamento}\n\nOlá, *${orcamento.cliente.nome}*!\nSegue o seu orçamento:\n\n`;
     orcamento.itens.forEach(item => {
@@ -1248,7 +1273,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                           <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
                                       </DropdownMenuContent>
                                   </DropdownMenu>
-                                  <Button variant="outline" size="sm" onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones?.[0]?.numero}><MessageCircle className="mr-2 h-4 w-4" />Enviar</Button>
+                                  <Button variant="outline" size="sm" onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones.some(t => t.numero)}><MessageCircle className="mr-2 h-4 w-4" />Enviar</Button>
                                   <Button variant="outline" size="sm" onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}><Pencil className="mr-2 h-4 w-4" />Editar</Button>
                                   {orcamento.status === 'Pendente' && (
                                       <>
@@ -1318,13 +1343,13 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                     </>
                                 ) : (
                                   <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="sm" className="flex-1"><FileText className="mr-2 h-4 w-4" />Gerar PDF</Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                          <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
-                                      </DropdownMenuContent>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="outline" size="sm" className="flex-1"><FileText className="mr-2 h-4 w-4" />Gerar PDF</Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
+                                    </DropdownMenuContent>
                                   </DropdownMenu>
                                 )}
                                 <DropdownMenu>
@@ -1343,9 +1368,22 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                         </>
                                     )}
                                     
-                                    <DropdownMenuItem onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones?.[0]?.numero}>
+                                    <DropdownMenuItem onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones.some(t => t.numero)}>
                                         <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
                                     </DropdownMenuItem>
+                                    <DropdownMenuSub>
+                                      <DropdownMenuSubTrigger>
+                                        <FileText className="mr-2 h-4 w-4" />
+                                        Gerar PDF
+                                      </DropdownMenuSubTrigger>
+                                      <DropdownMenuPortal>
+                                        <DropdownMenuSubContent>
+                                          <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
+                                        </DropdownMenuSubContent>
+                                      </DropdownMenuPortal>
+                                    </DropdownMenuSub>
+
                                     <DropdownMenuSeparator />
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
@@ -1421,7 +1459,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                                         id: client.id,
                                                         nome: client.nome,
                                                         endereco: client.endereco || '',
-                                                        telefones: client.telefones && client.telefones.length > 0 ? client.telefones : [{ nome: 'Principal', numero: '' }],
+                                                        telefones: client.telefones && client.telefones.length > 0 ? client.telefones : [{ nome: 'Principal', numero: '', principal: true }],
                                                         email: client.email || '',
                                                         cpfCnpj: client.cpfCnpj || ''
                                                       });
@@ -1456,17 +1494,24 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2 space-y-2">
-                    <Label>Telefones</Label>
-                     {clienteData.telefones.map((tel, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <Input className="w-1/3" value={tel.nome} onChange={(e) => handleClientTelefoneChange(index, 'nome', e.target.value)} placeholder="Ex: Principal" />
-                          <Input className="flex-1" value={tel.numero} onChange={(e) => handleClientTelefoneChange(index, 'numero', e.target.value)} placeholder="(DD) XXXXX-XXXX" />
-                          <Button type="button" variant="ghost" size="icon" onClick={() => handleClientRemoveTelefone(index)} disabled={clienteData.telefones.length <= 1}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      ))}
+                    <div className="md:col-span-2 space-y-2">
+                        <Label>Telefones</Label>
+                        <RadioGroup
+                          value={clienteData.telefones.findIndex(t => t.principal).toString()}
+                          onValueChange={(value) => handleClientPrincipalTelefoneChange(parseInt(value, 10))}
+                          className="space-y-2"
+                        >
+                            {clienteData.telefones.map((tel, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                  <RadioGroupItem value={index.toString()} id={`client-tel-principal-${index}`} />
+                                  <Input className="flex-1" value={tel.nome} onChange={(e) => handleClientTelefoneChange(index, 'nome', e.target.value)} placeholder="Ex: Principal" />
+                                  <Input className="flex-1" value={tel.numero} onChange={(e) => handleClientTelefoneChange(index, 'numero', e.target.value)} placeholder="(DD) XXXXX-XXXX" />
+                                  <Button type="button" variant="ghost" size="icon" onClick={() => handleClientRemoveTelefone(index)} disabled={clienteData.telefones.length <= 1}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              ))}
+                        </RadioGroup>
                       <Button type="button" variant="outline" size="sm" onClick={handleClientAddTelefone}><PlusCircle className="mr-2 h-4 w-4"/>Add Telefone</Button>
                   </div>
                   <div className="space-y-2 md:col-span-2"><Label htmlFor="cliente-endereco">Endereço</Label><Input id="cliente-endereco" name="endereco" value={clienteData.endereco} onChange={handleClienteDataChange} /></div>
@@ -1648,7 +1693,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
+      </Dialog>
       
       <Dialog open={isEditBudgetModalOpen} onOpenChange={setIsEditBudgetModalOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">

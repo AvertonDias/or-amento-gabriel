@@ -13,11 +13,25 @@ export const saveEmpresaData = async (userId: string, data: Omit<EmpresaData, 'i
 
   const empresaDocRef = doc(db, EMPRESA_COLLECTION, userId);
   
-  // Assegura que o campo telefones seja um array, mesmo que venha vazio
+  // Assegura que o campo telefones seja um array e que apenas um seja principal
+  let telefones = Array.isArray(data.telefones) ? data.telefones : [];
+  let principalFound = false;
+  telefones = telefones.map(tel => {
+      if (tel.principal && !principalFound) {
+          principalFound = true;
+          return tel;
+      }
+      return { ...tel, principal: false };
+  });
+
+  if (!principalFound && telefones.length > 0) {
+      telefones[0].principal = true;
+  }
+  
   const dataToSave: Omit<EmpresaData, 'id'> = {
       ...data,
       userId: userId,
-      telefones: Array.isArray(data.telefones) ? data.telefones : [],
+      telefones: telefones,
   };
 
   try {
@@ -44,17 +58,29 @@ export const getEmpresaData = (userId: string): Promise<EmpresaData | null> => {
     return getDoc(empresaDocRef).then(docSnap => {
         if (!docSnap.exists()) {
             console.log(`Nenhum dado de empresa encontrado para o userId: ${userId}`);
-            return null;
+            // Retorna um estado inicial se não houver dados, garantindo que telefones seja um array
+            const initialState: EmpresaData = {
+                id: userId,
+                userId: userId,
+                nome: '',
+                endereco: '',
+                telefones: [{ nome: 'Principal', numero: '', principal: true }],
+                cnpj: '',
+                logo: '',
+            };
+            return initialState;
         }
+        
         const data = docSnap.data() as Omit<EmpresaData, 'id'>;
         
-        // Garante a compatibilidade com a estrutura antiga de 'telefone'
         let telefones = data.telefones || [];
-        if (!Array.isArray(telefones) && (data as any).telefone) {
-             telefones = [{ nome: 'Principal', numero: (data as any).telefone }];
-        }
-        if (Array.isArray(telefones) && telefones.length === 0) {
-            telefones.push({ nome: '', numero: '' });
+
+        // Migração de dados para a nova estrutura
+        if (!Array.isArray(telefones) || telefones.length === 0) {
+            telefones = [{ nome: 'Principal', numero: (data as any).telefone || '', principal: true }];
+        } else if (!telefones.some(t => t.principal)) {
+             // Garante que pelo menos um telefone é principal
+            telefones[0].principal = true;
         }
 
         return { id: docSnap.id, ...data, telefones } as EmpresaData;
