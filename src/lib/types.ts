@@ -15,7 +15,7 @@ export interface ClienteData {
   userId: string;
   nome: string;
   endereco: string;
-  telefone:string;
+  telefones: { nome: string; numero: string }[];
   email?: string;
   cpfCnpj?: string;
 }

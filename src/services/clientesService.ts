@@ -1,6 +1,6 @@
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy, getDoc } from 'firebase/firestore';
 import type { ClienteData } from '@/lib/types';
 
 const getClientesCollection = () => {
@@ -10,10 +10,12 @@ const getClientesCollection = () => {
 // Add a new client and return its ID
 export const addCliente = (userId: string, cliente: Omit<ClienteData, 'id' | 'userId'>): Promise<string> => {
   const clientesCollection = getClientesCollection();
-  return addDoc(clientesCollection, {
+  const dataToSave = {
     ...cliente,
     userId,
-  }).then(docRef => docRef.id);
+    telefones: Array.isArray(cliente.telefones) ? cliente.telefones : [],
+  };
+  return addDoc(clientesCollection, dataToSave).then(docRef => docRef.id);
 };
 
 // Update an existing client
@@ -36,9 +38,12 @@ export const getClientes = async (userId: string): Promise<ClienteData[]> => {
     const querySnapshot = await getDocs(q);
     const clientes: ClienteData[] = [];
     querySnapshot.forEach((doc) => {
-        clientes.push({ id: doc.id, ...doc.data() } as ClienteData);
+        const data = doc.data();
+        // Fallback for old structure
+        if (data.telefone && !data.telefones) {
+            data.telefones = [{ nome: 'Principal', numero: data.telefone }];
+        }
+        clientes.push({ id: doc.id, ...data } as ClienteData);
     });
     return clientes;
 };
-
-    

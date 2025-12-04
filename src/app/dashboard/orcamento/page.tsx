@@ -1,6 +1,7 @@
 
 
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, FormEvent, useRef, useCallback } from 'react';
@@ -100,7 +101,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
             <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
             {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
             {orcamento.cliente.endereco && <p><span className="font-medium">Endereço:</span> {orcamento.cliente.endereco}</p>}
-            <p><span className="font-medium">Telefone:</span> {orcamento.cliente.telefone}</p>
+            <p><span className="font-medium">Telefone:</span> {orcamento.cliente.telefones?.[0]?.numero}</p>
             {orcamento.cliente.email && <p><span className="font-medium">Email:</span> {orcamento.cliente.email}</p>}
           </div>
         </section>
@@ -190,7 +191,7 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
               <p><span className="font-medium">Nome:</span> {orcamento.cliente.nome}</p>
               {orcamento.cliente.cpfCnpj && <p><span className="font-medium">CPF/CNPJ:</span> {orcamento.cliente.cpfCnpj}</p>}
               {orcamento.cliente.endereco && <p><span className="font-medium">Endereço:</span> {orcamento.cliente.endereco}</p>}
-              <p><span className="font-medium">Telefone:</span> {orcamento.cliente.telefone}</p>
+              <p><span className="font-medium">Telefone:</span> {orcamento.cliente.telefones?.[0]?.numero}</p>
               {orcamento.cliente.email && <p><span className="font-medium">Email:</span> {orcamento.cliente.email}</p>}
             </div>
         </section>
@@ -258,7 +259,7 @@ export default function OrcamentoPage() {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [orcamentoItens, setOrcamentoItens] = useState<OrcamentoItem[]>([]);
-  const [clienteData, setClienteData] = useState<Omit<ClienteData, 'userId' | 'id'> & {id?: string}>({ id: undefined, nome: '', endereco: '', telefone: '', email: '', cpfCnpj: ''});
+  const [clienteData, setClienteData] = useState<Omit<ClienteData, 'userId' | 'id'> & {id?: string}>({ id: undefined, nome: '', endereco: '', telefones: [{nome: 'Principal', numero: ''}], email: '', cpfCnpj: ''});
   const [validadeDias, setValidadeDias] = useState('7');
   
   const [isLoading, setIsLoading] = useState({
@@ -494,7 +495,7 @@ export default function OrcamentoPage() {
   const handleOpenWizard = () => {
     // Reset state before opening
     setOrcamentoItens([]);
-    setClienteData({ id: undefined, nome: '', endereco: '', telefone: '', email: '', cpfCnpj: ''});
+    setClienteData({ id: undefined, nome: '', endereco: '', telefones: [{nome: 'Principal', numero: ''}], email: '', cpfCnpj: ''});
     setValidadeDias('7');
     setIsAddingAvulso(false);
     setWizardStep(1);
@@ -505,8 +506,37 @@ export default function OrcamentoPage() {
     const { name, value } = e.target;
     let finalValue = value;
     if (name === 'cpfCnpj') finalValue = maskCpfCnpj(value);
-    else if (name === 'telefone') finalValue = maskTelefone(value);
     setClienteData(prev => ({...prev, [name]: finalValue}));
+  };
+
+  const handleClientTelefoneChange = (index: number, field: 'nome' | 'numero', value: string) => {
+    const setter = setClienteData;
+    const maskedValue = field === 'numero' ? maskTelefone(value) : value;
+
+    setter(prev => {
+        if (!prev) return prev;
+        const novosTelefones = [...prev.telefones];
+        novosTelefones[index] = { ...novosTelefones[index], [field]: maskedValue };
+        return { ...prev, telefones: novosTelefones };
+    });
+  };
+
+  const handleClientAddTelefone = () => {
+    setClienteData(prev => ({
+        ...prev,
+        telefones: [...prev.telefones, { nome: '', numero: '' }]
+    }));
+  };
+
+  const handleClientRemoveTelefone = (index: number) => {
+    setClienteData(prev => {
+        if (prev.telefones.length <= 1) {
+            toast({ title: "Ação não permitida", description: "Deve haver pelo menos um número de telefone.", variant: "destructive" });
+            return prev;
+        }
+        const novosTelefones = prev.telefones.filter((_, i) => i !== index);
+        return { ...prev, telefones: novosTelefones };
+    });
   };
 
   const handleNovoItemChange = (field: keyof typeof novoItem, value: string) => {
@@ -839,7 +869,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
   const sendWhatsAppMessage = (orcamento: Orcamento, companyPhone: string) => {
     const cleanCompanyPhone = companyPhone.replace(/\D/g, '');
     let mensagem = `✅ *Orçamento Aceito!*\n\n*Nº do Orçamento:* ${orcamento.numeroOrcamento}\n*Cliente:* ${orcamento.cliente.nome}\n`;
-    if (orcamento.cliente.telefone) mensagem += `*Tel. Cliente:* ${orcamento.cliente.telefone}\n`;
+    if (orcamento.cliente.telefones?.[0]?.numero) mensagem += `*Tel. Cliente:* ${orcamento.cliente.telefones[0].numero}\n`;
     if (orcamento.cliente.endereco) mensagem += `*Endereço:* ${orcamento.cliente.endereco}\n`;
     mensagem += `*Valor Total:* ${formatCurrency(orcamento.totalVenda)}\n\n*Itens do Serviço:*\n`;
     orcamento.itens.forEach(item => {
@@ -865,7 +895,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     
         const base64Data = pdf.output('datauristring').split(',')[1];
         
-        const result = await Filesystem.writeFile({
+        await Filesystem.writeFile({
           path: fileName,
           data: base64Data,
           directory: Directory.Documents, // Salva na pasta de Documentos
@@ -903,12 +933,8 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     pdf.addImage(imgData, 'PNG', 0, 0, width, height);
 
     const fileName = `orcamento-${orcamento.cliente.nome.toLowerCase().replace(/ /g, '_')}-${orcamento.numeroOrcamento}.pdf`;
-
-    if (Capacitor.isNativePlatform()) {
-      await savePdfToFile(pdf, fileName);
-    } else {
-      pdf.save(fileName);
-    }
+    
+    await savePdfToFile(pdf, fileName);
 
     setPdfBudget(null);
   };
@@ -934,17 +960,13 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     
     const fileName = `interno-${orcamento.cliente.nome.toLowerCase().replace(/ /g, '_')}-${orcamento.numeroOrcamento}.pdf`;
 
-    if (Capacitor.isNativePlatform()) {
-      await savePdfToFile(pdf, fileName);
-    } else {
-      pdf.save(fileName);
-    }
+    await savePdfToFile(pdf, fileName);
     
     setPdfBudget(null);
   };
   
   const handleEnviarWhatsApp = (orcamento: Orcamento) => {
-    const telefoneLimpo = orcamento.cliente.telefone.replace(/\D/g, '');
+    const telefoneLimpo = orcamento.cliente.telefones?.[0]?.numero.replace(/\D/g, '');
     if (!telefoneLimpo) { toast({ title: 'Telefone do Cliente inválido.', variant: 'destructive' }); return; }
     let mensagem = `*Orçamento de ${empresa?.nome || 'Serviços'}*\n\n*Nº do Orçamento:* ${orcamento.numeroOrcamento}\n\nOlá, *${orcamento.cliente.nome}*!\nSegue o seu orçamento:\n\n`;
     orcamento.itens.forEach(item => {
@@ -1054,7 +1076,6 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     const { name, value } = e.target;
     let finalValue = value;
     if (name === 'cpfCnpj') finalValue = maskCpfCnpj(value);
-    else if (name === 'telefone') finalValue = maskTelefone(value);
     setEditingBudget(prev => {
       if (!prev) return null;
       return {
@@ -1099,7 +1120,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     if (cliente.id && !cliente.id.startsWith('temp_')) {
         try {
             await updateCliente(cliente.id, {
-                telefone: cliente.telefone,
+                telefones: cliente.telefones,
                 endereco: cliente.endereco,
             });
             toast({ title: "Dados do cliente atualizados."});
@@ -1227,7 +1248,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                           <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
                                       </DropdownMenuContent>
                                   </DropdownMenu>
-                                  <Button variant="outline" size="sm" onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}><MessageCircle className="mr-2 h-4 w-4" />Enviar</Button>
+                                  <Button variant="outline" size="sm" onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones?.[0]?.numero}><MessageCircle className="mr-2 h-4 w-4" />Enviar</Button>
                                   <Button variant="outline" size="sm" onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}><Pencil className="mr-2 h-4 w-4" />Editar</Button>
                                   {orcamento.status === 'Pendente' && (
                                       <>
@@ -1322,17 +1343,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                         </>
                                     )}
                                     
-                                    <DropdownMenuSub>
-                                        <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" />Gerar PDF</DropdownMenuSubTrigger>
-                                        <DropdownMenuPortal>
-                                        <DropdownMenuSubContent>
-                                            <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
-                                        </DropdownMenuSubContent>
-                                        </DropdownMenuPortal>
-                                    </DropdownMenuSub>
-
-                                    <DropdownMenuItem onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}>
+                                    <DropdownMenuItem onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones?.[0]?.numero}>
                                         <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
@@ -1404,7 +1415,17 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                               key={c.id}
                                               value={c.nome}
                                               onSelect={() => {
-                                                  setClienteData(c);
+                                                  const client = clientes.find(cli => cli.id === c.id);
+                                                  if (client) {
+                                                      setClienteData({
+                                                        id: client.id,
+                                                        nome: client.nome,
+                                                        endereco: client.endereco || '',
+                                                        telefones: client.telefones && client.telefones.length > 0 ? client.telefones : [{ nome: 'Principal', numero: '' }],
+                                                        email: client.email || '',
+                                                        cpfCnpj: client.cpfCnpj || ''
+                                                      });
+                                                  }
                                                   setIsClientPopoverOpen(false);
                                               }}
                                           >
@@ -1435,7 +1456,19 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label htmlFor="cliente-telefone">Telefone</Label><Input id="cliente-telefone" name="telefone" value={clienteData.telefone} onChange={handleClienteDataChange} placeholder="(DD) XXXXX-XXXX"/></div>
+                  <div className="md:col-span-2 space-y-2">
+                    <Label>Telefones</Label>
+                     {clienteData.telefones.map((tel, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <Input className="w-1/3" value={tel.nome} onChange={(e) => handleClientTelefoneChange(index, 'nome', e.target.value)} placeholder="Ex: Principal" />
+                          <Input className="flex-1" value={tel.numero} onChange={(e) => handleClientTelefoneChange(index, 'numero', e.target.value)} placeholder="(DD) XXXXX-XXXX" />
+                          <Button type="button" variant="ghost" size="icon" onClick={() => handleClientRemoveTelefone(index)} disabled={clienteData.telefones.length <= 1}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button type="button" variant="outline" size="sm" onClick={handleClientAddTelefone}><PlusCircle className="mr-2 h-4 w-4"/>Add Telefone</Button>
+                  </div>
                   <div className="space-y-2 md:col-span-2"><Label htmlFor="cliente-endereco">Endereço</Label><Input id="cliente-endereco" name="endereco" value={clienteData.endereco} onChange={handleClienteDataChange} /></div>
                   <div className="space-y-2">
                     <Label htmlFor="cliente-cpfCnpj">CPF/CNPJ</Label>
@@ -1634,10 +1667,6 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                 <div className="space-y-2">
                   <Label htmlFor="edit-cliente-nome">Nome</Label>
                   <Input id="edit-cliente-nome" name="nome" value={editingBudget.cliente.nome} disabled />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-cliente-telefone">Telefone</Label>
-                  <Input id="edit-cliente-telefone" name="telefone" value={editingBudget.cliente.telefone} onChange={handleEditingBudgetClientChange} placeholder="(DD) XXXXX-XXXX"/>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-cliente-endereco">Endereço</Label>

@@ -47,7 +47,7 @@ const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
   nome: '',
   cpfCnpj: '',
   endereco: '',
-  telefone: '',
+  telefones: [{ nome: 'Principal', numero: '' }],
   email: '',
 };
 
@@ -165,15 +165,51 @@ export default function ClientesPage() {
     let maskedValue = value;
     if (name === 'cpfCnpj') {
       maskedValue = maskCpfCnpj(value);
-    } else if (name === 'telefone') {
-      maskedValue = maskTelefone(value);
     }
     setNewClient(prev => ({ ...prev, [name]: maskedValue }));
+  };
+
+  const handleTelefoneChange = (index: number, field: 'nome' | 'numero', value: string, targetState: 'new' | 'edit') => {
+    const setter = targetState === 'new' ? setNewClient : setEditingClient;
+    const maskedValue = field === 'numero' ? maskTelefone(value) : value;
+
+    setter(prev => {
+        if (!prev) return null;
+        const novosTelefones = [...prev.telefones];
+        novosTelefones[index] = { ...novosTelefones[index], [field]: maskedValue };
+        return { ...prev, telefones: novosTelefones };
+    });
+  };
+
+  const addTelefone = (targetState: 'new' | 'edit') => {
+      const setter = targetState === 'new' ? setNewClient : setEditingClient;
+      setter(prev => {
+          if (!prev) return null;
+          return {
+              ...prev,
+              telefones: [...prev.telefones, { nome: '', numero: '' }]
+          };
+      });
+  };
+
+  const removeTelefone = (index: number, targetState: 'new' | 'edit') => {
+      const setter = targetState === 'new' ? setNewClient : setEditingClient;
+      setter(prev => {
+          if (!prev) return null;
+          if (prev.telefones.length <= 1) {
+              toast({ title: "Ação não permitida", description: "Deve haver pelo menos um número de telefone.", variant: "destructive" });
+              return prev;
+          }
+          const novosTelefones = prev.telefones.filter((_, i) => i !== index);
+          return { ...prev, telefones: novosTelefones };
+      });
   };
 
   const checkForDuplicates = (): string | null => {
     let message = null;
     const newClientNameLower = newClient.nome.trim().toLowerCase();
+    const newClientNumbers = newClient.telefones.map(t => t.numero).filter(Boolean);
+
     clientes.forEach(cliente => {
         if (newClient.nome && cliente.nome.trim().toLowerCase() === newClientNameLower) {
             message = `O nome "${newClient.nome}" já está cadastrado.`;
@@ -181,8 +217,12 @@ export default function ClientesPage() {
             message = `O CPF/CNPJ "${newClient.cpfCnpj}" já está sendo usado pelo cliente "${cliente.nome}".`;
         } else if (newClient.email && cliente.email && cliente.email.toLowerCase() === newClient.email.toLowerCase()) {
             message = `O e-mail "${newClient.email}" já está sendo usado pelo cliente "${cliente.nome}".`;
-        } else if (newClient.telefone && cliente.telefone === newClient.telefone) {
-            message = `O telefone "${newClient.telefone}" já está sendo usado pelo cliente "${cliente.nome}".`;
+        } else if (newClientNumbers.length > 0) {
+            const clientNumbers = cliente.telefones.map(t => t.numero);
+            const duplicateNumber = newClientNumbers.find(num => clientNumbers.includes(num));
+            if (duplicateNumber) {
+                message = `O telefone "${duplicateNumber}" já está sendo usado pelo cliente "${cliente.nome}".`;
+            }
         }
     });
     return message;
@@ -209,6 +249,11 @@ export default function ClientesPage() {
         return;
     }
 
+    if (!newClient.telefones.some(t => t.numero.trim() !== '')) {
+      toast({ title: "Telefone obrigatório", description: "Pelo menos um número de telefone deve ser preenchido.", variant: "destructive" });
+      return;
+    }
+
 
     const duplicateInfo = checkForDuplicates();
     if (duplicateInfo) {
@@ -223,7 +268,7 @@ export default function ClientesPage() {
         nome: newClient.nome,
         cpfCnpj: newClient.cpfCnpj,
         endereco: newClient.endereco,
-        telefone: newClient.telefone,
+        telefones: newClient.telefones.filter(t => t.numero.trim() !== ''),
         email: newClient.email,
       };
       await addCliente(user.uid, clientData);
@@ -256,32 +301,23 @@ export default function ClientesPage() {
   };
   
   const handleEditClick = (client: ClienteData) => {
-    setEditingClient({ ...client });
+    // Garantir que telefones seja um array
+    const clientWithTelefones = {
+        ...client,
+        telefones: Array.isArray(client.telefones) && client.telefones.length > 0
+            ? client.telefones
+            : [{ nome: 'Principal', numero: (client as any).telefone || '' }]
+    };
+    setEditingClient(clientWithTelefones);
     setIsEditModalOpen(true);
   };
-
-  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!editingClient) return;
-    const { name, value } = e.target;
-    let maskedValue = value;
-    if (name === 'cpfCnpj') {
-      maskedValue = maskCpfCnpj(value);
-    } else if (name === 'telefone') {
-      maskedValue = maskTelefone(value);
-    }
-    setEditingClient(prev => prev ? { ...prev, [name]: maskedValue } : null);
-  };
-
+  
   const handleSalvarEdicao = async (e: FormEvent) => {
     e.preventDefault();
     if (!editingClient || !editingClient.id || !user) return;
 
     if (!editingClient.nome) {
-      toast({
-        title: 'Campo Obrigatório',
-        description: 'O campo Nome é obrigatório.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Campo Obrigatório', description: 'O campo Nome é obrigatório.', variant: 'destructive' });
       return;
     }
 
@@ -289,18 +325,24 @@ export default function ClientesPage() {
         toast({ title: "Documento inválido", description: "O CPF/CNPJ inserido não é válido.", variant: "destructive" });
         return;
     }
+
+    if (!editingClient.telefones.some(t => t.numero.trim() !== '')) {
+      toast({ title: "Telefone obrigatório", description: "Pelo menos um número de telefone deve ser preenchido.", variant: "destructive" });
+      return;
+    }
     
     setIsSubmitting(true);
     try {
         const { id, ...clientToUpdate } = editingClient;
-        await updateCliente(id, clientToUpdate);
+        const payload = {
+          ...clientToUpdate,
+          telefones: clientToUpdate.telefones.filter(t => t.numero.trim() !== ''),
+        };
+        await updateCliente(id, payload);
         setIsEditModalOpen(false);
         setEditingClient(null);
         await fetchPageData(); // Refresh list
-        toast({
-            title: 'Sucesso!',
-            description: 'Cliente atualizado com sucesso.',
-        });
+        toast({ title: 'Sucesso!', description: 'Cliente atualizado com sucesso.' });
     } catch(error) {
         console.error("Erro ao atualizar cliente:", error);
         toast({ title: 'Erro ao atualizar cliente', variant: 'destructive' });
@@ -387,7 +429,7 @@ const processSelectedContacts = (contacts: any[]) => {
         const partialClient = {
             nome: adaptedContact.name?.[0] || '',
             email: adaptedContact.email?.[0] || '',
-            telefone: phoneNumber ? maskTelefone(phoneNumber) : '',
+            telefones: [{ nome: 'Principal', numero: phoneNumber ? maskTelefone(phoneNumber) : '' }],
             endereco: formattedAddress,
             cpfCnpj: '',
         };
@@ -482,7 +524,7 @@ const handleImportContacts = async () => {
     const partialClient = {
       nome: selectedContactDetails.name?.[0] || '',
       email: selectedEmail,
-      telefone: phoneNumber ? maskTelefone(phoneNumber) : '',
+      telefones: [{ nome: 'Principal', numero: phoneNumber ? maskTelefone(phoneNumber) : '' }],
       endereco: formattedAddress,
       cpfCnpj: '',
     };
@@ -599,10 +641,28 @@ const handleImportContacts = async () => {
                       <Label htmlFor="endereco">Endereço Completo</Label>
                       <Input id="endereco" name="endereco" value={newClient.endereco} onChange={handleNewClientChange} placeholder="Rua, Número, Bairro, Cidade - UF" />
                     </div>
-                    <div>
-                      <Label htmlFor="telefone">Telefone</Label>
-                      <Input id="telefone" name="telefone" type="tel" value={newClient.telefone} onChange={handleNewClientChange} placeholder="(DD) XXXXX-XXXX" />
-                    </div>
+                     <div className="md:col-span-2 space-y-4">
+                        <Label>Telefones de Contato</Label>
+                        {newClient.telefones.map((tel, index) => (
+                          <div key={index} className="flex flex-col sm:flex-row items-center gap-2 p-3 border rounded-md">
+                            <div className="w-full sm:w-1/3">
+                              <Label htmlFor={`new-tel-nome-${index}`} className="text-xs text-muted-foreground">Apelido</Label>
+                              <Input id={`new-tel-nome-${index}`} value={tel.nome} onChange={(e) => handleTelefoneChange(index, 'nome', e.target.value, 'new')} placeholder="Ex: Principal" />
+                            </div>
+                            <div className="w-full sm:w-2/3">
+                              <Label htmlFor={`new-tel-numero-${index}`} className="text-xs text-muted-foreground">Número</Label>
+                              <Input id={`new-tel-numero-${index}`} value={tel.numero} onChange={(e) => handleTelefoneChange(index, 'numero', e.target.value, 'new')} placeholder="(DD) XXXXX-XXXX" />
+                            </div>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => removeTelefone(index, 'new')} disabled={newClient.telefones.length <= 1} className="mt-4 sm:mt-0">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        ))}
+                         <Button type="button" variant="outline" size="sm" onClick={() => addTelefone('new')} className="w-full sm:w-auto">
+                            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Telefone
+                        </Button>
+                      </div>
+
                     <div>
                       <Label htmlFor="email">Email</Label>
                       <Input id="email" name="email" type="email" value={newClient.email || ''} onChange={handleNewClientChange} placeholder="contato@email.com" />
@@ -730,7 +790,11 @@ const handleImportContacts = async () => {
                       </div>
                       <AccordionContent className="p-4 space-y-3">
                           {item.cpfCnpj && <p className="text-sm"><span className="font-medium text-muted-foreground">CPF/CNPJ:</span> {item.cpfCnpj}</p>}
-                          {item.telefone && <p className="text-sm"><span className="font-medium text-muted-foreground">Telefone:</span> {item.telefone}</p>}
+                          {item.telefones?.map((tel, index) => (
+                            <p key={index} className="text-sm">
+                                <span className="font-medium text-muted-foreground">{tel.nome || 'Telefone'}:</span> {tel.numero}
+                            </p>
+                          ))}
                           {item.email && <p className="text-sm"><span className="font-medium text-muted-foreground">Email:</span> {item.email}</p>}
                           {item.endereco && <p className="text-sm"><span className="font-medium text-muted-foreground">Endereço:</span> {item.endereco}</p>}
                           <div className="pt-2">
@@ -768,7 +832,7 @@ const handleImportContacts = async () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-nome">Nome</Label>
-                  <Input id="edit-nome" name="nome" value={editingClient.nome} onChange={handleEditFormChange} required />
+                  <Input id="edit-nome" name="nome" value={editingClient.nome} onChange={(e) => setEditingClient(p => p ? {...p, nome: e.target.value} : null)} required />
                 </div>
                 <div>
                   <Label htmlFor="edit-cpfCnpj">CPF / CNPJ</Label>
@@ -777,7 +841,7 @@ const handleImportContacts = async () => {
                         id="edit-cpfCnpj" 
                         name="cpfCnpj" 
                         value={editingClient.cpfCnpj || ''} 
-                        onChange={handleEditFormChange}
+                        onChange={(e) => setEditingClient(p => p ? {...p, cpfCnpj: maskCpfCnpj(e.target.value)} : null)}
                         className={cn(
                             editingClient.cpfCnpj && 'pr-10',
                             editingClientCpfCnpjStatus === 'valid' && 'border-green-500 focus-visible:ring-green-500',
@@ -802,15 +866,34 @@ const handleImportContacts = async () => {
                 </div>
                 <div className="md:col-span-2">
                   <Label htmlFor="edit-endereco">Endereço</Label>
-                  <Input id="edit-endereco" name="endereco" value={editingClient.endereco} onChange={handleEditFormChange} />
+                  <Input id="edit-endereco" name="endereco" value={editingClient.endereco} onChange={(e) => setEditingClient(p => p ? {...p, endereco: e.target.value} : null)} />
                 </div>
-                <div>
-                  <Label htmlFor="edit-telefone">Telefone</Label>
-                  <Input id="edit-telefone" name="telefone" type="tel" value={editingClient.telefone} onChange={handleEditFormChange} />
+                
+                <div className="md:col-span-2 space-y-4">
+                    <Label>Telefones de Contato</Label>
+                    {editingClient.telefones.map((tel, index) => (
+                      <div key={index} className="flex flex-col sm:flex-row items-center gap-2 p-3 border rounded-md">
+                        <div className="w-full sm:w-1/3">
+                          <Label htmlFor={`edit-tel-nome-${index}`} className="text-xs text-muted-foreground">Apelido</Label>
+                          <Input id={`edit-tel-nome-${index}`} value={tel.nome} onChange={(e) => handleTelefoneChange(index, 'nome', e.target.value, 'edit')} placeholder="Ex: Principal" />
+                        </div>
+                        <div className="w-full sm:w-2/3">
+                          <Label htmlFor={`edit-tel-numero-${index}`} className="text-xs text-muted-foreground">Número</Label>
+                          <Input id={`edit-tel-numero-${index}`} value={tel.numero} onChange={(e) => handleTelefoneChange(index, 'numero', e.target.value, 'edit')} placeholder="(DD) XXXXX-XXXX" />
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeTelefone(index, 'edit')} disabled={editingClient.telefones.length <= 1} className="mt-4 sm:mt-0">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                     <Button type="button" variant="outline" size="sm" onClick={() => addTelefone('edit')} className="w-full sm:w-auto">
+                        <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Telefone
+                    </Button>
                 </div>
+                
                 <div>
                   <Label htmlFor="edit-email">Email</Label>
-                  <Input id="edit-email" name="email" type="email" value={editingClient.email || ''} onChange={handleEditFormChange} />
+                  <Input id="edit-email" name="email" type="email" value={editingClient.email || ''} onChange={(e) => setEditingClient(p => p ? {...p, email: e.target.value} : null)} />
                 </div>
               </div>
               <DialogFooter>
