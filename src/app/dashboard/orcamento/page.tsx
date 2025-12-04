@@ -839,11 +839,11 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
       const result = await Filesystem.writeFile({
         path: fileName,
         data: base64Data,
-        directory: Directory.Downloads, // Salva na pasta de Downloads
+        directory: Directory.Documents, // Salva na pasta de Documentos
         recursive: true,
       });
   
-      toast({ title: "PDF Salvo!", description: `Salvo em Downloads com o nome ${fileName}.` });
+      toast({ title: "PDF Salvo!", description: `Salvo em Documentos com o nome ${fileName}.` });
     } catch (e) {
       console.error("Erro ao salvar PDF no dispositivo", e);
       toast({ title: "Erro ao salvar", description: "Não foi possível salvar o PDF no dispositivo.", variant: "destructive" });
