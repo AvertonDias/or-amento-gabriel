@@ -327,8 +327,6 @@ export default function OrcamentoPage() {
   const [selectedPhone, setSelectedPhone] = useState('');
   const [currentBudgetForWpp, setCurrentBudgetForWpp] = useState<Orcamento | null>(null);
 
-
-
  const fetchAllData = useCallback(async (isRefresh = false) => {
     if (!user) return;
     
@@ -453,20 +451,6 @@ export default function OrcamentoPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orcamentosSalvos]);
-
-  const fetchOrcamentos = useCallback(() => {
-    if (!user) return;
-    setIsLoading(prev => ({ ...prev, orcamentos: true }));
-    getOrcamentos(user.uid).then(orcamentosData => {
-      setOrcamentosSalvos(orcamentosData);
-    }).catch(error => {
-      console.error("Erro ao buscar orçamentos:", error);
-      toast({ title: 'Erro ao carregar orçamentos', variant: 'destructive' });
-    }).finally(() => {
-        setIsLoading(prev => ({ ...prev, orcamentos: false }));
-    });
-  }, [user, toast]);
-
 
   const filteredOrcamentos = useMemo(() => {
     let filtered = orcamentosSalvos;
@@ -848,7 +832,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                 }
             }
         }
-        await fetchOrcamentos();
+        await fetchAllData(true);
         toast({ title: `Orçamento ${status.toLowerCase()}!` });
         if (status === 'Aceito' && acceptedBudget) { 
             const updatedBudget: Orcamento = { ...acceptedBudget, status: 'Aceito', ...updatePayload };
@@ -1080,7 +1064,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
   const handleRemoverOrcamento = (id: string) => {
     if (!user) return;
     deleteOrcamento(id).then(() => {
-        fetchOrcamentos();
+        fetchAllData(true);
         toast({ title: 'Orçamento Excluído', variant: 'destructive' });
     }).catch(error => {
         toast({ title: 'Erro ao excluir orçamento', variant: 'destructive'});
@@ -1344,10 +1328,15 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                         </AlertDialog>
                                     </>
                                 ) : (
-                                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones.some(t => t.numero)}>
-                                    <MessageCircle className="mr-2 h-4 w-4" />
-                                    Enviar Proposta
-                                  </Button>
+                                  <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                          <Button variant="outline" size="sm" className="flex-1"><FileText className="mr-2 h-4 w-4" />Gerar PDF</Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                          <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                  </DropdownMenu>
                                 )}
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -1359,23 +1348,23 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                     <DropdownMenuItem onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}>
                                       <Pencil className="mr-2 h-4 w-4" />Editar
                                     </DropdownMenuItem>
-                                    {orcamento.status !== 'Pendente' && (
-                                      <DropdownMenuItem onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones.some(t => t.numero)}>
+                                    <DropdownMenuItem onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones.some(t => t.numero)}>
                                         <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
-                                      </DropdownMenuItem>
+                                    </DropdownMenuItem>
+                                    {orcamento.status !== 'Pendente' && (
+                                        <DropdownMenuSub>
+                                            <DropdownMenuSubTrigger>
+                                                <FileText className="mr-2 h-4 w-4" />
+                                                Gerar PDF
+                                            </DropdownMenuSubTrigger>
+                                            <DropdownMenuPortal>
+                                                <DropdownMenuSubContent>
+                                                    <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
+                                                </DropdownMenuSubContent>
+                                            </DropdownMenuPortal>
+                                        </DropdownMenuSub>
                                     )}
-                                    <DropdownMenuSub>
-                                      <DropdownMenuSubTrigger>
-                                        <FileText className="mr-2 h-4 w-4" />
-                                        Gerar PDF
-                                      </DropdownMenuSubTrigger>
-                                      <DropdownMenuPortal>
-                                        <DropdownMenuSubContent>
-                                          <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
-                                        </DropdownMenuSubContent>
-                                      </DropdownMenuPortal>
-                                    </DropdownMenuSub>
                                     <DropdownMenuSeparator />
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
