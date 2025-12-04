@@ -3,6 +3,8 @@
 
 
 
+
+
 'use client';
 
 import React, { useState, useMemo, useEffect, FormEvent, useRef, useCallback } from 'react';
@@ -386,7 +388,7 @@ export default function OrcamentoPage() {
   }, [user, fetchAllData, toast]);
 
   const scheduleNotification = async (orcamento: Orcamento, type: 'expiring' | 'expired') => {
-    if (Capacitor.isNativePlatform() && (await LocalNotifications.checkPermissions()).display === 'granted') {
+    if ((await Capacitor.isNativePlatform()) && (await LocalNotifications.checkPermissions()).display === 'granted') {
       const storageKey = `notif_${type}_${orcamento.id}`;
       if (localStorage.getItem(storageKey)) return; // Já notificado
 
@@ -905,35 +907,41 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
   };
 
   const savePdfToFile = async (pdf: jsPDF, fileName: string) => {
-    if (Capacitor.isNativePlatform()) {
-      try {
+    if (await Capacitor.isNativePlatform()) {
         const { Filesystem, Directory } = await import('@capacitor/filesystem');
-        const permStatus = await Filesystem.checkPermissions();
-        if (permStatus.publicStorage !== 'granted') {
-          const permResult = await Filesystem.requestPermissions();
-          if (permResult.publicStorage !== 'granted') {
-            toast({ title: "Permissão negada", description: "Não é possível salvar o PDF sem permissão.", variant: "destructive" });
+        let permStatus;
+        try {
+            permStatus = await Filesystem.checkPermissions();
+        } catch (e) {
+            console.error("Erro ao checar permissões do Filesystem: ", e);
+            toast({ title: "Erro de Permissão", description: "Não foi possível verificar as permissões para salvar arquivos.", variant: "destructive" });
             return;
-          }
         }
-    
-        const base64Data = pdf.output('datauristring').split(',')[1];
-        
-        await Filesystem.writeFile({
-          path: fileName,
-          data: base64Data,
-          directory: Directory.Documents, // Salva na pasta de Documentos
-          recursive: true,
-        });
-    
-        toast({ title: "PDF Salvo!", description: `Salvo em Documentos com o nome ${fileName}.` });
-      } catch (e) {
-        console.error("Erro ao salvar PDF no dispositivo", e);
-        toast({ title: "Erro ao salvar", description: "Não foi possível salvar o PDF no dispositivo.", variant: "destructive" });
-        pdf.save(fileName);
-      }
+
+        if (permStatus.publicStorage !== 'granted') {
+            const permResult = await Filesystem.requestPermissions();
+            if (permResult.publicStorage !== 'granted') {
+                toast({ title: "Permissão negada", description: "Não é possível salvar o PDF sem permissão.", variant: "destructive" });
+                return;
+            }
+        }
+
+        try {
+            const base64Data = pdf.output('datauristring').split(',')[1];
+            await Filesystem.writeFile({
+                path: fileName,
+                data: base64Data,
+                directory: Directory.Documents,
+                recursive: true,
+            });
+            toast({ title: "PDF Salvo!", description: `Salvo em Documentos com o nome ${fileName}.` });
+        } catch (e) {
+            console.error("Erro ao salvar PDF no dispositivo", e);
+            toast({ title: "Erro ao salvar", description: "Não foi possível salvar o PDF no dispositivo.", variant: "destructive" });
+            pdf.save(fileName); // Fallback para download no browser
+        }
     } else {
-      pdf.save(fileName);
+        pdf.save(fileName);
     }
   };
 
@@ -1342,15 +1350,15 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                         </AlertDialog>
                                     </>
                                 ) : (
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="outline" size="sm" className="flex-1"><FileText className="mr-2 h-4 w-4" />Gerar PDF</Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="sm" className="flex-1"><FileText className="mr-2 h-4 w-4" />Gerar PDF</Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
                                         <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
                                 )}
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
