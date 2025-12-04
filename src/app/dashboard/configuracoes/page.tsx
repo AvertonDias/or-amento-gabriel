@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Building, Save, CheckCircle, XCircle, Upload, Trash2, KeyRound, Mail, Settings, User } from 'lucide-react';
+import { Building, Save, CheckCircle, XCircle, Upload, Trash2, KeyRound, Mail, Settings, User, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { maskCpfCnpj, maskTelefone, validateCpfCnpj } from '@/lib/utils';
@@ -25,7 +25,7 @@ import { Separator } from '@/components/ui/separator';
 const initialEmpresaState: Omit<EmpresaData, 'id' | 'userId'> = {
   nome: '',
   endereco: '',
-  telefone: '',
+  telefones: [{ nome: 'Principal', numero: '' }],
   cnpj: '',
   logo: ''
 };
@@ -70,12 +70,35 @@ export default function ConfiguracoesPage() {
     let maskedValue = value;
     if (name === 'cnpj') {
       maskedValue = maskCpfCnpj(value);
-    } else if (name === 'telefone') {
-      maskedValue = maskTelefone(value);
     }
     setEmpresa(prev => (prev ? { ...prev, [name]: maskedValue } : null));
   };
   
+  const handleTelefoneChange = (index: number, field: 'nome' | 'numero', value: string) => {
+    if (!empresa) return;
+    const novosTelefones = [...empresa.telefones];
+    const maskedValue = field === 'numero' ? maskTelefone(value) : value;
+    novosTelefones[index] = { ...novosTelefones[index], [field]: maskedValue };
+    setEmpresa({ ...empresa, telefones: novosTelefones });
+  };
+
+  const addTelefone = () => {
+    if (!empresa) return;
+    setEmpresa({
+      ...empresa,
+      telefones: [...empresa.telefones, { nome: '', numero: '' }]
+    });
+  };
+
+  const removeTelefone = (index: number) => {
+    if (!empresa || empresa.telefones.length <= 1) {
+        toast({ title: "Ação não permitida", description: "Deve haver pelo menos um número de telefone.", variant: "destructive" });
+        return;
+    }
+    const novosTelefones = empresa.telefones.filter((_, i) => i !== index);
+    setEmpresa({ ...empresa, telefones: novosTelefones });
+  };
+
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -106,7 +129,6 @@ export default function ConfiguracoesPage() {
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
           
-          // Converte para JPEG com qualidade de 80% para compressão
           const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
           
           setEmpresa(prev => (prev ? { ...prev, logo: dataUrl } : null));
@@ -139,6 +161,12 @@ export default function ConfiguracoesPage() {
       toast({ title: "Documento inválido", description: "O CPF/CNPJ inserido não é válido.", variant: "destructive" });
       return;
     }
+    const hasAtLeastOnePhone = empresa.telefones.some(t => t.numero.trim() !== '');
+    if (!hasAtLeastOnePhone) {
+        toast({ title: "Telefone obrigatório", description: "Pelo menos um número de telefone deve ser preenchido.", variant: "destructive" });
+        return;
+    }
+
 
     if (empresa.logo && empresa.logo.length > 900 * 1024) { // Aproximadamente 900KB
         toast({
@@ -153,7 +181,7 @@ export default function ConfiguracoesPage() {
     setIsSaving(true);
     
     try {
-      const dataToSave = { ...empresa };
+      const dataToSave = { ...empresa, telefones: empresa.telefones.filter(t => t.numero.trim() !== '') };
       if (!dataToSave.userId) {
           dataToSave.userId = user.uid;
       }
@@ -279,10 +307,47 @@ export default function ConfiguracoesPage() {
                             <Label htmlFor="endereco">Endereço</Label>
                             <Input id="endereco" name="endereco" value={empresa.endereco} onChange={handleChange} placeholder="Rua, 123, Bairro, Cidade - UF" required />
                         </div>
-                        <div>
-                            <Label htmlFor="telefone">Telefone</Label>
-                            <Input id="telefone" name="telefone" value={empresa.telefone} onChange={handleChange} placeholder="(DD) XXXXX-XXXX" />
+
+                        <div className="space-y-4">
+                          <Label>Telefones de Contato</Label>
+                          {empresa.telefones.map((tel, index) => (
+                            <div key={index} className="flex flex-col sm:flex-row items-center gap-2 p-3 border rounded-md">
+                              <div className="w-full sm:w-1/3">
+                                <Label htmlFor={`tel-nome-${index}`} className="text-xs text-muted-foreground">Apelido</Label>
+                                <Input
+                                  id={`tel-nome-${index}`}
+                                  value={tel.nome}
+                                  onChange={(e) => handleTelefoneChange(index, 'nome', e.target.value)}
+                                  placeholder="Ex: Vendas"
+                                />
+                              </div>
+                              <div className="w-full sm:w-2/3">
+                                <Label htmlFor={`tel-numero-${index}`} className="text-xs text-muted-foreground">Número</Label>
+                                <Input
+                                  id={`tel-numero-${index}`}
+                                  value={tel.numero}
+                                  onChange={(e) => handleTelefoneChange(index, 'numero', e.target.value)}
+                                  placeholder="(DD) XXXXX-XXXX"
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeTelefone(index)}
+                                disabled={empresa.telefones.length <= 1}
+                                className="mt-4 sm:mt-0"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          ))}
+                           <Button type="button" variant="outline" onClick={addTelefone} className="w-full sm:w-auto">
+                              <PlusCircle className="mr-2 h-4 w-4" />
+                              Adicionar Telefone
+                          </Button>
                         </div>
+                        
                         <div>
                         <Label htmlFor="cnpj">CNPJ / CPF</Label>
                             <div className="relative">

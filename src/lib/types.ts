@@ -4,7 +4,7 @@ export interface EmpresaData {
   userId: string;
   nome: string;
   endereco: string;
-  telefone: string;
+  telefones: { nome: string; numero: string }[];
   cnpj: string;
   logo?: string;
   fcmToken?: string; // Adicionado para salvar o token de notificação

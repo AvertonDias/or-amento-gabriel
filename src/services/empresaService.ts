@@ -13,9 +13,11 @@ export const saveEmpresaData = async (userId: string, data: Omit<EmpresaData, 'i
 
   const empresaDocRef = doc(db, EMPRESA_COLLECTION, userId);
   
-  const dataToSave: EmpresaData = {
+  // Assegura que o campo telefones seja um array, mesmo que venha vazio
+  const dataToSave: Omit<EmpresaData, 'id'> = {
       ...data,
       userId: userId,
+      telefones: Array.isArray(data.telefones) ? data.telefones : [],
   };
 
   try {
@@ -44,7 +46,18 @@ export const getEmpresaData = (userId: string): Promise<EmpresaData | null> => {
             console.log(`Nenhum dado de empresa encontrado para o userId: ${userId}`);
             return null;
         }
-        return { id: docSnap.id, ...docSnap.data() } as EmpresaData;
+        const data = docSnap.data() as Omit<EmpresaData, 'id'>;
+        
+        // Garante a compatibilidade com a estrutura antiga de 'telefone'
+        let telefones = data.telefones || [];
+        if (!Array.isArray(telefones) && (data as any).telefone) {
+             telefones = [{ nome: 'Principal', numero: (data as any).telefone }];
+        }
+        if (Array.isArray(telefones) && telefones.length === 0) {
+            telefones.push({ nome: '', numero: '' });
+        }
+
+        return { id: docSnap.id, ...data, telefones } as EmpresaData;
     });
 };
 

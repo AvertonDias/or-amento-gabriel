@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, FormEvent, useRef, useCallback } from 'react';
@@ -10,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableTotalFooter } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { PlusCircle, Trash2, FileText, Pencil, MessageCircle, History, CheckCircle2, XCircle, Search, Loader2, RefreshCw, ArrowRight, ArrowLeft, AlertTriangle, FilterX, MoreVertical, ArrowRightLeft, ChevronsUpDown, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone, maskCurrency } from '@/lib/utils';
@@ -72,7 +74,7 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
             <div>
               <h1 className="text-xl font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
               <p>{empresa?.endereco}</p>
-              <p>{empresa?.telefone}</p>
+              <p>{empresa?.telefones?.[0]?.numero}</p>
               <p>{empresa?.cnpj}</p>
             </div>
           </div>
@@ -161,7 +163,7 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
               <div>
                 <h1 className="text-xl font-bold">{empresa?.nome || 'Sua Empresa'}</h1>
                 <p>{empresa?.endereco}</p>
-                <p>{empresa?.telefone}</p>
+                <p>{empresa?.telefones?.[0]?.numero}</p>
                 <p>{empresa?.cnpj}</p>
               </div>
             </div>
@@ -316,6 +318,12 @@ export default function OrcamentoPage() {
   const [itemAvulsoInEditPrecoStr, setItemAvulsoInEditPrecoStr] = useState('');
   
   const [isClientPopoverOpen, setIsClientPopoverOpen] = useState(false);
+
+  // State for phone selection modal
+  const [isPhoneSelectionOpen, setIsPhoneSelectionOpen] = useState(false);
+  const [selectedPhone, setSelectedPhone] = useState('');
+  const [currentBudgetForWpp, setCurrentBudgetForWpp] = useState<Orcamento | null>(null);
+
 
 
  const fetchAllData = useCallback(async (isRefresh = false) => {
@@ -796,19 +804,40 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
         toast({ title: `Orçamento ${status.toLowerCase()}!` });
         if (status === 'Aceito' && acceptedBudget) { 
             const updatedBudget: Orcamento = { ...acceptedBudget, status: 'Aceito', ...updatePayload };
-            handleSendAcceptanceWhatsApp(updatedBudget); 
+            handlePrepareWhatsApp(updatedBudget); 
         }
     } catch(error) {
         toast({ title: 'Erro ao atualizar status', variant: 'destructive' });
     }
   }
-
-  const handleSendAcceptanceWhatsApp = (orcamento: Orcamento) => {
-     if (!empresa?.telefone) {
-      toast({ title: "Telefone da empresa não configurado.", description: "Vá para 'Dados da Empresa' para adicionar.", variant: "destructive" });
+  
+  const handlePrepareWhatsApp = (orcamento: Orcamento) => {
+    if (!empresa || !empresa.telefones || empresa.telefones.length === 0) {
+      toast({ title: "Telefone da empresa não configurado.", description: "Vá para 'Configurações' para adicionar.", variant: "destructive" });
       return;
     }
-    const companyPhone = empresa.telefone.replace(/\D/g, '');
+    
+    if (empresa.telefones.length === 1) {
+      // Envia direto se só tiver um número
+      sendWhatsAppMessage(orcamento, empresa.telefones[0].numero);
+    } else {
+      // Abre o modal de seleção se tiver múltiplos números
+      setCurrentBudgetForWpp(orcamento);
+      setSelectedPhone(empresa.telefones[0].numero);
+      setIsPhoneSelectionOpen(true);
+    }
+  };
+
+  const handleConfirmPhoneSelection = () => {
+    if (currentBudgetForWpp && selectedPhone) {
+      sendWhatsAppMessage(currentBudgetForWpp, selectedPhone);
+    }
+    setIsPhoneSelectionOpen(false);
+    setCurrentBudgetForWpp(null);
+  };
+  
+  const sendWhatsAppMessage = (orcamento: Orcamento, companyPhone: string) => {
+    const cleanCompanyPhone = companyPhone.replace(/\D/g, '');
     let mensagem = `✅ *Orçamento Aceito!*\n\n*Nº do Orçamento:* ${orcamento.numeroOrcamento}\n*Cliente:* ${orcamento.cliente.nome}\n`;
     if (orcamento.cliente.telefone) mensagem += `*Tel. Cliente:* ${orcamento.cliente.telefone}\n`;
     if (orcamento.cliente.endereco) mensagem += `*Endereço:* ${orcamento.cliente.endereco}\n`;
@@ -817,7 +846,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
       let linha = `- ${item.materialNome} (Qtd: ${formatNumber(item.quantidade, 2)} ${item.unidade})`;
       mensagem += `${linha}\n`;
     });
-    const urlWhatsApp = `https://wa.me/55${companyPhone}?text=${encodeURIComponent(mensagem)}`;
+    const urlWhatsApp = `https://wa.me/55${cleanCompanyPhone}?text=${encodeURIComponent(mensagem)}`;
     window.open(urlWhatsApp, '_blank');
   };
 
@@ -1066,7 +1095,8 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
 
     const { cliente } = editingBudget;
 
-    if (cliente.id) {
+    // Apenas atualiza o cliente se ele não for um cliente temporário.
+    if (cliente.id && !cliente.id.startsWith('temp_')) {
         try {
             await updateCliente(cliente.id, {
                 telefone: cliente.telefone,
@@ -1246,6 +1276,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                   </AlertDialog>
                               </div>
 
+                              {/* Mobile View Buttons */}
                               <div className="flex w-full items-center justify-end gap-2 md:hidden">
                                 {orcamento.status === 'Pendente' ? (
                                     <>
@@ -1265,10 +1296,15 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                         </AlertDialog>
                                     </>
                                 ) : (
-                                    <Button size="sm" className="flex-1" onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}>
-                                        <MessageCircle className="mr-2 h-4 w-4" />
-                                        Enviar Proposta
-                                    </Button>
+                                  <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="sm" className="flex-1"><FileText className="mr-2 h-4 w-4" />Gerar PDF</Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                          <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                  </DropdownMenu>
                                 )}
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -1709,6 +1745,31 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isPhoneSelectionOpen} onOpenChange={setIsPhoneSelectionOpen}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>Selecionar Telefone</DialogTitle>
+                  <DialogDescription>
+                      Sua empresa tem múltiplos telefones. Para qual número devemos enviar a notificação de aceite?
+                  </DialogDescription>
+              </DialogHeader>
+              <RadioGroup value={selectedPhone} onValueChange={setSelectedPhone} className="my-4 space-y-2">
+                  {empresa?.telefones?.map((tel, index) => (
+                      <div key={index} className="flex items-center space-x-2">
+                          <RadioGroupItem value={tel.numero} id={`tel-${index}`} />
+                          <Label htmlFor={`tel-${index}`} className="flex-1 cursor-pointer">
+                              <span className="font-semibold">{tel.nome || `Telefone ${index + 1}`}</span>
+                              <span className="text-muted-foreground ml-2">{tel.numero}</span>
+                          </Label>
+                      </div>
+                  ))}
+              </RadioGroup>
+              <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsPhoneSelectionOpen(false)}>Cancelar</Button>
+                  <Button onClick={handleConfirmPhoneSelection}>Confirmar e Enviar</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
 
       <div className="absolute -z-10 top-0 -left-[9999px] w-[595pt] bg-white text-black">
           <div ref={pdfRef}>
@@ -1721,5 +1782,3 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     </div>
   );
 }
-
-
