@@ -28,6 +28,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { Contacts } from '@capacitor-community/contacts';
 import Image from 'next/image';
 
 
@@ -89,22 +90,32 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const { toast } = useToast();
   
-  const requestNotificationPermission = async () => {
-    try {
-      if (Capacitor.isNativePlatform()) {
+  const requestAppPermissions = async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        // Solicitar permissão de Notificações
         const notifStatus = await LocalNotifications.checkPermissions();
         if (notifStatus.display !== 'granted') {
           await LocalNotifications.requestPermissions();
         }
-      } else {
-        if ('Notification' in window && Notification.permission === 'default') {
-          await Notification.requestPermission();
+
+        // Solicitar permissão de Contatos
+        const contactStatus = await Contacts.checkPermissions();
+        if (contactStatus.granted !== true) {
+           await Contacts.requestPermissions();
         }
+
+      } catch (e) {
+        console.warn("Erro ao solicitar permissões do aplicativo:", e);
       }
-    } catch(e) {
-      console.warn("Erro ao solicitar permissão de notificação:", e);
+    } else {
+      // Para Web, solicitar permissão de notificação padrão
+      if ('Notification' in window && Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
     }
   };
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -112,8 +123,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         router.push('/login');
       } else {
         setIsCheckingAuth(false);
-        // Request FCM token and notification permissions as soon as user is authenticated
-        requestNotificationPermission().then(() => {
+        // Solicita permissões e token FCM assim que o usuário for autenticado
+        requestAppPermissions().then(() => {
           requestForToken();
         });
       }

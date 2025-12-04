@@ -352,9 +352,10 @@ const processSelectedContacts = (contacts: any[]) => {
 
     const contact = contacts[0];
     let adaptedContact;
+    const isNative = Capacitor.isNativePlatform();
 
     // Adaptar a estrutura de dados do Capacitor para a estrutura esperada
-    if (Capacitor.isNativePlatform()) {
+    if (isNative) {
         adaptedContact = {
             name: contact.name?.display ? [contact.name.display] : [],
             email: contact.emailAddresses?.map((e: any) => e.address) || [],
@@ -399,21 +400,29 @@ const processSelectedContacts = (contacts: any[]) => {
 };
 
 const handleImportContacts = async () => {
-    // Moved Capacitor check inside the handler
     const isNative = Capacitor.isNativePlatform();
 
     if (isNative) {
         try {
-            // O plugin pedirá a permissão automaticamente na primeira vez
+            // Verifica a permissão antes de tentar buscar os contatos
+            let permStatus = await Contacts.checkPermissions();
+            if (permStatus.granted !== true) {
+                permStatus = await Contacts.requestPermissions();
+            }
+
+            if (permStatus.granted !== true) {
+                 toast({
+                    title: "Permissão necessária",
+                    description: "Por favor, conceda acesso aos contatos nas configurações do seu celular.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
             const result = await Contacts.getContacts({
-                projection: {
-                    name: true,
-                    phones: true,
-                    emails: true,
-                    postalAddresses: true,
-                }
+                projection: { name: true, phones: true, emails: true, postalAddresses: true }
             });
-            // O usuário pode não ter retornado nenhum contato
+
             if (result.contacts.length === 0) {
               toast({
                   title: 'Nenhum contato selecionado',
@@ -423,21 +432,12 @@ const handleImportContacts = async () => {
             }
             processSelectedContacts(result.contacts);
         } catch (error: any) {
-            // Verifica se o erro é de permissão negada
-            if (error.message && error.message.toLowerCase().includes('permission was denied')) {
-                 toast({
-                    title: "Permissão necessária",
-                    description: "Por favor, conceda acesso aos contatos nas configurações do seu celular.",
-                    variant: "destructive",
-                });
-            } else {
-                console.error('Erro ao buscar contatos no Capacitor:', error);
-                toast({
-                    title: 'Erro ao importar',
-                    description: 'Não foi possível ler os contatos do dispositivo.',
-                    variant: 'destructive',
-                });
-            }
+            console.error('Erro ao buscar contatos no Capacitor:', error);
+            toast({
+                title: 'Erro ao importar',
+                description: 'Não foi possível ler os contatos do dispositivo.',
+                variant: 'destructive',
+            });
         }
     } else {
         if (!('contacts' in navigator && 'select' in (navigator as any).contacts)) {
