@@ -44,6 +44,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from '@/lib/utils';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
+import { Directory, Filesystem } from '@capacitor/filesystem';
 
 
 // Componente para o layout do PDF do Cliente
@@ -821,11 +822,42 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     window.open(urlWhatsApp, '_blank');
   };
 
+  const savePdfToFile = async (pdf: jsPDF, fileName: string) => {
+    try {
+      // Solicita permissão para escrever (necessário para Android >= Q)
+      const permStatus = await Filesystem.checkPermissions();
+      if (permStatus.publicStorage !== 'granted') {
+        const permResult = await Filesystem.requestPermissions();
+        if (permResult.publicStorage !== 'granted') {
+          toast({ title: "Permissão negada", description: "Não é possível salvar o PDF sem permissão.", variant: "destructive" });
+          return;
+        }
+      }
+  
+      const base64Data = pdf.output('datauristring').split(',')[1];
+      
+      const result = await Filesystem.writeFile({
+        path: fileName,
+        data: base64Data,
+        directory: Directory.Downloads, // Salva na pasta de Downloads
+        recursive: true,
+      });
+  
+      toast({ title: "PDF Salvo!", description: `Salvo em Downloads com o nome ${fileName}.` });
+    } catch (e) {
+      console.error("Erro ao salvar PDF no dispositivo", e);
+      toast({ title: "Erro ao salvar", description: "Não foi possível salvar o PDF no dispositivo.", variant: "destructive" });
+      // Fallback para download normal caso o salvamento nativo falhe
+      pdf.save(fileName);
+    }
+  };
+
   const handleGerarPDF = async (orcamento: Orcamento) => {
     setPdfBudget(orcamento);
-    await new Promise(resolve => setTimeout(resolve, 100)); // Aguarda a renderização do PDF
+    await new Promise(resolve => setTimeout(resolve, 100));
     const pdfElement = pdfRef.current;
     if (!pdfElement) return;
+
     const canvas = await html2canvas(pdfElement, { scale: 2, backgroundColor: '#ffffff' });
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
@@ -838,15 +870,24 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     let height = width / ratio;
     if (height > pdfHeight) { height = pdfHeight; width = height * ratio; }
     pdf.addImage(imgData, 'PNG', 0, 0, width, height);
-    pdf.save(`orcamento-${orcamento.cliente.nome.toLowerCase().replace(/ /g, '_')}-${orcamento.numeroOrcamento}.pdf`);
+
+    const fileName = `orcamento-${orcamento.cliente.nome.toLowerCase().replace(/ /g, '_')}-${orcamento.numeroOrcamento}.pdf`;
+
+    if (Capacitor.isNativePlatform()) {
+      await savePdfToFile(pdf, fileName);
+    } else {
+      pdf.save(fileName);
+    }
+
     setPdfBudget(null);
   };
   
   const handleGerarPDFInterno = async (orcamento: Orcamento) => {
     setPdfBudget(orcamento);
-    await new Promise(resolve => setTimeout(resolve, 100)); // Aguarda a renderização do PDF
+    await new Promise(resolve => setTimeout(resolve, 100));
     const pdfElement = internalPdfRef.current;
     if (!pdfElement) return;
+
     const canvas = await html2canvas(pdfElement, { scale: 2, backgroundColor: '#ffffff' });
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
@@ -859,7 +900,15 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     let height = width / ratio;
     if (height > pdfHeight) { height = pdfHeight; width = height * ratio; }
     pdf.addImage(imgData, 'PNG', 0, 0, width, height);
-    pdf.save(`interno-${orcamento.cliente.nome.toLowerCase().replace(/ /g, '_')}-${orcamento.numeroOrcamento}.pdf`);
+    
+    const fileName = `interno-${orcamento.cliente.nome.toLowerCase().replace(/ /g, '_')}-${orcamento.numeroOrcamento}.pdf`;
+
+    if (Capacitor.isNativePlatform()) {
+      await savePdfToFile(pdf, fileName);
+    } else {
+      pdf.save(fileName);
+    }
+
     setPdfBudget(null);
   };
   
@@ -1151,7 +1200,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                   {orcamento.status === 'Pendente' && (
                                       <>
                                           <AlertDialog>
-                                              <AlertDialogTrigger asChild><Button variant="outline" size="sm"><XCircle className="mr-2"/>Recusar</Button></AlertDialogTrigger>
+                                              <AlertDialogTrigger asChild><Button variant="destructive" size="sm"><XCircle className="mr-2"/>Recusar</Button></AlertDialogTrigger>
                                               <AlertDialogContent>
                                                   <AlertDialogHeader>
                                                       <AlertDialogTitle>Confirmar Recusa</AlertDialogTitle>
@@ -1199,7 +1248,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                   {orcamento.status === 'Pendente' ? (
                                       <>
                                           <AlertDialog>
-                                              <AlertDialogTrigger asChild><Button variant="outline" size="sm" className="flex-1"><XCircle className="mr-2 h-4 w-4"/>Recusar</Button></AlertDialogTrigger>
+                                              <AlertDialogTrigger asChild><Button variant="destructive" size="sm" className="flex-1"><XCircle className="mr-2 h-4 w-4"/>Recusar</Button></AlertDialogTrigger>
                                               <AlertDialogContent>
                                                   <AlertDialogHeader><AlertDialogTitle>Confirmar Recusa</AlertDialogTitle><AlertDialogDescription>Tem certeza de que deseja recusar este orçamento? Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
                                                   <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleUpdateStatus(orcamento.id, 'Recusado')}>Sim, Recusar</AlertDialogAction></AlertDialogFooter>

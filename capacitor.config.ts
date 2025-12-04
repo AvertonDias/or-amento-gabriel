@@ -11,6 +11,16 @@ const config: CapacitorConfig = {
   plugins: {
     Contacts: {
       useLegacyIntent: false
+    },
+    Filesystem: {
+      android: {
+        permissions: [
+            {
+                alias: 'publicStorage',
+                name: 'android.permission.WRITE_EXTERNAL_STORAGE'
+            }
+        ]
+      }
     }
   }
 };
