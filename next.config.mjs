@@ -1,20 +1,24 @@
 /** @type {import('next').NextConfig} */
 
-import withPWA from '@ducanh2912/next-pwa';
-
-const nextConfig = {
-  reactStrictMode: true,
-  // Adicione outras configurações do Next.js aqui se necessário
-};
-
-const pwaConfig = withPWA({
+const withPWA = require('@ducanh2912/next-pwa').default({
   dest: 'public',
-  register: true,
-  skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
-  fallbacks: {
-    document: '/_offline', // Rota para a página offline
-  },
+  // Exclui a rota da API do cache para garantir que as chamadas sempre cheguem ao servidor
+  exclude: [
+    ({ asset, compilation }) => {
+      if (
+        asset.name.startsWith("server/") ||
+        asset.name.match(/^((app-pages-manifest|build-manifest|react-loadable-manifest|middleware-manifest|middleware-build-manifest|subresource-integrity-manifest|build-manifest)\.json|favicon\.ico|manifest\.(webmanifest|json)|_next\/static\/|sw\.js|sw-esm\.js)$/)
+      ) {
+        return true;
+      }
+      return false;
+    },
+  ],
 });
 
-export default pwaConfig(nextConfig);
+const nextConfig = {
+  // sua configuração do Next.js pode ir aqui
+};
+
+module.exports = withPWA(nextConfig);
