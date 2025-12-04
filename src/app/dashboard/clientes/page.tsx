@@ -399,7 +399,10 @@ const processSelectedContacts = (contacts: any[]) => {
 };
 
 const handleImportContacts = async () => {
-    if (Capacitor.isNativePlatform()) {
+    // Moved Capacitor check inside the handler
+    const isNative = Capacitor.isNativePlatform();
+
+    if (isNative) {
         try {
             // O plugin pedirá a permissão automaticamente na primeira vez
             const result = await Contacts.getContacts({
