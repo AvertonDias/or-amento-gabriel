@@ -822,34 +822,34 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
   };
 
   const savePdfToFile = async (pdf: jsPDF, fileName: string) => {
-    if (!Capacitor.isNativePlatform()) {
-      pdf.save(fileName);
-      return;
-    }
-    try {
-      const { Filesystem, Directory } = await import('@capacitor/filesystem');
-      const permStatus = await Filesystem.checkPermissions();
-      if (permStatus.publicStorage !== 'granted') {
-        const permResult = await Filesystem.requestPermissions();
-        if (permResult.publicStorage !== 'granted') {
-          toast({ title: "Permissão negada", description: "Não é possível salvar o PDF sem permissão.", variant: "destructive" });
-          return;
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const permStatus = await Filesystem.checkPermissions();
+        if (permStatus.publicStorage !== 'granted') {
+          const permResult = await Filesystem.requestPermissions();
+          if (permResult.publicStorage !== 'granted') {
+            toast({ title: "Permissão negada", description: "Não é possível salvar o PDF sem permissão.", variant: "destructive" });
+            return;
+          }
         }
+    
+        const base64Data = pdf.output('datauristring').split(',')[1];
+        
+        const result = await Filesystem.writeFile({
+          path: fileName,
+          data: base64Data,
+          directory: Directory.Documents, // Salva na pasta de Documentos
+          recursive: true,
+        });
+    
+        toast({ title: "PDF Salvo!", description: `Salvo em Documentos com o nome ${fileName}.` });
+      } catch (e) {
+        console.error("Erro ao salvar PDF no dispositivo", e);
+        toast({ title: "Erro ao salvar", description: "Não foi possível salvar o PDF no dispositivo.", variant: "destructive" });
+        pdf.save(fileName);
       }
-  
-      const base64Data = pdf.output('datauristring').split(',')[1];
-      
-      const result = await Filesystem.writeFile({
-        path: fileName,
-        data: base64Data,
-        directory: Directory.Documents, // Salva na pasta de Documentos
-        recursive: true,
-      });
-  
-      toast({ title: "PDF Salvo!", description: `Salvo em Documentos com o nome ${fileName}.` });
-    } catch (e) {
-      console.error("Erro ao salvar PDF no dispositivo", e);
-      toast({ title: "Erro ao salvar", description: "Não foi possível salvar o PDF no dispositivo.", variant: "destructive" });
+    } else {
       pdf.save(fileName);
     }
   };
@@ -1255,9 +1255,17 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                           </AlertDialog>
                                       </>
                                   ) : (
-                                    <Button size="sm" className="flex-1" onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}>
-                                      <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
-                                    </Button>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button size="sm" className="flex-1">
+                                          <FileText className="mr-2 h-4 w-4" />Gerar PDF
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
                                   )}
                                  <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -1274,7 +1282,9 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                           <DropdownMenuSeparator />
                                         </>
                                       )}
-                                      <DropdownMenuSub>
+                                      
+                                      {orcamento.status !== 'Pendente' && (
+                                        <DropdownMenuSub>
                                           <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" />Gerar PDF</DropdownMenuSubTrigger>
                                           <DropdownMenuPortal>
                                             <DropdownMenuSubContent>
@@ -1282,7 +1292,9 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                               <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
                                             </DropdownMenuSubContent>
                                           </DropdownMenuPortal>
-                                      </DropdownMenuSub>
+                                        </DropdownMenuSub>
+                                      )}
+
                                       <DropdownMenuItem onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefone}>
                                         <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
                                       </DropdownMenuItem>
@@ -1708,3 +1720,4 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     </div>
   );
 }
+
