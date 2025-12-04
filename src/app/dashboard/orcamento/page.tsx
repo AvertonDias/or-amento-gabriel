@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 'use client';
 
 import React, { useState, useMemo, useEffect, FormEvent, useRef, useCallback } from 'react';
@@ -342,23 +335,24 @@ export default function OrcamentoPage() {
     if (isRefresh) setIsRefreshing(true);
     else setIsLoading(prev => ({...prev, materiais: true, clientes: true, empresa: true, orcamentos: true}));
 
-    Promise.all([
-        getMateriais(user.uid),
-        getClientes(user.uid),
-        getEmpresaData(user.uid),
-        getOrcamentos(user.uid)
-    ]).then(([materiaisData, clientesData, empresaData, orcamentosData]) => {
+    try {
+        const [materiaisData, clientesData, empresaData, orcamentosData] = await Promise.all([
+            getMateriais(user.uid),
+            getClientes(user.uid),
+            getEmpresaData(user.uid),
+            getOrcamentos(user.uid)
+        ]);
         setMateriais(materiaisData);
         setClientes(clientesData);
         setEmpresa(empresaData);
         setOrcamentosSalvos(orcamentosData);
-    }).catch(error => {
+    } catch (error) {
         console.error("Erro ao buscar dados:", error);
         toast({ title: 'Erro ao carregar dados', description: 'Não foi possível buscar os dados. Verifique sua conexão ou as permissões do banco de dados.', variant: 'destructive' });
-    }).finally(() => {
+    } finally {
         setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
         if (isRefresh) setIsRefreshing(false);
-    });
+    }
 }, [user, toast]);
 
   
@@ -388,7 +382,7 @@ export default function OrcamentoPage() {
   }, [user, fetchAllData, toast]);
 
   const scheduleNotification = async (orcamento: Orcamento, type: 'expiring' | 'expired') => {
-    if ((await Capacitor.isNativePlatform()) && (await LocalNotifications.checkPermissions()).display === 'granted') {
+    if (Capacitor.isNativePlatform() && (await LocalNotifications.checkPermissions()).display === 'granted') {
       const storageKey = `notif_${type}_${orcamento.id}`;
       if (localStorage.getItem(storageKey)) return; // Já notificado
 
@@ -460,7 +454,7 @@ export default function OrcamentoPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orcamentosSalvos]);
 
-  const fetchOrcamentos = useCallback(async () => {
+  const fetchOrcamentos = useCallback(() => {
     if (!user) return;
     setIsLoading(prev => ({ ...prev, orcamentos: true }));
     getOrcamentos(user.uid).then(orcamentosData => {
@@ -907,7 +901,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
   };
 
   const savePdfToFile = async (pdf: jsPDF, fileName: string) => {
-    if (await Capacitor.isNativePlatform()) {
+    if (Capacitor.isNativePlatform()) {
         const { Filesystem, Directory } = await import('@capacitor/filesystem');
         let permStatus;
         try {
@@ -1350,15 +1344,10 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                         </AlertDialog>
                                     </>
                                 ) : (
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="sm" className="flex-1"><FileText className="mr-2 h-4 w-4" />Gerar PDF</Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
+                                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones.some(t => t.numero)}>
+                                    <MessageCircle className="mr-2 h-4 w-4" />
+                                    Enviar Proposta
+                                  </Button>
                                 )}
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -1367,18 +1356,14 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                     </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                    {orcamento.status === 'Pendente' && (
-                                        <>
-                                        <DropdownMenuItem onClick={() => handleOpenEditBudgetModal(orcamento)}>
-                                            <Pencil className="mr-2 h-4 w-4" />Editar
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        </>
-                                    )}
-                                    
-                                    <DropdownMenuItem onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones.some(t => t.numero)}>
-                                        <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
+                                    <DropdownMenuItem onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}>
+                                      <Pencil className="mr-2 h-4 w-4" />Editar
                                     </DropdownMenuItem>
+                                    {orcamento.status !== 'Pendente' && (
+                                      <DropdownMenuItem onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones.some(t => t.numero)}>
+                                        <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
+                                      </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuSub>
                                       <DropdownMenuSubTrigger>
                                         <FileText className="mr-2 h-4 w-4" />
@@ -1391,7 +1376,6 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                         </DropdownMenuSubContent>
                                       </DropdownMenuPortal>
                                     </DropdownMenuSub>
-
                                     <DropdownMenuSeparator />
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
