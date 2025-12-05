@@ -327,7 +327,7 @@ export default function OrcamentoPage() {
   const [selectedPhone, setSelectedPhone] = useState('');
   const [currentBudgetForWpp, setCurrentBudgetForWpp] = useState<Orcamento | null>(null);
 
- const fetchAllData = useCallback(async (isRefresh = false) => {
+  const fetchAllData = useCallback(async (isRefresh = false) => {
     if (!user) return;
     
     if (isRefresh) setIsRefreshing(true);
@@ -351,9 +351,8 @@ export default function OrcamentoPage() {
         setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
         if (isRefresh) setIsRefreshing(false);
     }
-}, [user, toast]);
+  }, [user, toast]);
 
-  
   useEffect(() => {
     if (user) {
       fetchAllData();
