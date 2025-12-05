@@ -261,7 +261,7 @@ export default function OrcamentoPage() {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [orcamentoItens, setOrcamentoItens] = useState<OrcamentoItem[]>([]);
-  const [clienteData, setClienteData] = useState<Omit<ClienteData, 'userId' | 'id'> & {id?: string}>({ id: undefined, nome: '', endereco: '', telefones: [{nome: 'Principal', numero: '', principal: true}], email: '', cpfCnpj: ''});
+  const [clienteData, setClienteData] = useState<Omit<ClienteData, 'userId' | 'id'> & {id?: string}>({ id: undefined, nome: '', endereco: '', telefones: [{nome: 'Principal', numero: ''}], email: '', cpfCnpj: ''});
   const [validadeDias, setValidadeDias] = useState('7');
   
   const [isLoading, setIsLoading] = useState({
@@ -500,7 +500,7 @@ export default function OrcamentoPage() {
   const handleOpenWizard = () => {
     // Reset state before opening
     setOrcamentoItens([]);
-    setClienteData({ id: undefined, nome: '', endereco: '', telefones: [{nome: 'Principal', numero: '', principal: true}], email: '', cpfCnpj: ''});
+    setClienteData({ id: undefined, nome: '', endereco: '', telefones: [{nome: 'Principal', numero: ''}], email: '', cpfCnpj: ''});
     setValidadeDias('7');
     setIsAddingAvulso(false);
     setWizardStep(1);
@@ -520,7 +520,7 @@ export default function OrcamentoPage() {
 
     setter(prev => {
         if (!prev) return prev;
-        const novosTelefones = [...prev.telefones];
+        const novosTelefones = [...(prev.telefones || [])];
         novosTelefones[index] = { ...novosTelefones[index], [field]: maskedValue };
         return { ...prev, telefones: novosTelefones };
     });
@@ -529,20 +529,17 @@ export default function OrcamentoPage() {
   const handleClientAddTelefone = () => {
     setClienteData(prev => ({
         ...prev,
-        telefones: [...prev.telefones, { nome: '', numero: '', principal: false }]
+        telefones: [...(prev.telefones || []), { nome: '', numero: ''}]
     }));
   };
 
   const handleClientRemoveTelefone = (index: number) => {
     setClienteData(prev => {
-        if (prev.telefones.length <= 1) {
+        if (!prev.telefones || prev.telefones.length <= 1) {
             toast({ title: "Ação não permitida", description: "Deve haver pelo menos um número de telefone.", variant: "destructive" });
             return prev;
         }
         const novosTelefones = prev.telefones.filter((_, i) => i !== index);
-        if (!novosTelefones.some(t => t.principal)) {
-          novosTelefones[0].principal = true;
-        }
         return { ...prev, telefones: novosTelefones };
     });
   };
@@ -550,7 +547,7 @@ export default function OrcamentoPage() {
   const handleClientPrincipalTelefoneChange = (selectedIndex: number) => {
     setClienteData(prev => {
       if (!prev) return prev;
-      const novosTelefones = prev.telefones.map((tel, index) => ({
+      const novosTelefones = (prev.telefones || []).map((tel, index) => ({
         ...tel,
         principal: index === selectedIndex,
       }));
@@ -911,8 +908,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     if (validPhones.length === 1) {
         sendClientWhatsAppMessage(orcamento, validPhones[0].numero);
     } else {
-        const principalPhone = validPhones.find(t => t.principal) || validPhones[0];
-        setSelectedPhone(principalPhone.numero);
+        setSelectedPhone(validPhones[0].numero);
         setPhoneSelectionConfig({
             isOpen: true,
             type: 'client',
@@ -1375,15 +1371,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                         </AlertDialog>
                                     </>
                                 ) : (
-                                  <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                          <Button variant="outline" size="sm" className="flex-1"><FileText className="mr-2 h-4 w-4" />Gerar PDF</Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                          <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                  </DropdownMenu>
+                                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handlePrepareClientWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones?.some(t => !!t.numero)}><MessageCircle className="mr-2 h-4 w-4" />Enviar</Button>
                                 )}
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -1395,23 +1383,23 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                     <DropdownMenuItem onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}>
                                       <Pencil className="mr-2 h-4 w-4" />Editar
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handlePrepareClientWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones?.some(t => !!t.numero)}>
+                                    {orcamento.status === 'Pendente' &&
+                                      <DropdownMenuItem onClick={() => handlePrepareClientWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones?.some(t => !!t.numero)}>
                                         <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
-                                    </DropdownMenuItem>
-                                    {orcamento.status !== 'Pendente' && (
-                                        <DropdownMenuSub>
-                                            <DropdownMenuSubTrigger>
-                                                <FileText className="mr-2 h-4 w-4" />
-                                                Gerar PDF
-                                            </DropdownMenuSubTrigger>
-                                            <DropdownMenuPortal>
-                                                <DropdownMenuSubContent>
-                                                    <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
-                                                </DropdownMenuSubContent>
-                                            </DropdownMenuPortal>
-                                        </DropdownMenuSub>
-                                    )}
+                                      </DropdownMenuItem>
+                                    }
+                                    <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger>
+                                            <FileText className="mr-2 h-4 w-4" />
+                                            Gerar PDF
+                                        </DropdownMenuSubTrigger>
+                                        <DropdownMenuPortal>
+                                            <DropdownMenuSubContent>
+                                                <DropdownMenuItem onClick={() => handleGerarPDF(orcamento)}>Para o Cliente</DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
+                                            </DropdownMenuSubContent>
+                                        </DropdownMenuPortal>
+                                    </DropdownMenuSub>
                                     <DropdownMenuSeparator />
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
@@ -1487,7 +1475,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                                         id: client.id,
                                                         nome: client.nome,
                                                         endereco: client.endereco || '',
-                                                        telefones: client.telefones && client.telefones.length > 0 ? client.telefones : [{ nome: 'Principal', numero: '', principal: true }],
+                                                        telefones: client.telefones && client.telefones.length > 0 ? client.telefones : [{ nome: 'Principal', numero: '' }],
                                                         email: client.email || '',
                                                         cpfCnpj: client.cpfCnpj || ''
                                                       });
@@ -1522,26 +1510,22 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2 space-y-2">
-                        <Label>Telefones</Label>
-                        <RadioGroup
-                          value={clienteData.telefones.findIndex(t => t.principal).toString()}
-                          onValueChange={(value) => handleClientPrincipalTelefoneChange(parseInt(value, 10))}
-                          className="space-y-2"
-                        >
-                            {clienteData.telefones.map((tel, index) => (
-                                <div key={index} className="flex items-center gap-2">
-                                  <RadioGroupItem value={index.toString()} id={`client-tel-principal-${index}`} />
-                                  <Input className="flex-1" value={tel.nome} onChange={(e) => handleClientTelefoneChange(index, 'nome', e.target.value)} placeholder="Ex: Principal" />
-                                  <Input className="flex-1" value={tel.numero} onChange={(e) => handleClientTelefoneChange(index, 'numero', e.target.value)} placeholder="(DD) XXXXX-XXXX" />
-                                  <Button type="button" variant="ghost" size="icon" onClick={() => handleClientRemoveTelefone(index)} disabled={clienteData.telefones.length <= 1}>
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                </div>
-                              ))}
-                        </RadioGroup>
+                  <div className="md:col-span-2 space-y-2">
+                      <Label>Telefones</Label>
+                      <div className="space-y-2">
+                        {(clienteData.telefones || []).map((tel, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <Input className="flex-1" value={tel.nome} onChange={(e) => handleClientTelefoneChange(index, 'nome', e.target.value)} placeholder="Ex: Principal" />
+                              <Input className="flex-1" value={tel.numero} onChange={(e) => handleClientTelefoneChange(index, 'numero', e.target.value)} placeholder="(DD) XXXXX-XXXX" />
+                              <Button type="button" variant="ghost" size="icon" onClick={() => handleClientRemoveTelefone(index)} disabled={!clienteData.telefones || clienteData.telefones.length <= 1}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                        ))}
+                      </div>
                       <Button type="button" variant="outline" size="sm" onClick={handleClientAddTelefone}><PlusCircle className="mr-2 h-4 w-4"/>Add Telefone</Button>
                   </div>
+
                   <div className="space-y-2 md:col-span-2"><Label htmlFor="cliente-endereco">Endereço</Label><Input id="cliente-endereco" name="endereco" value={clienteData.endereco} onChange={handleClienteDataChange} /></div>
                   <div className="space-y-2">
                     <Label htmlFor="cliente-cpfCnpj">CPF/CNPJ</Label>
