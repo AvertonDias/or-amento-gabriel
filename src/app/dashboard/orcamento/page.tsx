@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, FormEvent, useRef, useCallback } from 'react';
@@ -45,8 +44,8 @@ import { cn } from '@/lib/utils';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 
+// --- Componentes Auxiliares para PDF ---
 
-// Componente para o layout do PDF do Cliente
 const BudgetPDFLayout = ({ orcamento, empresa }: {
   orcamento: Orcamento | null,
   empresa: EmpresaData | null,
@@ -136,7 +135,6 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
     )
 };
 
-// Componente para o layout do PDF Interno
 const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
   orcamento: Orcamento | null,
   empresa: EmpresaData | null,
@@ -249,6 +247,7 @@ const unidadesDeMedida = [
   { value: 'serv', label: 'Serviço (serv)' },
 ];
 
+// --- Componente Principal ---
 
 export default function OrcamentoPage() {
   const [user, loadingAuth] = useAuthState(auth);
@@ -1097,11 +1096,11 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     toast({ title: 'Item atualizado.' });
   };
   
-  const getStatusBadgeVariant = (status: Orcamento['status']): "default" | "destructive" | "secondary" | "warning" => {
+  const getStatusBadgeVariant = (status: Orcamento['status']): "default" | "destructive" | "secondary" | "outline" => {
     switch (status) {
         case 'Aceito': return 'default';
         case 'Recusado': return 'destructive';
-        case 'Vencido': return 'warning';
+        case 'Vencido': return 'destructive';
         case 'Pendente': return 'secondary';
         default: return 'secondary';
     }
@@ -1698,7 +1697,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-6 w-6 text-warning" />
+              <AlertTriangle className="h-6 w-6 text-yellow-500" />
               Orçamentos Vencidos
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -1720,7 +1719,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </Dialog>
+      </AlertDialog>
       
       <Dialog open={isEditBudgetModalOpen} onOpenChange={setIsEditBudgetModalOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
