@@ -43,6 +43,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from '@/lib/utils';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
+import { usePermissionDialog } from '@/hooks/use-permission-dialog';
 
 // --- Componentes Auxiliares para PDF ---
 
@@ -273,6 +274,7 @@ export default function OrcamentoPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { toast } = useToast();
+  const { requestPermission } = usePermissionDialog();
   const pdfRef = useRef<HTMLDivElement>(null);
   const internalPdfRef = useRef<HTMLDivElement>(null);
   const quantidadeInputRef = useRef<HTMLInputElement>(null);
@@ -543,18 +545,6 @@ export default function OrcamentoPage() {
         return { ...prev, telefones: novosTelefones };
     });
   };
-
-  const handleClientPrincipalTelefoneChange = (selectedIndex: number) => {
-    setClienteData(prev => {
-      if (!prev) return prev;
-      const novosTelefones = (prev.telefones || []).map((tel, index) => ({
-        ...tel,
-        principal: index === selectedIndex,
-      }));
-      return { ...prev, telefones: novosTelefones };
-    });
-  };
-
 
   const handleNovoItemChange = (field: keyof typeof novoItem, value: string) => {
     if (field === 'materialId') {
@@ -898,7 +888,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
   };
 
   const handlePrepareClientWhatsApp = (orcamento: Orcamento) => {
-    if (!orcamento.cliente.telefones || orcamento.cliente.telefones.length === 0 || !orcamento.cliente.telefones.some(t => t.numero)) {
+    if (!orcamento.cliente.telefones || !orcamento.cliente.telefones.some(t => t.numero)) {
         toast({ title: 'Telefone do cliente não cadastrado.', variant: 'destructive' });
         return;
     }
@@ -952,24 +942,28 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
   const savePdfToFile = async (pdf: jsPDF, fileName: string) => {
     if (Capacitor.isNativePlatform()) {
         const { Filesystem, Directory } = await import('@capacitor/filesystem');
-        let permStatus;
+        
         try {
-            permStatus = await Filesystem.checkPermissions();
-        } catch (e) {
-            console.error("Erro ao checar permissões do Filesystem: ", e);
-            toast({ title: "Erro de Permissão", description: "Não foi possível verificar as permissões para salvar arquivos.", variant: "destructive" });
-            return;
-        }
+            let permStatus = await Filesystem.checkPermissions();
+            if (permStatus.publicStorage !== 'granted') {
+                const permissionGranted = await requestPermission({
+                    title: "Permissão para Salvar Arquivos",
+                    description: "Para salvar o PDF do orçamento diretamente na pasta 'Documentos' do seu dispositivo, precisamos da sua permissão de acesso ao armazenamento."
+                });
 
-        if (permStatus.publicStorage !== 'granted') {
-            const permResult = await Filesystem.requestPermissions();
-            if (permResult.publicStorage !== 'granted') {
-                toast({ title: "Permissão negada", description: "Não é possível salvar o PDF sem permissão.", variant: "destructive" });
+                if (permissionGranted) {
+                    permStatus = await Filesystem.requestPermissions();
+                } else {
+                    toast({ title: "Permissão negada", description: "O PDF não pode ser salvo sem a permissão.", variant: "destructive" });
+                    return;
+                }
+            }
+
+            if (permStatus.publicStorage !== 'granted') {
+                toast({ title: "Permissão negada", description: "Não é possível salvar o PDF sem permissão de armazenamento.", variant: "destructive" });
                 return;
             }
-        }
 
-        try {
             const base64Data = pdf.output('datauristring').split(',')[1];
             await Filesystem.writeFile({
                 path: fileName,
@@ -978,9 +972,10 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                 recursive: true,
             });
             toast({ title: "PDF Salvo!", description: `Salvo em Documentos com o nome ${fileName}.` });
+
         } catch (e) {
             console.error("Erro ao salvar PDF no dispositivo", e);
-            toast({ title: "Erro ao salvar", description: "Não foi possível salvar o PDF no dispositivo.", variant: "destructive" });
+            toast({ title: "Erro ao salvar", description: "Não foi possível salvar o PDF. Verifique as permissões do app.", variant: "destructive" });
             pdf.save(fileName); // Fallback para download no browser
         }
     } else {

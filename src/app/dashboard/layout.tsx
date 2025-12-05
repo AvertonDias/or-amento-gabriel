@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -30,6 +29,7 @@ import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Contacts } from '@capacitor-community/contacts';
 import Image from 'next/image';
+import { usePermissionDialog } from '@/hooks/use-permission-dialog';
 
 
 const navItems = [
@@ -89,29 +89,38 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const { toast } = useToast();
+  const { requestPermission } = usePermissionDialog();
   
   const requestAppPermissions = async () => {
     if (Capacitor.isNativePlatform()) {
-      try {
-        // Solicitar permissão de Notificações
-        const notifStatus = await LocalNotifications.checkPermissions();
-        if (notifStatus.display !== 'granted') {
-          await LocalNotifications.requestPermissions();
-        }
-
-        // Solicitar permissão de Contatos
-        const contactStatus = await Contacts.checkPermissions();
-        if (contactStatus.granted !== true) {
-           await Contacts.requestPermissions();
-        }
-
-      } catch (e) {
-        console.warn("Erro ao solicitar permissões do aplicativo:", e);
+      // Solicitar permissão de Notificações
+      const notifStatus = await LocalNotifications.checkPermissions();
+      if (notifStatus.display === 'prompt') {
+        const granted = await requestPermission({
+          title: "Permitir Notificações?",
+          description: "Deseja receber alertas importantes sobre seus orçamentos, como lembretes de vencimento?",
+        });
+        if (granted) await LocalNotifications.requestPermissions();
       }
+
+      // Solicitar permissão de Contatos
+      const contactStatus = await Contacts.checkPermissions();
+      if (contactStatus.granted !== true) {
+         const granted = await requestPermission({
+            title: "Acessar Contatos?",
+            description: "Para facilitar a criação de novos clientes, o app pode importar nomes e números da sua agenda. Deseja permitir?",
+         });
+         if(granted) await Contacts.requestPermissions();
+      }
+
     } else {
       // Para Web, solicitar permissão de notificação padrão
       if ('Notification' in window && Notification.permission === 'default') {
-        await Notification.requestPermission();
+         const granted = await requestPermission({
+          title: "Permitir Notificações?",
+          description: "Deseja receber alertas importantes sobre seus orçamentos, como lembretes de vencimento?",
+        });
+        if (granted) await Notification.requestPermission();
       }
     }
   };
@@ -130,7 +139,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       }
     });
     return () => unsubscribe();
-  }, [router]);
+  }, [router, requestPermission]);
 
   
   const handleLogout = async () => {

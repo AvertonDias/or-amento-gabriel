@@ -1,10 +1,10 @@
-
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { UnifiedThemeProvider } from "@/contexts/unified-theme-provider";
 import PwaRegistry from '@/app/pwa-registry';
+import { PermissionDialogProvider } from '@/hooks/use-permission-dialog';
 
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -41,7 +41,9 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} font-body antialiased`}>
         <UnifiedThemeProvider>
-          {children}
+          <PermissionDialogProvider>
+            {children}
+          </PermissionDialogProvider>
           <Toaster />
         </UnifiedThemeProvider>
       </body>

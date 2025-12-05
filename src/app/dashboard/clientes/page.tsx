@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, FormEvent, useEffect, useCallback, useMemo } from 'react';
@@ -36,7 +35,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { usePermissionDialog } from '@/hooks/use-permission-dialog';
+
 
 // --- Imports para Capacitor ---
 import { Capacitor } from '@capacitor/core';
@@ -94,6 +94,7 @@ export default function ClientesPage() {
 
 
   const { toast } = useToast();
+  const { requestPermission } = usePermissionDialog();
   
   const newClientCpfCnpjStatus = useMemo(() => {
     if (!newClient.cpfCnpj) return 'incomplete';
@@ -445,10 +446,15 @@ const handleImportContacts = async () => {
 
     if (isNative) {
         try {
-            // Verifica a permissão antes de tentar buscar os contatos
             let permStatus = await Contacts.checkPermissions();
             if (permStatus.granted !== true) {
-                permStatus = await Contacts.requestPermissions();
+                const granted = await requestPermission({
+                    title: "Acessar Contatos?",
+                    description: "Para facilitar a criação de novos clientes, o app pode importar nomes e números da sua agenda. Deseja permitir?",
+                });
+                if (granted) {
+                    permStatus = await Contacts.requestPermissions();
+                }
             }
 
             if (permStatus.granted !== true) {
