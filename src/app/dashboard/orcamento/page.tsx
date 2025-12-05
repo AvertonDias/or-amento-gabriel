@@ -326,7 +326,7 @@ export default function OrcamentoPage() {
   const [phoneSelectionConfig, setPhoneSelectionConfig] = useState<{
     isOpen: boolean;
     type: 'company' | 'client' | null;
-    phones: { nome: string; numero: string }[];
+    phones: { nome: string; numero: string; principal?: boolean }[];
     title: string;
     description: string;
     onConfirm: (selectedPhone: string) => void;
@@ -867,15 +867,17 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
       return;
     }
     
-    if (empresa.telefones.length === 1) {
-      sendCompanyWhatsAppMessage(orcamento, empresa.telefones[0].numero);
+    const validPhones = empresa.telefones.filter(t => t.numero);
+
+    if (validPhones.length === 1) {
+      sendCompanyWhatsAppMessage(orcamento, validPhones[0].numero);
     } else {
-      const principalPhone = empresa.telefones.find(t => t.principal) || empresa.telefones[0];
+      const principalPhone = validPhones.find(t => t.principal) || validPhones[0];
       setSelectedPhone(principalPhone.numero);
       setPhoneSelectionConfig({
         isOpen: true,
         type: 'company',
-        phones: empresa.telefones,
+        phones: validPhones,
         title: "Enviar Notificação Para",
         description: "Sua empresa tem múltiplos telefones. Para qual número devemos enviar a notificação de aceite?",
         onConfirm: (selectedPhone) => sendCompanyWhatsAppMessage(orcamento, selectedPhone)
@@ -1304,7 +1306,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                           <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
                                       </DropdownMenuContent>
                                   </DropdownMenu>
-                                  <Button variant="outline" size="sm" onClick={() => handlePrepareClientWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones?.some(t => t.numero)}><MessageCircle className="mr-2 h-4 w-4" />Enviar</Button>
+                                  <Button variant="outline" size="sm" onClick={() => handlePrepareClientWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones?.some(t => !!t.numero)}><MessageCircle className="mr-2 h-4 w-4" />Enviar</Button>
                                   <Button variant="outline" size="sm" onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}><Pencil className="mr-2 h-4 w-4" />Editar</Button>
                                   {orcamento.status === 'Pendente' && (
                                       <>
@@ -1393,7 +1395,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                     <DropdownMenuItem onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}>
                                       <Pencil className="mr-2 h-4 w-4" />Editar
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handlePrepareClientWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones?.some(t => t.numero)}>
+                                    <DropdownMenuItem onClick={() => handlePrepareClientWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones?.some(t => !!t.numero)}>
                                         <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
                                     </DropdownMenuItem>
                                     {orcamento.status !== 'Pendente' && (
