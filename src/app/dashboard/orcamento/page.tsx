@@ -323,10 +323,24 @@ export default function OrcamentoPage() {
   
   const [isClientPopoverOpen, setIsClientPopoverOpen] = useState(false);
 
-  // State for phone selection modal
-  const [isPhoneSelectionOpen, setIsPhoneSelectionOpen] = useState(false);
+  // State for phone selection modals
+  const [phoneSelectionConfig, setPhoneSelectionConfig] = useState<{
+    isOpen: boolean;
+    type: 'company' | 'client' | null;
+    phones: { nome: string; numero: string }[];
+    title: string;
+    description: string;
+    onConfirm: (selectedPhone: string) => void;
+  }>({
+    isOpen: false,
+    type: null,
+    phones: [],
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  });
   const [selectedPhone, setSelectedPhone] = useState('');
-  const [currentBudgetForWpp, setCurrentBudgetForWpp] = useState<Orcamento | null>(null);
+
 
   const fetchAllData = useCallback(async (isRefresh = false) => {
     if (!user) return;
@@ -841,40 +855,36 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
         toast({ title: `Orçamento ${status.toLowerCase()}!` });
         if (status === 'Aceito' && acceptedBudget) { 
             const updatedBudget: Orcamento = { ...acceptedBudget, status: 'Aceito', ...updatePayload };
-            handlePrepareWhatsApp(updatedBudget); 
+            handlePrepareCompanyWhatsApp(updatedBudget); 
         }
     } catch(error) {
         toast({ title: 'Erro ao atualizar status', variant: 'destructive' });
     }
   }
   
-  const handlePrepareWhatsApp = (orcamento: Orcamento) => {
+  const handlePrepareCompanyWhatsApp = (orcamento: Orcamento) => {
     if (!empresa || !empresa.telefones || empresa.telefones.length === 0) {
       toast({ title: "Telefone da empresa não configurado.", description: "Vá para 'Configurações' para adicionar.", variant: "destructive" });
       return;
     }
     
     if (empresa.telefones.length === 1) {
-      // Envia direto se só tiver um número
-      sendWhatsAppMessage(orcamento, empresa.telefones[0].numero);
+      sendCompanyWhatsAppMessage(orcamento, empresa.telefones[0].numero);
     } else {
-      // Abre o modal de seleção se tiver múltiplos números
-      setCurrentBudgetForWpp(orcamento);
       const principalPhone = empresa.telefones.find(t => t.principal) || empresa.telefones[0];
       setSelectedPhone(principalPhone.numero);
-      setIsPhoneSelectionOpen(true);
+      setPhoneSelectionConfig({
+        isOpen: true,
+        type: 'company',
+        phones: empresa.telefones,
+        title: "Enviar Notificação Para",
+        description: "Sua empresa tem múltiplos telefones. Para qual número devemos enviar a notificação de aceite?",
+        onConfirm: (selectedPhone) => sendCompanyWhatsAppMessage(orcamento, selectedPhone)
+      });
     }
   };
 
-  const handleConfirmPhoneSelection = () => {
-    if (currentBudgetForWpp && selectedPhone) {
-      sendWhatsAppMessage(currentBudgetForWpp, selectedPhone);
-    }
-    setIsPhoneSelectionOpen(false);
-    setCurrentBudgetForWpp(null);
-  };
-  
-  const sendWhatsAppMessage = (orcamento: Orcamento, companyPhone: string) => {
+  const sendCompanyWhatsAppMessage = (orcamento: Orcamento, companyPhone: string) => {
     const cleanCompanyPhone = companyPhone.replace(/\D/g, '');
     const telefonePrincipalCliente = orcamento.cliente.telefones.find(t => t.principal) || orcamento.cliente.telefones[0];
     let mensagem = `✅ *Orçamento Aceito!*\n\n*Nº do Orçamento:* ${orcamento.numeroOrcamento}\n*Cliente:* ${orcamento.cliente.nome}\n`;
@@ -889,6 +899,59 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     window.open(urlWhatsApp, '_blank');
   };
 
+  const handlePrepareClientWhatsApp = (orcamento: Orcamento) => {
+    if (!orcamento.cliente.telefones || orcamento.cliente.telefones.length === 0 || !orcamento.cliente.telefones.some(t => t.numero)) {
+        toast({ title: 'Telefone do cliente não cadastrado.', variant: 'destructive' });
+        return;
+    }
+
+    const validPhones = orcamento.cliente.telefones.filter(t => t.numero);
+
+    if (validPhones.length === 1) {
+        sendClientWhatsAppMessage(orcamento, validPhones[0].numero);
+    } else {
+        const principalPhone = validPhones.find(t => t.principal) || validPhones[0];
+        setSelectedPhone(principalPhone.numero);
+        setPhoneSelectionConfig({
+            isOpen: true,
+            type: 'client',
+            phones: validPhones,
+            title: "Enviar Orçamento Para",
+            description: "Este cliente tem múltiplos telefones. Para qual número devemos enviar a proposta?",
+            onConfirm: (selectedPhone) => sendClientWhatsAppMessage(orcamento, selectedPhone)
+        });
+    }
+  };
+
+  const sendClientWhatsAppMessage = (orcamento: Orcamento, clientPhone: string) => {
+    const cleanClientPhone = clientPhone.replace(/\D/g, '');
+    if (!cleanClientPhone) { toast({ title: 'Telefone do Cliente inválido.', variant: 'destructive' }); return; }
+
+    let mensagem = `*Orçamento de ${empresa?.nome || 'Serviços'}*\n\n*Nº do Orçamento:* ${orcamento.numeroOrcamento}\n\nOlá, *${orcamento.cliente.nome}*!\nSegue o seu orçamento:\n\n`;
+    orcamento.itens.forEach(item => {
+      let linha = `*- ${item.materialNome}* (Qtd: ${formatNumber(item.quantidade, 2)} ${item.unidade}) - *${formatCurrency(item.precoVenda)}*\n`;
+      mensagem += linha;
+    });
+    mensagem += `\n*VALOR TOTAL: ${formatCurrency(orcamento.totalVenda)}*\n\n`;
+    if (orcamento.validadeDias) {
+      const dataCriacao = parseISO(orcamento.dataCriacao);
+      const validadeDiasNum = parseInt(orcamento.validadeDias, 10);
+      if (!isNaN(validadeDiasNum)) {
+        const dataValidade = addDays(dataCriacao, validadeDiasNum);
+        mensagem += `_Proposta válida até ${format(dataValidade, 'dd/MM/yyyy')}._\n\n`;
+      }
+    }
+    const urlWhatsApp = `https://wa.me/55${cleanClientPhone}?text=${encodeURIComponent(mensagem)}`;
+    window.open(urlWhatsApp, '_blank');
+  };
+
+  const handleConfirmPhoneSelection = () => {
+    if (selectedPhone && phoneSelectionConfig.onConfirm) {
+      phoneSelectionConfig.onConfirm(selectedPhone);
+    }
+    setPhoneSelectionConfig({ ...phoneSelectionConfig, isOpen: false });
+  };
+  
   const savePdfToFile = async (pdf: jsPDF, fileName: string) => {
     if (Capacitor.isNativePlatform()) {
         const { Filesystem, Directory } = await import('@capacitor/filesystem');
@@ -980,28 +1043,6 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     setPdfBudget(null);
   };
   
-  const handleEnviarWhatsApp = (orcamento: Orcamento) => {
-    const telefonePrincipalCliente = orcamento.cliente.telefones.find(t => t.principal) || orcamento.cliente.telefones[0];
-    const telefoneLimpo = telefonePrincipalCliente?.numero.replace(/\D/g, '');
-    if (!telefoneLimpo) { toast({ title: 'Telefone do Cliente inválido.', variant: 'destructive' }); return; }
-    let mensagem = `*Orçamento de ${empresa?.nome || 'Serviços'}*\n\n*Nº do Orçamento:* ${orcamento.numeroOrcamento}\n\nOlá, *${orcamento.cliente.nome}*!\nSegue o seu orçamento:\n\n`;
-    orcamento.itens.forEach(item => {
-      let linha = `*- ${item.materialNome}* (Qtd: ${formatNumber(item.quantidade, 2)} ${item.unidade}) - *${formatCurrency(item.precoVenda)}*\n`;
-      mensagem += linha;
-    });
-    mensagem += `\n*VALOR TOTAL: ${formatCurrency(orcamento.totalVenda)}*\n\n`;
-    if (orcamento.validadeDias) {
-      const dataCriacao = parseISO(orcamento.dataCriacao);
-      const validadeDiasNum = parseInt(orcamento.validadeDias, 10);
-      if (!isNaN(validadeDiasNum)) {
-        const dataValidade = addDays(dataCriacao, validadeDiasNum);
-        mensagem += `_Proposta válida até ${format(dataValidade, 'dd/MM/yyyy')}._\n\n`;
-      }
-    }
-    const urlWhatsApp = `https://wa.me/55${telefoneLimpo}?text=${encodeURIComponent(mensagem)}`;
-    window.open(urlWhatsApp, '_blank');
-  };
-
   const handleEditItemClick = (item: OrcamentoItem, sourceList: 'wizard' | 'modal') => {
     setEditingItem({ ...item });
     setEditingQuantidadeStr(String(item.quantidade).replace('.', ','));
@@ -1264,7 +1305,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                           <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
                                       </DropdownMenuContent>
                                   </DropdownMenu>
-                                  <Button variant="outline" size="sm" onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones.some(t => t.numero)}><MessageCircle className="mr-2 h-4 w-4" />Enviar</Button>
+                                  <Button variant="outline" size="sm" onClick={() => handlePrepareClientWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones.some(t => t.numero)}><MessageCircle className="mr-2 h-4 w-4" />Enviar</Button>
                                   <Button variant="outline" size="sm" onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}><Pencil className="mr-2 h-4 w-4" />Editar</Button>
                                   {orcamento.status === 'Pendente' && (
                                       <>
@@ -1353,7 +1394,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                     <DropdownMenuItem onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}>
                                       <Pencil className="mr-2 h-4 w-4" />Editar
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleEnviarWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones.some(t => t.numero)}>
+                                    <DropdownMenuItem onClick={() => handlePrepareClientWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones.some(t => t.numero)}>
                                         <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
                                     </DropdownMenuItem>
                                     {orcamento.status !== 'Pendente' && (
@@ -1805,16 +1846,16 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isPhoneSelectionOpen} onOpenChange={setIsPhoneSelectionOpen}>
+      <Dialog open={phoneSelectionConfig.isOpen} onOpenChange={() => setPhoneSelectionConfig(prev => ({...prev, isOpen: false}))}>
           <DialogContent>
               <DialogHeader>
-                  <DialogTitle>Selecionar Telefone</DialogTitle>
+                  <DialogTitle>{phoneSelectionConfig.title}</DialogTitle>
                   <DialogDescription>
-                      Sua empresa tem múltiplos telefones. Para qual número devemos enviar a notificação de aceite?
+                      {phoneSelectionConfig.description}
                   </DialogDescription>
               </DialogHeader>
               <RadioGroup value={selectedPhone} onValueChange={setSelectedPhone} className="my-4 space-y-2">
-                  {empresa?.telefones?.map((tel, index) => (
+                  {phoneSelectionConfig.phones.map((tel, index) => (
                       <div key={index} className="flex items-center space-x-2">
                           <RadioGroupItem value={tel.numero} id={`tel-${index}`} />
                           <Label htmlFor={`tel-${index}`} className="flex-1 cursor-pointer">
@@ -1825,7 +1866,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                   ))}
               </RadioGroup>
               <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsPhoneSelectionOpen(false)}>Cancelar</Button>
+                  <Button variant="outline" onClick={() => setPhoneSelectionConfig(prev => ({...prev, isOpen: false}))}>Cancelar</Button>
                   <Button onClick={handleConfirmPhoneSelection}>Confirmar e Enviar</Button>
               </DialogFooter>
           </DialogContent>
