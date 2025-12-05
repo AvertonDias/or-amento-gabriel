@@ -103,7 +103,7 @@ export default function ClientesPage() {
 
   const editingClientCpfCnpjStatus = useMemo(() => {
     if (!editingClient?.cpfCnpj) return 'incomplete';
-    return validateCpfCnpj(editingClient.cpfCnpj);
+    return validateCpfCnpj(editingClient?.cpfCnpj);
   }, [editingClient?.cpfCnpj]);
 
   const fetchPageData = useCallback(async () => {

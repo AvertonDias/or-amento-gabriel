@@ -402,9 +402,9 @@ export default function OrcamentoPage() {
   const scheduleNotification = async (orcamento: Orcamento, type: 'expiring' | 'expired') => {
     if (Capacitor.isNativePlatform() && (await LocalNotifications.checkPermissions()).display === 'granted') {
       const storageKey = `notif_${type}_${orcamento.id}`;
-      if (localStorage.getItem(storageKey)) return; // Já notificado
-
-      await LocalNotifications.schedule({
+          if (localStorage.getItem(storageKey)) return; // Já notificado
+    
+          await LocalNotifications.schedule({
         notifications: [
           {
             title: type === 'expiring' ? `Orçamento quase vencendo` : `Orçamento Vencido`,
@@ -1522,10 +1522,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                   </div>
 
                   <div className="space-y-2 md:col-span-2"><Label htmlFor="cliente-endereco">Endereço</Label><Input id="cliente-endereco" name="endereco" value={clienteData.endereco} onChange={handleClienteDataChange} /></div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cliente-cpfCnpj">CPF/CNPJ</Label>
-                    <Input id="cliente-cpfCnpj" name="cpfCnpj" value={clienteData.cpfCnpj || ''} onChange={handleClienteDataChange} placeholder="XXX.XXX.XXX-XX ou XX.XXX.XXX/XXXX-XX" />
-                  </div>
+                  <div className="space-y-2"><Label htmlFor="cliente-cpfCnpj">CPF/CNPJ</Label><Input id="cliente-cpfCnpj" name="cpfCnpj" value={clienteData.cpfCnpj || ''} onChange={handleClienteDataChange} placeholder="XXX.XXX.XXX-XX ou XX.XXX.XXX/XXXX-XX" /></div>
                   <div className="space-y-2"><Label htmlFor="cliente-email">Email</Label><Input id="cliente-email" name="email" type="email" value={clienteData.email || ''} onChange={handleClienteDataChange} /></div>
                   <div className="space-y-2"><Label htmlFor="validade-dias">Validade da Proposta (dias)</Label><Input id="validade-dias" type="number" value={validadeDias} onChange={(e) => setValidadeDias(e.target.value)} placeholder="Ex: 7" /></div>
                 </div>
