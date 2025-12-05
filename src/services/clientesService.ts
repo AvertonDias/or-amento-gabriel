@@ -11,16 +11,9 @@ const getClientesCollection = () => {
 export const addCliente = (userId: string, cliente: Omit<ClienteData, 'id' | 'userId'>): Promise<string> => {
   const clientesCollection = getClientesCollection();
   
-  // Garantir que telefones é um array e que há um principal
-  let telefones = Array.isArray(cliente.telefones) ? cliente.telefones : [];
-  if (telefones.length > 0 && !telefones.some(t => t.principal)) {
-    telefones[0].principal = true;
-  }
-
   const dataToSave = {
     ...cliente,
     userId,
-    telefones: telefones,
   };
   return addDoc(clientesCollection, dataToSave).then(docRef => docRef.id);
 };
@@ -29,22 +22,6 @@ export const addCliente = (userId: string, cliente: Omit<ClienteData, 'id' | 'us
 export const updateCliente = (clienteId: string, cliente: Partial<Omit<ClienteData, 'id' | 'userId'>>) => {
   const clienteDoc = doc(db, 'clientes', clienteId);
   const dataToUpdate: Partial<Omit<ClienteData, 'id'>> = { ...cliente };
-
-  // Garantir que telefones é um array e que há um principal
-  if (Array.isArray(dataToUpdate.telefones)) {
-      let principalFound = false;
-      dataToUpdate.telefones = dataToUpdate.telefones.map(tel => {
-          if (tel.principal && !principalFound) {
-              principalFound = true;
-              return tel;
-          }
-          return { ...tel, principal: false };
-      });
-
-      if (!principalFound && dataToUpdate.telefones.length > 0) {
-          dataToUpdate.telefones[0].principal = true;
-      }
-  }
 
   return updateDoc(clienteDoc, dataToUpdate);
 };
@@ -69,9 +46,7 @@ export const getClientes = async (userId: string): Promise<ClienteData[]> => {
         let telefones = data.telefones || [];
         // Migração de estrutura antiga para nova
         if (!Array.isArray(telefones) || telefones.length === 0) {
-            telefones = [{ nome: 'Principal', numero: data.telefone || '', principal: true }];
-        } else if (!telefones.some((t: any) => t.principal)) {
-            telefones[0].principal = true;
+            telefones = [{ nome: 'Principal', numero: data.telefone || '' }];
         }
 
         clientes.push({ id: doc.id, ...data, telefones } as ClienteData);
