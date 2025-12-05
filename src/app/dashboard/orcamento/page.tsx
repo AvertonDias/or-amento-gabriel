@@ -58,8 +58,8 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
     const dataAceite = orcamento.dataAceite ? parseISO(orcamento.dataAceite) : null;
     const dataRecusa = orcamento.dataRecusa ? parseISO(orcamento.dataRecusa) : null;
 
-    const telefonePrincipalEmpresa = empresa?.telefones.find(t => t.principal) || empresa?.telefones[0];
-    const telefonePrincipalCliente = orcamento.cliente.telefones.find(t => t.principal) || orcamento.cliente.telefones[0];
+    const telefonePrincipalEmpresa = empresa?.telefones?.find(t => t.principal) || empresa?.telefones?.[0];
+    const telefonePrincipalCliente = orcamento.cliente.telefones?.find(t => t.principal) || orcamento.cliente.telefones?.[0];
 
     return (
       <div className="p-8 font-sans bg-white text-black text-xs">
@@ -149,8 +149,8 @@ const InternalBudgetPDFLayout = ({ orcamento, empresa }: {
     const dataAceite = orcamento.dataAceite ? parseISO(orcamento.dataAceite) : null;
     const dataRecusa = orcamento.dataRecusa ? parseISO(orcamento.dataRecusa) : null;
 
-    const telefonePrincipalEmpresa = empresa?.telefones.find(t => t.principal) || empresa?.telefones[0];
-    const telefonePrincipalCliente = orcamento.cliente.telefones.find(t => t.principal) || orcamento.cliente.telefones[0];
+    const telefonePrincipalEmpresa = empresa?.telefones?.find(t => t.principal) || empresa?.telefones?.[0];
+    const telefonePrincipalCliente = orcamento.cliente.telefones?.find(t => t.principal) || orcamento.cliente.telefones?.[0];
 
     return (
       <div className="p-8 font-sans bg-white text-black text-xs">
@@ -885,7 +885,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
 
   const sendCompanyWhatsAppMessage = (orcamento: Orcamento, companyPhone: string) => {
     const cleanCompanyPhone = companyPhone.replace(/\D/g, '');
-    const telefonePrincipalCliente = orcamento.cliente.telefones.find(t => t.principal) || orcamento.cliente.telefones[0];
+    const telefonePrincipalCliente = orcamento.cliente.telefones?.find(t => t.principal) || orcamento.cliente.telefones?.[0];
     let mensagem = `✅ *Orçamento Aceito!*\n\n*Nº do Orçamento:* ${orcamento.numeroOrcamento}\n*Cliente:* ${orcamento.cliente.nome}\n`;
     if (telefonePrincipalCliente?.numero) mensagem += `*Tel. Cliente:* ${telefonePrincipalCliente.numero}\n`;
     if (orcamento.cliente.endereco) mensagem += `*Endereço:* ${orcamento.cliente.endereco}\n`;
@@ -1304,7 +1304,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                           <DropdownMenuItem onClick={() => handleGerarPDFInterno(orcamento)}>Uso Interno</DropdownMenuItem>
                                       </DropdownMenuContent>
                                   </DropdownMenu>
-                                  <Button variant="outline" size="sm" onClick={() => handlePrepareClientWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones.some(t => t.numero)}><MessageCircle className="mr-2 h-4 w-4" />Enviar</Button>
+                                  <Button variant="outline" size="sm" onClick={() => handlePrepareClientWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones?.some(t => t.numero)}><MessageCircle className="mr-2 h-4 w-4" />Enviar</Button>
                                   <Button variant="outline" size="sm" onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}><Pencil className="mr-2 h-4 w-4" />Editar</Button>
                                   {orcamento.status === 'Pendente' && (
                                       <>
@@ -1393,7 +1393,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                     <DropdownMenuItem onClick={() => handleOpenEditBudgetModal(orcamento)} disabled={orcamento.status !== 'Pendente'}>
                                       <Pencil className="mr-2 h-4 w-4" />Editar
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handlePrepareClientWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones.some(t => t.numero)}>
+                                    <DropdownMenuItem onClick={() => handlePrepareClientWhatsApp(orcamento)} disabled={!orcamento.cliente.telefones?.some(t => t.numero)}>
                                         <MessageCircle className="mr-2 h-4 w-4" />Enviar Proposta
                                     </DropdownMenuItem>
                                     {orcamento.status !== 'Pendente' && (
