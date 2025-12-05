@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, FormEvent, useRef, useCallback } from 'react';
@@ -329,27 +330,32 @@ export default function OrcamentoPage() {
 
   const fetchAllData = useCallback(async (isRefresh = false) => {
     if (!user) return;
-    
-    if (isRefresh) setIsRefreshing(true);
-    else setIsLoading(prev => ({...prev, materiais: true, clientes: true, empresa: true, orcamentos: true}));
+
+    if (isRefresh) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(prev => ({ ...prev, materiais: true, clientes: true, empresa: true, orcamentos: true }));
+    }
 
     try {
-        const [materiaisData, clientesData, empresaData, orcamentosData] = await Promise.all([
-            getMateriais(user.uid),
-            getClientes(user.uid),
-            getEmpresaData(user.uid),
-            getOrcamentos(user.uid)
-        ]);
-        setMateriais(materiaisData);
-        setClientes(clientesData);
-        setEmpresa(empresaData);
-        setOrcamentosSalvos(orcamentosData);
+      const [materiaisData, clientesData, empresaData, orcamentosData] = await Promise.all([
+        getMateriais(user.uid),
+        getClientes(user.uid),
+        getEmpresaData(user.uid),
+        getOrcamentos(user.uid)
+      ]);
+      setMateriais(materiaisData);
+      setClientes(clientesData);
+      setEmpresa(empresaData);
+      setOrcamentosSalvos(orcamentosData);
     } catch (error) {
-        console.error("Erro ao buscar dados:", error);
-        toast({ title: 'Erro ao carregar dados', description: 'Não foi possível buscar os dados. Verifique sua conexão ou as permissões do banco de dados.', variant: 'destructive' });
+      console.error("Erro ao buscar dados:", error);
+      toast({ title: 'Erro ao carregar dados', description: 'Não foi possível buscar os dados. Verifique sua conexão ou as permissões do banco de dados.', variant: 'destructive' });
     } finally {
-        setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
-        if (isRefresh) setIsRefreshing(false);
+      setIsLoading({ materiais: false, clientes: false, empresa: false, orcamentos: false });
+      if (isRefresh) {
+        setIsRefreshing(false);
+      }
     }
   }, [user, toast]);
 
