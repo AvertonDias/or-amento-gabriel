@@ -176,7 +176,7 @@ export default function ClientesPage() {
 
     setter(prev => {
         if (!prev) return null;
-        const novosTelefones = [...prev.telefones];
+        const novosTelefones = [...(prev.telefones || [])];
         novosTelefones[index] = { ...novosTelefones[index], [field]: maskedValue };
         return { ...prev, telefones: novosTelefones };
     });
@@ -188,7 +188,7 @@ export default function ClientesPage() {
           if (!prev) return null;
           return {
               ...prev,
-              telefones: [...prev.telefones, { nome: '', numero: '' }]
+              telefones: [...(prev.telefones || []), { nome: '', numero: '' }]
           };
       });
   };
@@ -496,7 +496,7 @@ const handleImportContacts = async () => {
             const opts = { multiple: false };
             const contacts = await (navigator as any).contacts.select(props, opts);
             processSelectedContacts(contacts);
-        } catch (error: any) {
+        } catch (error: any) => {
             if (error.name !== 'AbortError') {
                 setIsApiNotSupportedAlertOpen(true);
                 console.error('Erro ao importar contato via Web API:', error);
@@ -649,7 +649,7 @@ const handleImportContacts = async () => {
                     <div className="md:col-span-2 space-y-4">
                       <Label>Telefones de Contato</Label>
                       
-                        {newClient.telefones.map((tel, index) => (
+                        {(newClient.telefones || []).map((tel, index) => (
                           <div key={index} className="flex items-center gap-2">
                             <div className="flex-grow grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <div className="sm:col-span-1">
@@ -829,7 +829,12 @@ const handleImportContacts = async () => {
       {/* DIALOGS SECTION */}
 
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent 
+            className="max-w-lg"
+            onPointerDownOutside={(e) => {
+              if (Capacitor.isNativePlatform()) e.preventDefault();
+            }}
+        >
           <DialogHeader>
             <DialogTitle>Editar Cliente</DialogTitle>
             <DialogDescription>
@@ -881,7 +886,7 @@ const handleImportContacts = async () => {
                 <div className="md:col-span-2 space-y-4">
                     <Label>Telefones de Contato</Label>
                     
-                    {editingClient.telefones.map((tel, index) => (
+                    {(editingClient.telefones || []).map((tel, index) => (
                       <div key={index} className="flex items-center gap-2">
                         <div className="flex-grow grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <div className="sm:col-span-1">
@@ -924,7 +929,11 @@ const handleImportContacts = async () => {
       </Dialog>
       
       <Dialog open={isContactSelectionModalOpen} onOpenChange={setIsContactSelectionModalOpen}>
-        <DialogContent>
+        <DialogContent
+            onPointerDownOutside={(e) => {
+              if (Capacitor.isNativePlatform()) e.preventDefault();
+            }}
+        >
           <DialogHeader>
             <DialogTitle>Escolha os Detalhes do Contato</DialogTitle>
             <DialogDescription>

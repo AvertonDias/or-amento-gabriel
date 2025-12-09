@@ -26,6 +26,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { cn } from '@/lib/utils';
+import { Capacitor } from '@capacitor/core';
 
 
 const initialNewItemState: Omit<MaterialItem, 'id' | 'userId'> = {
@@ -544,7 +545,12 @@ export default function MateriaisPage() {
       </Card>
       
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent 
+            className="max-w-md"
+            onPointerDownOutside={(e) => {
+              if (Capacitor.isNativePlatform()) e.preventDefault();
+            }}
+        >
           <DialogHeader>
             <DialogTitle>Editar {editingMaterial?.tipo === 'item' ? 'Item' : 'Serviço'}</DialogTitle>
             <DialogDescription>Faça as alterações necessárias.</DialogDescription>

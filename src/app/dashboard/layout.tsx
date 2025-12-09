@@ -94,8 +94,15 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     if (Capacitor.getPlatform() === 'android') {
-      CapacitorApp.addListener('backButton', (event) => {
-        if (event.canGoBack) {
+      CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+        const anyModalOpen = !!document.querySelector('[data-radix-collection-item][data-state="open"]');
+        if (anyModalOpen) {
+          // A modal is open, we can't programmatically close it easily, so we just prevent back navigation
+          // The user can close it with the 'esc' key or by clicking outside (if not prevented)
+          return;
+        }
+
+        if (canGoBack) {
           window.history.back();
         } else {
           CapacitorApp.exitApp();
