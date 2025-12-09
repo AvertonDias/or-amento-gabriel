@@ -30,6 +30,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { Contacts } from '@capacitor-community/contacts';
 import Image from 'next/image';
 import { usePermissionDialog } from '@/hooks/use-permission-dialog';
+import { App as CapacitorApp } from '@capacitor/app';
 
 
 const navItems = [
@@ -90,6 +91,18 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const { toast } = useToast();
   const { requestPermission } = usePermissionDialog();
+
+  useEffect(() => {
+    if (Capacitor.getPlatform() === 'android') {
+      CapacitorApp.addListener('backButton', (event) => {
+        if (event.canGoBack) {
+          window.history.back();
+        } else {
+          CapacitorApp.exitApp();
+        }
+      });
+    }
+  }, []);
   
   const requestAppPermissions = async () => {
     if (Capacitor.isNativePlatform()) {
