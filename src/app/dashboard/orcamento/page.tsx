@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, FormEvent, useRef, useCallback } from 'react';
@@ -888,7 +889,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
   };
 
   const handlePrepareClientWhatsApp = (orcamento: Orcamento) => {
-    if (!orcamento.cliente.telefones || !orcamento.cliente.telefones.some(t => t.numero)) {
+    if (!orcamento.cliente.telefones || !orcamento.cliente.telefones.some(t => !!t.numero)) {
         toast({ title: 'Telefone do cliente não cadastrado.', variant: 'destructive' });
         return;
     }
@@ -1425,7 +1426,12 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
 
       {/* DIALOGS */}
       <Dialog open={isWizardOpen} onOpenChange={setIsWizardOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+        <DialogContent 
+            className="max-w-4xl max-h-[90vh] flex flex-col"
+            onPointerDownOutside={(e) => {
+              if (Capacitor.isNativePlatform()) e.preventDefault();
+            }}
+        >
           <DialogHeader>
             <DialogTitle>Novo Orçamento - Etapa {wizardStep} de 2</DialogTitle>
             <DialogDescription>
@@ -1637,7 +1643,11 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
       </Dialog>
       
       <Dialog open={isEditItemModalOpen} onOpenChange={setIsEditItemModalOpen}>
-        <DialogContent>
+        <DialogContent
+            onPointerDownOutside={(e) => {
+              if (Capacitor.isNativePlatform()) e.preventDefault();
+            }}
+        >
           <DialogHeader>
             <DialogTitle>Editar Item do Orçamento</DialogTitle>
             <DialogDescription>Modifique o nome, a quantidade e o acréscimo do item selecionado.</DialogDescription>
@@ -1657,7 +1667,11 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
       </Dialog>
 
       <AlertDialog open={isConfirmSaveClientOpen} onOpenChange={setIsConfirmSaveClientOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent
+            onPointerDownOutside={(e) => {
+              if (Capacitor.isNativePlatform()) e.preventDefault();
+            }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>Salvar novo cliente?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1672,7 +1686,11 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
       </AlertDialog>
 
       <AlertDialog open={isExpiredModalOpen} onOpenChange={setIsExpiredModalOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent
+            onPointerDownOutside={(e) => {
+              if (Capacitor.isNativePlatform()) e.preventDefault();
+            }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-6 w-6 text-yellow-500" />
@@ -1700,7 +1718,12 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
       </AlertDialog>
       
       <Dialog open={isEditBudgetModalOpen} onOpenChange={setIsEditBudgetModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+        <DialogContent 
+            className="max-w-4xl max-h-[90vh] flex flex-col"
+            onPointerDownOutside={(e) => {
+              if (Capacitor.isNativePlatform()) e.preventDefault();
+            }}
+        >
           <DialogHeader>
             <DialogTitle>Editar Orçamento #{editingBudget?.numeroOrcamento}</DialogTitle>
             <DialogDescription>
@@ -1824,7 +1847,11 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
       </Dialog>
 
       <Dialog open={phoneSelectionConfig.isOpen} onOpenChange={() => setPhoneSelectionConfig(prev => ({...prev, isOpen: false}))}>
-          <DialogContent>
+          <DialogContent
+            onPointerDownOutside={(e) => {
+              if (Capacitor.isNativePlatform()) e.preventDefault();
+            }}
+          >
               <DialogHeader>
                   <DialogTitle>{phoneSelectionConfig.title}</DialogTitle>
                   <DialogDescription>

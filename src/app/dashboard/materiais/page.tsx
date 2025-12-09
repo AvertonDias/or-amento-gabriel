@@ -601,7 +601,11 @@ export default function MateriaisPage() {
       </Dialog>
       
       <AlertDialog open={isUpdateConfirmOpen} onOpenChange={setIsUpdateConfirmOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent
+            onPointerDownOutside={(e) => {
+              if (Capacitor.isNativePlatform()) e.preventDefault();
+            }}
+        >
             <AlertDialogHeader>
               <AlertDialogTitle>Item Duplicado Encontrado</AlertDialogTitle>
                <AlertDialogDescription>Este {conflictingItem?.tipo} já existe. Deseja somar a nova quantidade ao estoque e usar este novo preço?</AlertDialogDescription>

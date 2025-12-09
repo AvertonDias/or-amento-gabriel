@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -53,16 +54,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           description: "Deseja receber alertas importantes sobre seus orçamentos, como lembretes de vencimento?",
         });
         if (granted) await LocalNotifications.requestPermissions();
-      }
-
-      // Solicitar permissão de Contatos
-      const contactStatus = await Contacts.checkPermissions();
-      if (contactStatus.granted !== true) {
-         const granted = await requestPermission({
-            title: "Acessar Contatos?",
-            description: "Para facilitar a criação de novos clientes, o app pode importar nomes e números da sua agenda. Deseja permitir?",
-         });
-         if(granted) await Contacts.requestPermissions();
       }
 
     } else {
