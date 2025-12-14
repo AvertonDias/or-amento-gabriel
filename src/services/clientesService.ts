@@ -1,6 +1,6 @@
 
 import { db as firestoreDB } from '@/lib/firebase';
-import { collection, addDoc as addDocFirestore, doc, updateDoc as updateDocFirestore, deleteDoc as deleteDocFirestore } from 'firebase/firestore';
+import { collection, addDoc as addDocFirestore, doc, updateDoc as updateDocFirestore, deleteDoc as deleteDocFirestore, setDoc } from 'firebase/firestore';
 import { db as dexieDB } from '@/lib/dexie';
 import type { ClienteData } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -54,13 +54,13 @@ export const deleteCliente = async (clienteId: string) => {
 
 export const syncClienteToFirestore = async (clienteData: ClienteData) => {
     const clienteDocRef = doc(firestoreDB, 'clientes', clienteData.id);
-    // `setDoc` com `merge: true` funciona como um "upsert"
-    await updateDocFirestore(clienteDocRef, clienteData, { merge: true } as any);
+    // `setDoc` com `merge: true` funciona como um "upsert", criando ou atualizando.
+    await setDoc(clienteDocRef, clienteData, { merge: true });
 };
 
 export const addClienteToFirestore = async (clienteData: ClienteData) => {
     const docRef = doc(firestoreDB, 'clientes', clienteData.id);
-    await updateDocFirestore(docRef, clienteData);
+    await setDoc(docRef, clienteData);
 };
 
 export const deleteClienteFromFirestore = async (clienteId: string) => {

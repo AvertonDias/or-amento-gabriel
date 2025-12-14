@@ -44,6 +44,11 @@ export const addOrcamento = async (orcamento: Omit<Orcamento, 'id'>): Promise<st
   const newId = uuidv4();
   const dataToSave: Orcamento = {
     ...orcamento,
+    cliente: {
+      ...orcamento.cliente,
+      cpfCnpj: orcamento.cliente.cpfCnpj || null,
+      email: orcamento.cliente.email || null,
+    },
     id: newId,
   };
 
