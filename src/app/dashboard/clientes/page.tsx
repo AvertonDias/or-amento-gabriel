@@ -41,7 +41,7 @@ import { usePermissionDialog } from '@/hooks/use-permission-dialog';
 
 // --- Imports para Capacitor ---
 import { Capacitor } from '@capacitor/core';
-import { Contacts } from '@capacitor-community/contacts';
+import { Contacts, PermissionStatus } from '@capacitor-community/contacts';
 
 
 const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
@@ -104,7 +104,7 @@ export default function ClientesPage() {
 
   const editingClientCpfCnpjStatus = useMemo(() => {
     if (!editingClient?.cpfCnpj) return 'incomplete';
-    return validateCpfCnpj(editingClient.cpfCnpj);
+    return validateCpfCnpj(editingClient?.cpfCnpj);
   }, [editingClient?.cpfCnpj]);
 
   const fetchPageData = useCallback(async () => {
@@ -175,7 +175,7 @@ export default function ClientesPage() {
     const setter = targetState === 'new' ? setNewClient : setEditingClient;
     const maskedValue = field === 'numero' ? maskTelefone(value) : value;
 
-    setter(prev => {
+    setter((prev: any) => {
         if (!prev) return null;
         const novosTelefones = [...(prev.telefones || [])];
         novosTelefones[index] = { ...novosTelefones[index], [field]: maskedValue };
@@ -185,7 +185,7 @@ export default function ClientesPage() {
 
   const addTelefone = (targetState: 'new' | 'edit') => {
       const setter = targetState === 'new' ? setNewClient : setEditingClient;
-      setter(prev => {
+      setter((prev: any) => {
           if (!prev) return null;
           return {
               ...prev,
@@ -196,13 +196,13 @@ export default function ClientesPage() {
 
   const removeTelefone = (index: number, targetState: 'new' | 'edit') => {
       const setter = targetState === 'new' ? setNewClient : setEditingClient;
-      setter(prev => {
+      setter((prev: any) => {
           if (!prev) return null;
           if (prev.telefones.length <= 1) {
               toast({ title: "Ação não permitida", description: "Deve haver pelo menos um número de telefone.", variant: "destructive" });
               return prev;
           }
-          const novosTelefones = prev.telefones.filter((_, i) => i !== index);
+          const novosTelefones = prev.telefones.filter((_: any, i: number) => i !== index);
           return { ...prev, telefones: novosTelefones };
       });
   };
@@ -447,8 +447,8 @@ const handleImportContacts = async () => {
 
     if (isNative) {
         try {
-            let permStatus = await Contacts.checkPermissions();
-            if (permStatus.granted !== true) {
+            let permStatus: PermissionStatus = await Contacts.checkPermissions();
+            if (permStatus.display !== 'granted') {
                 const granted = await requestPermission({
                     title: "Acessar Contatos?",
                     description: "Para facilitar a criação de novos clientes, o app pode importar nomes e números da sua agenda. Deseja permitir?",
@@ -458,7 +458,7 @@ const handleImportContacts = async () => {
                 }
             }
 
-            if (permStatus.granted !== true) {
+            if (permStatus.display !== 'granted') {
                  toast({
                     title: "Permissão necessária",
                     description: "Por favor, conceda acesso aos contatos nas configurações do seu celular.",
@@ -1043,3 +1043,5 @@ const handleImportContacts = async () => {
     </div>
   );
 }
+
+    
