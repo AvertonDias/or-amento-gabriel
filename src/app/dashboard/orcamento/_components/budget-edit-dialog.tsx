@@ -441,54 +441,55 @@ export function BudgetEditDialog({
                         ))}
                         </TableBody>
                         <TableTotalFooter>
-                            <TableRow className="bg-muted/50 font-bold text-base">
-                                <TableCell colSpan={2}>TOTAL CALCULADO</TableCell>
-                                <TableCell className="text-right">{formatCurrency(calculatedTotal)}</TableCell>
-                                <TableCell></TableCell>
-                            </TableRow>
-                            <TableRow className={cn("bg-muted/50 font-bold text-lg", isTotalEdited && "bg-amber-100 dark:bg-amber-800/20")}>
-                                <TableCell colSpan={2}>TOTAL FINAL</TableCell>
+                            <TableRow className="bg-muted/50 font-bold text-lg">
+                                <TableCell colSpan={2}>TOTAL</TableCell>
                                 <TableCell className="text-right text-primary">
                                 <div className="flex items-center justify-end gap-2">
-                                        {isTotalLocked ? (
-                                            <span className={cn("text-lg font-bold", isTotalEdited && "text-amber-600 dark:text-amber-400")}>
-                                                {formatCurrency(finalTotal)}
-                                            </span>
-                                        ) : (
-                                            <>
-                                            <span>R$</span>
-                                            <Input
-                                                type="text"
-                                                value={manualTotalStr}
-                                                onChange={handleManualTotalChange}
-                                                className="w-32 h-8 text-right text-lg font-bold"
-                                                placeholder={formatCurrency(calculatedTotal, false)}
-                                                autoFocus
-                                                onBlur={() => { if (!manualTotalStr) setIsTotalLocked(true); }}
-                                            />
-                                            </>
-                                        )}
+                                     {!isTotalLocked && isTotalEdited && (
+                                        <span className="text-sm font-normal text-muted-foreground line-through">
+                                            {formatCurrency(calculatedTotal)}
+                                        </span>
+                                    )}
+
+                                    {isTotalLocked ? (
+                                        <span className={cn("text-lg font-bold", isTotalEdited && "text-amber-600 dark:text-amber-400")}>
+                                            {formatCurrency(finalTotal)}
+                                        </span>
+                                    ) : (
+                                        <>
+                                        <span>R$</span>
+                                        <Input
+                                            type="text"
+                                            value={manualTotalStr}
+                                            onChange={handleManualTotalChange}
+                                            className="w-32 h-8 text-right text-lg font-bold"
+                                            placeholder={formatCurrency(calculatedTotal, false)}
+                                            autoFocus
+                                            onBlur={() => { if (!manualTotalStr) setIsTotalLocked(true); }}
+                                        />
+                                        </>
+                                    )}
+                                    <Button 
+                                        type="button" 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => setIsTotalLocked(!isTotalLocked)}
+                                        className="h-8 w-8"
+                                    >
+                                        {isTotalLocked ? <Lock className="h-4 w-4"/> : <Unlock className="h-4 w-4 text-primary"/>}
+                                    </Button>
+                                     {isTotalEdited && (
                                         <Button 
                                             type="button" 
                                             variant="ghost" 
                                             size="icon" 
-                                            onClick={() => setIsTotalLocked(!isTotalLocked)}
+                                            onClick={resetManualTotal}
                                             className="h-8 w-8"
+                                            title="Resetar para o valor calculado"
                                         >
-                                            {isTotalLocked ? <Lock className="h-4 w-4"/> : <Unlock className="h-4 w-4 text-primary"/>}
+                                            <RotateCcw className="h-4 w-4"/>
                                         </Button>
-                                         {isTotalEdited && (
-                                            <Button 
-                                                type="button" 
-                                                variant="ghost" 
-                                                size="icon" 
-                                                onClick={resetManualTotal}
-                                                className="h-8 w-8"
-                                                title="Resetar para o valor calculado"
-                                            >
-                                                <RotateCcw className="h-4 w-4"/>
-                                            </Button>
-                                        )}
+                                    )}
                                 </div>
                                 </TableCell>
                                 <TableCell></TableCell>
