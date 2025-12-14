@@ -124,23 +124,29 @@ export const maskCurrency = (value: string): string => {
 
 export const maskDecimal = (value: string, decimals: number = 2): string => {
   if (!value) return "";
-  let v = value.replace(/\D/g, '');
+  let v = value.replace(/[^0-9]/g, ''); // Remove tudo que não for dígito
   if (v === '') return "";
 
-  // Adiciona zeros à esquerda se necessário
-  while (v.length <= decimals) {
-    v = '0' + v;
+  // Se o valor já tiver uma vírgula, vamos reposicioná-la se necessário
+  if (value.includes(',')) {
+    const parts = value.split(',');
+    const integerPart = parts[0].replace(/[^0-9]/g, '');
+    const decimalPart = parts[1].replace(/[^0-9]/g, '');
+    return `${integerPart},${decimalPart.slice(0, decimals)}`;
   }
   
-  // Insere a vírgula
-  v = v.slice(0, v.length - decimals) + ',' + v.slice(v.length - decimals);
+  // Se não tem vírgula, formata o número
+  // Remove zeros à esquerda
+  v = v.replace(/^0+/, '');
 
-  // Remove zeros à esquerda do número inteiro, mas mantém um se for o único dígito
-  if (v.length > decimals + 2 && v.startsWith('0')) {
-     v = v.replace(/^0+/, '');
+  if (v.length <= decimals) {
+      return "0," + v.padStart(decimals, '0');
   }
 
-  return v;
+  const integerPart = v.slice(0, v.length - decimals);
+  const decimalPart = v.slice(v.length - decimals);
+
+  return `${integerPart},${decimalPart}`;
 };
 
 

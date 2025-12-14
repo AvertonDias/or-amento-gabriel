@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { PlusCircle, Trash2, FileText, Pencil, MessageCircle, History, CheckCircle2, XCircle, Search, Loader2, RefreshCw, ArrowRight, ArrowLeft, AlertTriangle, FilterX, MoreVertical, ArrowRightLeft, ChevronsUpDown, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone, maskCurrency } from '@/lib/utils';
+import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone, maskCurrency, maskDecimal } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -524,15 +524,25 @@ export default function OrcamentoPage() {
     setter(prev => {
         if (!prev) return prev;
         const novosTelefones = [...(prev.telefones || [])];
-        novosTelefones[index] = { ...novosTelefones[index], [field]: maskedValue };
+        novosTelefones[index] = { ...novosTelefones[index], [field]: maskedValue, principal: novosTelefones[index].principal };
         return { ...prev, telefones: novosTelefones };
     });
+  };
+  const handlePrincipalTelefoneChange = (selectedIndex: number) => {
+      setClienteData(prev => {
+          if (!prev) return prev;
+          const novosTelefones = (prev.telefones || []).map((tel, index) => ({
+              ...tel,
+              principal: index === selectedIndex,
+          }));
+          return { ...prev, telefones: novosTelefones };
+      });
   };
 
   const handleClientAddTelefone = () => {
     setClienteData(prev => ({
         ...prev,
-        telefones: [...(prev.telefones || []), { nome: '', numero: ''}]
+        telefones: [...(prev.telefones || []), { nome: '', numero: '', principal: false }]
     }));
   };
 
@@ -543,6 +553,10 @@ export default function OrcamentoPage() {
             return prev;
         }
         const novosTelefones = prev.telefones.filter((_, i) => i !== index);
+        // Garante que ainda haja um principal
+        if (!novosTelefones.some(t => t.principal)) {
+          novosTelefones[0].principal = true;
+        }
         return { ...prev, telefones: novosTelefones };
     });
   };
@@ -553,27 +567,25 @@ export default function OrcamentoPage() {
         // Focus on a quantidade input
         setTimeout(() => quantidadeInputRef.current?.focus(), 0);
     } else if (field === 'quantidade') {
-        const sanitizedValue = value.replace(/[^0-9,]/g, '');
-        setQuantidadeStr(sanitizedValue);
-        setNovoItem(prev => ({ ...prev, [field]: sanitizedValue.replace(',', '.') }));
+        const masked = maskDecimal(value);
+        setQuantidadeStr(masked);
+        setNovoItem(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
     } else if (field === 'margemLucro') {
-        const sanitizedValue = value.replace(/[^0-9,]/g, '');
-        setMargemLucroStr(sanitizedValue);
-        setNovoItem(prev => ({ ...prev, [field]: sanitizedValue.replace(',', '.') }));
+        const masked = maskDecimal(value, 1);
+        setMargemLucroStr(masked);
+        setNovoItem(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
     }
   };
 
   const handleNewItemForEditChange = (field: keyof typeof newItemForEdit, value: string) => {
-    const setterMap = {
-      quantidade: setNewItemQtyStr,
-      margemLucro: setNewItemMarginStr,
-    };
-    const targetSetter = setterMap[field as keyof typeof setterMap];
-
-    if (targetSetter) {
-        const sanitizedValue = value.replace(/[^0-9,]/g, '');
-        targetSetter(sanitizedValue);
-        setNewItemForEdit(prev => ({ ...prev, [field]: sanitizedValue.replace(',', '.') }));
+    if (field === 'quantidade') {
+        const masked = maskDecimal(value);
+        setNewItemQtyStr(masked);
+        setNewItemForEdit(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
+    } else if (field === 'margemLucro') {
+        const masked = maskDecimal(value, 1);
+        setNewItemMarginStr(masked);
+        setNewItemForEdit(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
     } else {
         setNewItemForEdit(prev => ({ ...prev, [field]: value }));
     }
@@ -899,7 +911,8 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     if (validPhones.length === 1) {
         sendClientWhatsAppMessage(orcamento, validPhones[0].numero);
     } else {
-        setSelectedPhone(validPhones[0].numero);
+        const principalPhone = validPhones.find(p => p.principal) || validPhones[0];
+        setSelectedPhone(principalPhone.numero);
         setPhoneSelectionConfig({
             isOpen: true,
             type: 'client',
@@ -1050,9 +1063,9 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
     const { name, value } = e.target;
     
     if (name === 'quantidade') { 
-      setEditingQuantidadeStr(value.replace(/[^0-9,]/g, ''));
+        setEditingQuantidadeStr(maskDecimal(value));
     } else if (name === 'margemLucro') { 
-      setEditingMargemLucroStr(value.replace(/[^0-9,]/g, ''));
+        setEditingMargemLucroStr(maskDecimal(value, 1));
     } else if (name === 'materialNome') {
        setEditingItem(prev => prev ? { ...prev, materialNome: value } : null);
     }
@@ -1476,7 +1489,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                                                         id: client.id,
                                                         nome: client.nome,
                                                         endereco: client.endereco || '',
-                                                        telefones: client.telefones && client.telefones.length > 0 ? client.telefones : [{ nome: 'Principal', numero: '' }],
+                                                        telefones: client.telefones && client.telefones.length > 0 ? client.telefones : [{ nome: 'Principal', numero: '', principal: true }],
                                                         email: client.email || '',
                                                         cpfCnpj: client.cpfCnpj || ''
                                                       });
@@ -1511,20 +1524,39 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2 space-y-2">
-                      <Label>Telefones</Label>
-                      <div className="space-y-2">
+                  <div className="md:col-span-2 space-y-4">
+                    <Label>Telefones de Contato</Label>
+                    <RadioGroup
+                        value={clienteData.telefones?.findIndex(t => t.principal).toString() ?? "0"}
+                        onValueChange={(value) => handlePrincipalTelefoneChange(parseInt(value, 10))}
+                        className="space-y-2"
+                    >
                         {(clienteData.telefones || []).map((tel, index) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <Input className="flex-1" value={tel.nome} onChange={(e) => handleClientTelefoneChange(index, 'nome', e.target.value)} placeholder="Ex: Principal" />
-                              <Input className="flex-1" value={tel.numero} onChange={(e) => handleClientTelefoneChange(index, 'numero', e.target.value)} placeholder="(DD) XXXXX-XXXX" />
-                              <Button type="button" variant="ghost" size="icon" onClick={() => handleClientRemoveTelefone(index)} disabled={!clienteData.telefones || clienteData.telefones.length <= 1}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
+                        <div key={index} className="flex items-center gap-2 p-3 border rounded-md">
+                            <div className="flex items-center h-full">
+                            <RadioGroupItem value={index.toString()} id={`tel-principal-orc-${index}`} />
                             </div>
+                            <div className="flex-grow grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div className="sm:col-span-1">
+                                <Label htmlFor={`tel-nome-orc-${index}`} className="text-xs text-muted-foreground">Apelido</Label>
+                                <Input id={`tel-nome-orc-${index}`} value={tel.nome} onChange={(e) => handleClientTelefoneChange(index, 'nome', e.target.value)} placeholder="Ex: Principal" />
+                            </div>
+                            <div className="sm:col-span-2">
+                                <Label htmlFor={`tel-numero-orc-${index}`} className="text-xs text-muted-foreground">Número</Label>
+                                <Input id={`tel-numero-orc-${index}`} value={tel.numero} onChange={(e) => handleClientTelefoneChange(index, 'numero', e.target.value)} placeholder="(DD) XXXXX-XXXX" />
+                            </div>
+                            </div>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => handleClientRemoveTelefone(index)} disabled={!clienteData.telefones || clienteData.telefones.length <= 1}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </div>
                         ))}
-                      </div>
-                      <Button type="button" variant="outline" size="sm" onClick={handleClientAddTelefone}><PlusCircle className="mr-2 h-4 w-4"/>Add Telefone</Button>
+                    </RadioGroup>
+                    <Label className="text-xs text-muted-foreground">Selecione o telefone principal para contato.</Label>
+                    <Button type="button" variant="outline" onClick={handleClientAddTelefone} className="w-full sm:w-auto">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Adicionar Telefone
+                    </Button>
                   </div>
 
                   <div className="space-y-2 md:col-span-2"><Label htmlFor="cliente-endereco">Endereço</Label><Input id="cliente-endereco" name="endereco" value={clienteData.endereco} onChange={handleClienteDataChange} /></div>
@@ -1553,7 +1585,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                     // Formulário para Item Avulso
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
                       <div className="lg:col-span-2"><Label htmlFor="avulso-desc">Descrição</Label><Input id="avulso-desc" value={itemAvulso.descricao} onChange={e => setItemAvulso(p => ({...p, descricao: e.target.value}))} /></div>
-                      <div><Label htmlFor="avulso-qtd">Qtd.</Label><Input id="avulso-qtd" value={itemAvulso.quantidade} onChange={e => setItemAvulso(p => ({...p, quantidade: e.target.value.replace(/[^0-9,]/g, '')}))} placeholder="1" /></div>
+                      <div><Label htmlFor="avulso-qtd">Qtd.</Label><Input id="avulso-qtd" value={itemAvulso.quantidade} onChange={e => setItemAvulso(p => ({...p, quantidade: maskDecimal(e.target.value)}))} placeholder="1" /></div>
                       <div>
                         <Label htmlFor="avulso-un">Unidade</Label>
                         <Select name="unidade" value={itemAvulso.unidade} onValueChange={(value) => setItemAvulso(p => ({...p, unidade: value}))}>
@@ -1766,7 +1798,7 @@ const proceedToSaveBudget = (currentClient: ClienteData): Promise<void> => {
                   {isAddingAvulsoInEdit ? (
                     <div className="grid grid-cols-2 gap-2 items-end">
                       <div className="col-span-2"><Label htmlFor="edit-avulso-desc" className="text-xs">Descrição</Label><Input id="edit-avulso-desc" className="h-8" value={itemAvulsoInEdit.descricao} onChange={e => setItemAvulsoInEdit(p => ({...p, descricao: e.target.value}))} /></div>
-                      <div><Label htmlFor="edit-avulso-qtd" className="text-xs">Qtd</Label><Input id="edit-avulso-qtd" className="h-8" value={itemAvulsoInEdit.quantidade} onChange={e => setItemAvulsoInEdit(p => ({...p, quantidade: e.target.value.replace(/[^0-9,]/g, '')}))} placeholder="1" /></div>
+                      <div><Label htmlFor="edit-avulso-qtd" className="text-xs">Qtd</Label><Input id="edit-avulso-qtd" className="h-8" value={itemAvulsoInEdit.quantidade} onChange={e => setItemAvulsoInEdit(p => ({...p, quantidade: maskDecimal(e.target.value)}))} placeholder="1" /></div>
                       <div>
                         <Label htmlFor="edit-avulso-un" className="text-xs">Unidade</Label>
                         <Select value={itemAvulsoInEdit.unidade} onValueChange={(value) => setItemAvulsoInEdit(p => ({...p, unidade: value}))}>
