@@ -8,8 +8,8 @@ import { saveFcmToken } from '@/services/empresaService';
 export const requestForToken = async () => {
   try {
     const supported = await isSupported();
-    if (!supported) {
-      console.log("Firebase Messaging não é suportado neste navegador.");
+    if (!supported || !('serviceWorker' in navigator) || !('Notification' in window)) {
+      console.log("Firebase Messaging ou notificações não são suportados neste navegador.");
       return null;
     }
     
@@ -38,7 +38,7 @@ export const requestForToken = async () => {
     }
     return currentToken;
   } catch (err) {
-    console.error('Ocorreu um erro ao recuperar o token. ', err);
+    console.warn('Ocorreu um erro ao recuperar o token. Notificações podem não funcionar.', err);
     return null;
   }
 };

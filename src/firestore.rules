@@ -2,23 +2,16 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Regra para a coleção 'empresa', onde o ID do documento é o ID do usuário
     match /empresa/{userId} {
       allow read, write: if request.auth.uid == userId;
     }
 
-    match /clientes/{clienteId} {
-      allow read, delete: if resource.data.userId == request.auth.uid;
-      allow create, update: if request.resource.data.userId == request.auth.uid;
-    }
-    
-    match /materiais/{materialId} {
-      allow read, delete: if resource.data.userId == request.auth.uid;
-      allow create, update: if request.resource.data.userId == request.auth.uid;
-    }
-
-    match /orcamentos/{orcamentoId} {
-      allow read, delete: if resource.data.userId == request.auth.uid;
-      allow create, update: if request.resource.data.userId == request.auth.uid;
+    // Regras para coleções onde os documentos contêm um campo 'userId'
+    match /{collection}/{docId} {
+      allow read, write, delete: if request.auth.uid != null && 
+          ((request.method == 'create' && request.resource.data.userId == request.auth.uid) || 
+           (request.method != 'create' && resource.data.userId == request.auth.uid));
     }
   }
 }
