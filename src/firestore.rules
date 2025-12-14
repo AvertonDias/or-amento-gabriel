@@ -2,16 +2,38 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Regra para a coleção 'empresa', onde o ID do documento é o ID do usuário
+
+    // ===============================
+    // Empresa (1 documento por usuário)
+    // ===============================
     match /empresa/{userId} {
-      allow read, write: if request.auth.uid == userId;
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
     }
 
-    // Regras para coleções onde os documentos contêm um campo 'userId'
+    // ===============================
+    // Coleções do usuário (orcamentos, clientes, itens, etc)
+    // ===============================
     match /{collection}/{docId} {
-      allow read, write, delete: if request.auth.uid != null && 
-          ((request.method == 'create' && request.resource.data.userId == request.auth.uid) || 
-           (request.method != 'create' && resource.data.userId == request.auth.uid));
+
+      // Criar documento
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid;
+
+      // Ler documento
+      allow read: if request.auth != null
+                  && resource.data.userId == request.auth.uid;
+
+      // Atualizar documento
+      allow update: if request.auth != null
+                    && resource.data.userId == request.auth.uid
+                    && request.resource.data.userId == resource.data.userId;
+
+      // Deletar documento
+      allow delete: if request.auth != null
+              && resource != null
+              && resource.data.userId == request.auth.uid;
+
     }
   }
 }

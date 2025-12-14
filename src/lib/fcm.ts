@@ -1,3 +1,4 @@
+
 'use client';
 
 import { getToken, onMessage, getMessaging, isSupported } from 'firebase/messaging';
@@ -58,3 +59,4 @@ export const onMessageListener = () => {
         });
     });
 };
+
