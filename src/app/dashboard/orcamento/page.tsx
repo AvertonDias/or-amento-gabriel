@@ -264,7 +264,6 @@ export default function OrcamentoPage() {
         await updateOrcamento(budget.id, budget);
         if (budget.cliente.id && !budget.cliente.id.startsWith('temp_')) {
           await updateCliente(budget.cliente.id, {
-            telefones: budget.cliente.telefones,
             endereco: budget.cliente.endereco,
           });
         }
