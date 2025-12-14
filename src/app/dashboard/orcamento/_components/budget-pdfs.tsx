@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useImperativeHandle, forwardRef } from 'react';
 import type { Orcamento, EmpresaData } from '@/lib/types';
 import { addDays, format, parseISO } from 'date-fns';
 import { formatCurrency, formatNumber } from '@/lib/utils';
@@ -204,9 +203,11 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
   };
 
 
-export function BudgetPDFs({ empresa }: { empresa: EmpresaData | null }) {
+const BudgetPDFs = forwardRef(({ empresa }: { empresa: EmpresaData | null }, ref) => {
     const pdfRef = useRef<HTMLDivElement>(null);
     const internalPdfRef = useRef<HTMLDivElement>(null);
+    const [currentBudget, setCurrentBudget] = React.useState<Orcamento | null>(null);
+
     const { toast } = useToast();
     const { requestPermission } = usePermissionDialog();
   
@@ -254,7 +255,12 @@ export function BudgetPDFs({ empresa }: { empresa: EmpresaData | null }) {
         }
     };
 
-    const handleGerarPDF = async (orcamento: Orcamento, type: 'client' | 'internal') => {
+    const generatePdf = async (orcamento: Orcamento, type: 'client' | 'internal') => {
+        setCurrentBudget(orcamento);
+
+        // Aguarda o React renderizar o layout com os dados corretos do orçamento
+        await new Promise(resolve => setTimeout(resolve, 100));
+
         const pdfElement = type === 'client' ? pdfRef.current : internalPdfRef.current;
         if (!pdfElement) return;
     
@@ -275,17 +281,24 @@ export function BudgetPDFs({ empresa }: { empresa: EmpresaData | null }) {
         const fileName = `${prefix}-${orcamento.cliente.nome.toLowerCase().replace(/ /g, '_')}-${orcamento.numeroOrcamento}.pdf`;
         
         await savePdfToFile(pdf, fileName);
+        setCurrentBudget(null);
     };
 
-    // Este componente é invisível, apenas para renderizar os PDFs
+    useImperativeHandle(ref, () => ({
+        handleGerarPDF: generatePdf,
+    }));
+
+
     return (
         <div className="absolute -z-10 top-0 -left-[9999px] w-[595pt] bg-white text-black" aria-hidden="true">
             <div ref={pdfRef}>
-                <BudgetPDFLayout orcamento={null} empresa={empresa} />
+                <BudgetPDFLayout orcamento={currentBudget} empresa={empresa} />
             </div>
             <div ref={internalPdfRef}>
-                <InternalBudgetPDFLayout orcamento={null} empresa={empresa} />
+                <InternalBudgetPDFLayout orcamento={currentBudget} empresa={empresa} />
             </div>
         </div>
     );
-}
+});
+BudgetPDFs.displayName = "BudgetPDFs";
+export { BudgetPDFs };

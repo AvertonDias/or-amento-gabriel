@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { MaterialItem, EmpresaData, ClienteData, Orcamento } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,6 +62,10 @@ export default function OrcamentoPage() {
   const [editingBudget, setEditingBudget] = useState<Orcamento | null>(null);
   const [expiredBudgets, setExpiredBudgets] = useState<Orcamento[]>([]);
   const [isExpiredModalOpen, setIsExpiredModalOpen] = useState(false);
+
+  // --- PDF Generation Ref ---
+  const budgetPdfRef = useRef<{ handleGerarPDF: (orcamento: Orcamento, type: 'client' | 'internal') => void }>(null);
+
 
   const isLoading = loadingAuth || materiais === undefined || clientes === undefined || orcamentosSalvos === undefined || empresa === undefined;
   
@@ -297,6 +300,7 @@ export default function OrcamentoPage() {
                     onDelete={handleRemoverOrcamento}
                     onEdit={handleOpenEditBudgetModal}
                     clienteFiltrado={clienteFiltrado}
+                    onGeneratePDF={(orcamento) => budgetPdfRef.current?.handleGerarPDF(orcamento, 'client')}
                 />
             </CardContent>
         </Card>
@@ -350,7 +354,7 @@ export default function OrcamentoPage() {
         </AlertDialogContent>
       </AlertDialog>
       
-      <BudgetPDFs empresa={empresa || null} />
+      <BudgetPDFs ref={budgetPdfRef} empresa={empresa || null} />
 
     </div>
   );

@@ -51,6 +51,7 @@ interface BudgetListProps {
   onDelete: (budgetId: string) => void;
   onEdit: (budget: Orcamento) => void;
   clienteFiltrado: ClienteData | null;
+  onGeneratePDF: (budget: Orcamento) => void;
 }
 
 export function BudgetList({
@@ -60,7 +61,8 @@ export function BudgetList({
   onUpdateStatus,
   onDelete,
   onEdit,
-  clienteFiltrado
+  clienteFiltrado,
+  onGeneratePDF,
 }: BudgetListProps) {
 
   const { toast } = useToast();
@@ -89,6 +91,35 @@ export function BudgetList({
       case 'Vencido': return 'warning';
       default: return 'secondary';
     }
+  };
+
+  const handleSendWhatsApp = (orcamento: Orcamento) => {
+    const phones = orcamento.cliente.telefones;
+    if (phones && phones.length > 1) {
+      const principal = phones.find(p => p.principal);
+      setSelectedPhone(principal?.numero || phones[0].numero);
+
+      setPhoneSelectionConfig({
+        isOpen: true,
+        phones,
+        title: 'Escolha um Telefone',
+        description: `O cliente ${orcamento.cliente.nome} possui múltiplos telefones. Para qual número deseja enviar?`,
+        onConfirm: (phone) => openWhatsApp(orcamento, phone)
+      });
+    } else {
+      openWhatsApp(orcamento, phones?.[0]?.numero);
+    }
+  };
+
+  const openWhatsApp = (orcamento: Orcamento, phone: string | undefined) => {
+    if (!phone) {
+      toast({ title: 'Nenhum telefone encontrado para este cliente.', variant: 'destructive' });
+      return;
+    }
+    const cleanPhone = `55${phone.replace(/\D/g, '')}`;
+    const text = `Olá, ${orcamento.cliente.nome}! Segue o orçamento Nº ${orcamento.numeroOrcamento} da empresa ${empresa?.nome || 'Nossa Empresa'}:\n\n*Itens:*${orcamento.itens.map(item => `\n- ${item.materialNome} (${formatNumber(item.quantidade, 2)} ${item.unidade}): ${formatCurrency(item.precoVenda)}`).join('')}\n\n*Total:* *${formatCurrency(orcamento.totalVenda)}*\n\nEste orçamento é válido até ${format(addDays(parseISO(orcamento.dataCriacao), parseInt(orcamento.validadeDias, 10)), 'dd/MM/yyyy')}.`;
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
   };
 
   const confirmPhoneSelection = () => {
@@ -162,77 +193,104 @@ export function BudgetList({
       </Dialog>
 
       {/* LISTA DE ORÇAMENTOS */}
-      {budgets.map((orcamento) => (
-        <Card key={orcamento.id} className="overflow-hidden">
-          <CardHeader className="flex flex-row justify-between">
-            <div>
-              <CardTitle>{orcamento.cliente.nome}</CardTitle>
-              <CardDescription>
-                #{orcamento.numeroOrcamento} —{' '}
-                {formatCurrency(orcamento.totalVenda)}
-              </CardDescription>
-            </div>
-            <Badge variant={getStatusBadgeVariant(orcamento.status)}>
-              {orcamento.status}
-            </Badge>
-          </CardHeader>
-
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Item</TableHead>
-                  <TableHead className="text-right">Qtd</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orcamento.itens.map(item => (
-                  <TableRow key={item.id}>
-                    <TableCell>{item.materialNome}</TableCell>
-                    <TableCell className="text-right">
-                      {formatNumber(item.quantidade)} {item.unidade}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(item.precoVenda)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-
-          <CardFooter className="flex justify-end gap-2">
-            <Button size="sm" onClick={() => onEdit(orcamento)}>
-              <Pencil className="mr-2 h-4 w-4" />
-              Editar
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button size="sm" variant="destructive">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Excluir
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta ação não pode ser desfeita. Isso excluirá
-                    permanentemente o orçamento.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => onDelete(orcamento.id)}>
-                    Sim, Excluir
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </CardFooter>
-        </Card>
-      ))}
+      <div className="space-y-4">
+        {budgets.map((orcamento) => (
+            <Card key={orcamento.id} className="overflow-hidden">
+                <CardHeader className="flex flex-row items-start justify-between">
+                    <div>
+                        <CardTitle className="text-xl">{orcamento.cliente.nome}</CardTitle>
+                        <CardDescription>
+                            #{orcamento.numeroOrcamento} —{' '}
+                            {formatCurrency(orcamento.totalVenda)}
+                        </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Badge variant={getStatusBadgeVariant(orcamento.status)}>
+                        {orcamento.status}
+                        </Badge>
+                         <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreVertical className="h-5 w-5" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                {orcamento.status === 'Pendente' && (
+                                    <>
+                                        <DropdownMenuItem onClick={() => onUpdateStatus(orcamento.id, 'Aceito')}>
+                                            <CheckCircle2 className="mr-2 h-4 w-4 text-green-500"/>
+                                            Marcar como Aceito
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => onUpdateStatus(orcamento.id, 'Recusado')}>
+                                            <XCircle className="mr-2 h-4 w-4 text-red-500"/>
+                                            Marcar como Recusado
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator/>
+                                    </>
+                                )}
+                                <DropdownMenuItem onClick={() => onEdit(orcamento)}>
+                                    <Pencil className="mr-2 h-4 w-4"/>
+                                    Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator/>
+                                <DropdownMenuItem onClick={() => onGeneratePDF(orcamento)}>
+                                    <FileText className="mr-2 h-4 w-4"/>
+                                    Gerar PDF
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleSendWhatsApp(orcamento)}>
+                                    <MessageCircle className="mr-2 h-4 w-4"/>
+                                    Enviar por WhatsApp
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator/>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                         <div className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive focus:bg-destructive/10">
+                                            <Trash2 className="mr-2 h-4 w-4"/>
+                                            Excluir Orçamento
+                                        </div>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                        <AlertDialogDescription>Esta ação não pode ser desfeita. Isso excluirá permanentemente o orçamento.</AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => onDelete(orcamento.id)}>Sim, Excluir</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                            <TableHead>Item</TableHead>
+                            <TableHead className="text-right">Qtd</TableHead>
+                            <TableHead className="text-right">Valor</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {orcamento.itens.map(item => (
+                            <TableRow key={item.id}>
+                                <TableCell>{item.materialNome}</TableCell>
+                                <TableCell className="text-right">
+                                {formatNumber(item.quantidade)} {item.unidade}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                {formatCurrency(item.precoVenda)}
+                                </TableCell>
+                            </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        ))}
+      </div>
     </>
   );
 }
