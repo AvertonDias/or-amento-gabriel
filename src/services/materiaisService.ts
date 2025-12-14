@@ -27,7 +27,7 @@ export const updateMaterial = async (userId: string, materialId: string, materia
   const existing = await dexieDB.materiais.get(materialId);
   if (!existing) throw new Error("Material não encontrado para atualização.");
 
-  const updatedData = { ...existing.data, ...material, userId };
+  const updatedData: MaterialItem = { ...existing.data, ...material, userId: userId, id: materialId };
   await dexieDB.materiais.put({
     ...existing,
     data: updatedData,

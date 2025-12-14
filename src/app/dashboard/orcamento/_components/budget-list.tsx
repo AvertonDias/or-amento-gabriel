@@ -168,7 +168,7 @@ export function BudgetList({ isLoading, budgets, empresa, onUpdateStatus, onDele
         );
     }
     
-    return budgets.map(orcamento => (
+    return budgets.map((orcamento) => (
         <Card key={orcamento.id} className="overflow-hidden">
             <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2">
                 <div>
@@ -344,6 +344,3 @@ export function BudgetList({ isLoading, budgets, empresa, onUpdateStatus, onDele
         </Card>
     ));
 }
-
-
-
