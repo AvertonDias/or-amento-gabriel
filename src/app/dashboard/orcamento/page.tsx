@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -56,7 +57,6 @@ export default function OrcamentoPage() {
 
   // --- Local State ---
   const [isWizardOpen, setIsWizardOpen] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditBudgetModalOpen, setIsEditBudgetModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Orcamento | null>(null);
@@ -284,8 +284,6 @@ export default function OrcamentoPage() {
                     <BudgetHeader
                         searchTerm={searchTerm}
                         setSearchTerm={setSearchTerm}
-                        isRefreshing={isRefreshing}
-                        onRefresh={() => { /* Sincronização é automática */ }}
                         showClearFilter={!!clienteIdParam}
                         onClearFilter={() => router.push('/dashboard/orcamento')}
                     />

@@ -3,18 +3,16 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, RefreshCw, FilterX, XCircle } from 'lucide-react';
+import { Search, FilterX, XCircle } from 'lucide-react';
 
 interface BudgetHeaderProps {
     searchTerm: string;
     setSearchTerm: (term: string) => void;
-    isRefreshing: boolean;
-    onRefresh: () => void;
     showClearFilter: boolean;
     onClearFilter: () => void;
 }
 
-export function BudgetHeader({ searchTerm, setSearchTerm, isRefreshing, onRefresh, showClearFilter, onClearFilter }: BudgetHeaderProps) {
+export function BudgetHeader({ searchTerm, setSearchTerm, showClearFilter, onClearFilter }: BudgetHeaderProps) {
     return (
         <div className="flex items-center gap-2">
             <div className="relative flex-grow">
@@ -42,11 +40,6 @@ export function BudgetHeader({ searchTerm, setSearchTerm, isRefreshing, onRefres
                     Limpar
                 </Button>
             )}
-            <Button variant="ghost" size="icon" onClick={onRefresh} disabled={isRefreshing}>
-                <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </Button>
         </div>
     );
 }
-
-    
