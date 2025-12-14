@@ -113,22 +113,24 @@ export default function ClientesPage() {
     return counts;
   }, [clientes, orcamentos]);
 
-  const checkForDuplicates = (): string | null => {
+  const checkForDuplicates = (clientData: Omit<ClienteData, 'id' | 'userId'>, clientIdToIgnore?: string): string | null => {
     if (!clientes) return null;
     let message = null;
-    const newClientNameLower = newClient.nome.trim().toLowerCase();
-    const newClientNumbers = newClient.telefones.map(t => t.numero).filter(Boolean);
+    const clientNameLower = clientData.nome.trim().toLowerCase();
+    const clientNumbers = clientData.telefones.map(t => t.numero).filter(Boolean);
 
-    clientes.forEach(cliente => {
-        if (newClient.nome && cliente.nome.trim().toLowerCase() === newClientNameLower) {
-            message = `O nome "${newClient.nome}" já está cadastrado.`;
-        } else if (newClient.cpfCnpj && cliente.cpfCnpj === newClient.cpfCnpj) {
-            message = `O CPF/CNPJ "${newClient.cpfCnpj}" já está sendo usado pelo cliente "${cliente.nome}".`;
-        } else if (newClient.email && cliente.email && cliente.email.toLowerCase() === newClient.email.toLowerCase()) {
-            message = `O e-mail "${newClient.email}" já está sendo usado pelo cliente "${cliente.nome}".`;
-        } else if (newClientNumbers.length > 0) {
-            const clientNumbers = cliente.telefones.map(t => t.numero);
-            const duplicateNumber = newClientNumbers.find(num => clientNumbers.includes(num));
+    const filteredClientes = clientIdToIgnore ? clientes.filter(c => c.id !== clientIdToIgnore) : clientes;
+
+    filteredClientes.forEach(cliente => {
+        if (clientData.nome && cliente.nome.trim().toLowerCase() === clientNameLower) {
+            message = `O nome "${clientData.nome}" já está cadastrado.`;
+        } else if (clientData.cpfCnpj && cliente.cpfCnpj === clientData.cpfCnpj) {
+            message = `O CPF/CNPJ "${clientData.cpfCnpj}" já está sendo usado pelo cliente "${cliente.nome}".`;
+        } else if (clientData.email && cliente.email && cliente.email.toLowerCase() === clientData.email.toLowerCase()) {
+            message = `O e-mail "${clientData.email}" já está sendo usado pelo cliente "${cliente.nome}".`;
+        } else if (clientNumbers.length > 0) {
+            const clientNumbersInDb = cliente.telefones.map(t => t.numero);
+            const duplicateNumber = clientNumbers.find(num => clientNumbersInDb.includes(num));
             if (duplicateNumber) {
                 message = `O telefone "${duplicateNumber}" já está sendo usado pelo cliente "${cliente.nome}".`;
             }
@@ -143,9 +145,7 @@ export default function ClientesPage() {
         return;
     }
     
-    setNewClient(clientData); // Temporarily set for duplicate check
-
-    const duplicateInfo = checkForDuplicates();
+    const duplicateInfo = checkForDuplicates(clientData);
     if (duplicateInfo) {
         setDuplicateMessage(duplicateInfo);
         setIsDuplicateAlertOpen(true);
@@ -431,6 +431,7 @@ export default function ClientesPage() {
         isEditModalOpen={isEditModalOpen}
         setIsEditModalOpen={setIsEditModalOpen}
         editingClient={editingClient}
+        setEditingClient={setEditingClient}
         onSaveEdit={handleSalvarEdicao}
         isSubmitting={isSubmitting}
         

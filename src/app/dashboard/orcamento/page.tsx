@@ -223,19 +223,30 @@ export default function OrcamentoPage() {
   };
 
   const handleSaveBudget = async (budgetData: Omit<Orcamento, 'id'>) => {
-    if (!user) return;
+    if (!user || !clientes) return;
     try {
       let finalClient = budgetData.cliente;
+
+      // Se o cliente é novo (sem ID ou com ID temporário)
       if (!finalClient.id || finalClient.id.startsWith('temp_')) {
-        const newClientId = await addCliente(user.uid, {
-          nome: finalClient.nome,
-          cpfCnpj: finalClient.cpfCnpj,
-          endereco: finalClient.endereco,
-          telefones: finalClient.telefones,
-          email: finalClient.email,
-        });
-        finalClient = { ...finalClient, id: newClientId, userId: user.uid };
-        toast({ title: "Novo cliente salvo localmente!" });
+        const existingClient = clientes.find(c => c.nome.trim().toLowerCase() === finalClient.nome.trim().toLowerCase());
+        
+        if (existingClient) {
+          // Usa o cliente existente em vez de criar um novo
+          finalClient = existingClient;
+          toast({ title: "Aviso", description: `Orçamento associado ao cliente existente: ${existingClient.nome}.` });
+        } else {
+          // Cria um novo cliente se não houver duplicatas
+          const newClientId = await addCliente(user.uid, {
+            nome: finalClient.nome,
+            cpfCnpj: finalClient.cpfCnpj,
+            endereco: finalClient.endereco,
+            telefones: finalClient.telefones,
+            email: finalClient.email,
+          });
+          finalClient = { ...finalClient, id: newClientId, userId: user.uid };
+          toast({ title: "Novo cliente salvo localmente!" });
+        }
       }
 
       const numeroOrcamento = await getNextOrcamentoNumber(user.uid);
