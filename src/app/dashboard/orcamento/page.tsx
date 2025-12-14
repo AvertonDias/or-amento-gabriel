@@ -212,6 +212,7 @@ export default function OrcamentoPage() {
         if (budget.cliente.id && !budget.cliente.id.startsWith('temp_')) {
           await updateCliente(budget.cliente.id, {
             endereco: budget.cliente.endereco,
+            telefones: budget.cliente.telefones,
           });
         }
         toast({title: "Orçamento atualizado e pendente de sincronização."});

@@ -45,6 +45,7 @@ import {
   maskDecimal,
   maskInteger,
   maskDecimalWithAutoComma,
+  maskTelefone,
 } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Capacitor } from '@capacitor/core';
@@ -154,6 +155,30 @@ export function BudgetEditDialog({
         }
     });
   };
+
+  const handleClienteTelefoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!editingBudget) return;
+      const maskedValue = maskTelefone(e.target.value);
+      setEditingBudget(prev => {
+          if (!prev) return null;
+          // Assegura que telefones existe e tem pelo menos um item
+          const telefones = Array.isArray(prev.cliente.telefones) && prev.cliente.telefones.length > 0
+              ? [...prev.cliente.telefones]
+              : [{ nome: 'Principal', numero: '' }];
+          
+          // Atualiza o primeiro telefone (ou o principal, se a lógica for mais complexa)
+          telefones[0] = { ...telefones[0], numero: maskedValue };
+          
+          return {
+              ...prev,
+              cliente: {
+                  ...prev.cliente,
+                  telefones: telefones,
+              }
+          }
+      });
+  };
+
 
   const handleNewItemChange = (field: keyof typeof newItemForEdit, value: string) => {
     if (field === 'materialId') {
@@ -297,7 +322,8 @@ export function BudgetEditDialog({
                     <h3 className="font-semibold text-muted-foreground">Dados do Cliente</h3>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div><Label>Nome do Cliente</Label><Input value={editingBudget.cliente.nome} disabled/></div>
-                        <div><Label htmlFor="cliente-endereco">Endereço</Label><Input id="cliente-endereco" name="endereco" value={editingBudget.cliente.endereco} onChange={handleClienteDataChange} /></div>
+                        <div><Label htmlFor="cliente-telefone">Telefone</Label><Input id="cliente-telefone" name="telefone" value={editingBudget.cliente.telefones?.[0]?.numero || ''} onChange={handleClienteTelefoneChange} /></div>
+                        <div className="md:col-span-2"><Label htmlFor="cliente-endereco">Endereço</Label><Input id="cliente-endereco" name="endereco" value={editingBudget.cliente.endereco} onChange={handleClienteDataChange} /></div>
                      </div>
                 </div>
 
