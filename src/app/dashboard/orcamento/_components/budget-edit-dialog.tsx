@@ -1,19 +1,62 @@
 
 'use client';
 
-import React, { useState, useEffect, FormEvent, useMemo } from 'react';
-import type { Orcamento, OrcamentoItem, MaterialItem } from '@/lib/types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import type { Orcamento, OrcamentoItem, MaterialItem, ClienteData } from '@/lib/types';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableTotalFooter } from '@/components/ui/table';
-import { Loader2, CheckCircle2, PlusCircle, Trash2, Pencil, ArrowRightLeft } from 'lucide-react';
-import { formatCurrency, formatNumber, maskCurrency, maskDecimal, maskInteger, maskDecimalWithAutoComma } from '@/lib/utils';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableFooter as TableTotalFooter,
+} from '@/components/ui/table';
+import {
+  Loader2,
+  PlusCircle,
+  Trash2,
+  Pencil,
+  ArrowRightLeft,
+} from 'lucide-react';
+import {
+  formatCurrency,
+  formatNumber,
+  maskCurrency,
+  maskDecimal,
+  maskInteger,
+  maskDecimalWithAutoComma,
+} from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Capacitor } from '@capacitor/core';
 import { EditItemModal } from './edit-item-modal';
+
+/* ===========================
+   Helpers
+=========================== */
+const generateId = () =>
+  typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 const unidadesDeMedida = [
   { value: 'un', label: 'Unidade (un)' },
@@ -28,297 +71,340 @@ const unidadesDeMedida = [
 const integerUnits = ['un', 'h', 'serv'];
 
 interface BudgetEditDialogProps {
-    isOpen: boolean;
-    onOpenChange: (open: boolean) => void;
-    budget: Orcamento;
-    materiais: MaterialItem[];
-    onUpdateBudget: (budget: Orcamento) => void;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  budget: Orcamento;
+  materiais: MaterialItem[];
+  onUpdateBudget: (budget: Orcamento) => Promise<void>;
 }
 
-export function BudgetEditDialog({ isOpen, onOpenChange, budget, materiais, onUpdateBudget }: BudgetEditDialogProps) {
-    const [editingBudget, setEditingBudget] = useState<Orcamento | null>(null);
-    const [editingBudgetItens, setEditingBudgetItens] = useState<OrcamentoItem[]>([]);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    
-    const [newItemForEdit, setNewItemForEdit] = useState({ materialId: '', quantidade: '', margemLucro: '' });
-    const [newItemQtyStr, setNewItemQtyStr] = useState('');
-    const [newItemMarginStr, setNewItemMarginStr] = useState('');
+export function BudgetEditDialog({
+  isOpen,
+  onOpenChange,
+  budget,
+  materiais,
+  onUpdateBudget,
+}: BudgetEditDialogProps) {
+  const { toast } = useToast();
+  const quantidadeInputRef = useRef<HTMLInputElement>(null);
 
-    const [isAddingAvulsoInEdit, setIsAddingAvulsoInEdit] = useState(false);
-    const [itemAvulsoInEdit, setItemAvulsoInEdit] = useState({ descricao: '', quantidade: '', unidade: 'un', precoFinal: '' });
-    const [itemAvulsoInEditPrecoStr, setItemAvulsoInEditPrecoStr] = useState('');
+  const [editingBudget, setEditingBudget] = useState<Orcamento | null>(null);
+  const [editingBudgetItens, setEditingBudgetItens] = useState<OrcamentoItem[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const [editingItem, setEditingItem] = useState<OrcamentoItem | null>(null);
-    const [isEditItemModalOpen, setIsEditItemModalOpen] = useState(false);
+  const [newItemForEdit, setNewItemForEdit] = useState({
+    materialId: '',
+    quantidade: '',
+    margemLucro: '',
+  });
 
-    const { toast } = useToast();
+  const [newItemQtyStr, setNewItemQtyStr] = useState('');
+  const [newItemMarginStr, setNewItemMarginStr] = useState('');
 
-    useEffect(() => {
-        if (budget) {
-            setEditingBudget({ ...budget });
-            setEditingBudgetItens([...budget.itens]);
+  const [isAddingAvulsoInEdit, setIsAddingAvulsoInEdit] = useState(false);
+  const [itemAvulsoInEdit, setItemAvulsoInEdit] = useState({
+    descricao: '',
+    quantidade: '',
+    unidade: 'un',
+  });
+  const [itemAvulsoPrecoStr, setItemAvulsoPrecoStr] = useState('');
+
+  const [editingItem, setEditingItem] = useState<OrcamentoItem | null>(null);
+  const [isEditItemModalOpen, setIsEditItemModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (budget) {
+        setEditingBudget({ ...budget });
+        setEditingBudgetItens([...budget.itens]);
+    }
+  }, [budget]);
+
+  const selectedMaterialForEdit = useMemo(
+    () => materiais.find(m => m.id === newItemForEdit.materialId),
+    [materiais, newItemForEdit.materialId]
+  );
+
+  const isEditUnitInteger = useMemo(() => {
+    if (isAddingAvulsoInEdit) {
+      return integerUnits.includes(itemAvulsoInEdit.unidade);
+    }
+    return selectedMaterialForEdit
+      ? integerUnits.includes(selectedMaterialForEdit.unidade)
+      : false;
+  }, [isAddingAvulsoInEdit, itemAvulsoInEdit.unidade, selectedMaterialForEdit]);
+  
+  const totalVenda = useMemo(() => editingBudgetItens.reduce((sum, item) => sum + item.precoVenda, 0), [editingBudgetItens]);
+
+
+  /* ===========================
+     Handlers
+  =========================== */
+
+  const handleClienteDataChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!editingBudget) return;
+    const { name, value } = e.target;
+    setEditingBudget(prev => {
+        if (!prev) return null;
+        return {
+            ...prev,
+            cliente: {
+                ...prev.cliente,
+                [name]: value
+            }
         }
-    }, [budget]);
+    });
+  };
 
-    const selectedMaterialForEdit = useMemo(() => {
-        return materiais.find(m => m.id === newItemForEdit.materialId);
-    }, [materiais, newItemForEdit.materialId]);
-
-    const isEditUnitInteger = useMemo(() => {
-        if (isAddingAvulsoInEdit) {
-            return integerUnits.includes(itemAvulsoInEdit.unidade);
-        }
-        return selectedMaterialForEdit ? integerUnits.includes(selectedMaterialForEdit.unidade) : false;
-    }, [isAddingAvulsoInEdit, itemAvulsoInEdit.unidade, selectedMaterialForEdit]);
-
-
-    const handleNewItemForEditChange = (field: keyof typeof newItemForEdit, value: string) => {
-        if (field === 'quantidade') {
-            const mask = isEditUnitInteger ? maskInteger : maskDecimalWithAutoComma;
-            const masked = mask(value);
-            setNewItemQtyStr(masked);
-            setNewItemForEdit(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
-        } else if (field === 'margemLucro') {
-            const masked = maskDecimal(value);
-            setNewItemMarginStr(masked);
-            setNewItemForEdit(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
-        } else {
-            setNewItemForEdit(prev => ({ ...prev, [field]: value }));
-        }
+  const handleNewItemChange = (field: keyof typeof newItemForEdit, value: string) => {
+    if (field === 'materialId') {
+      setNewItemForEdit(prev => ({ ...prev, [field]: value }));
+      setTimeout(() => quantidadeInputRef.current?.focus(), 0);
+    } else if (field === 'quantidade') {
+      const mask = isEditUnitInteger ? maskInteger : maskDecimalWithAutoComma;
+      const masked = mask(value);
+      setNewItemQtyStr(masked);
+      setNewItemForEdit(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
+    } else if (field === 'margemLucro') {
+      const masked = maskDecimal(value);
+      setNewItemMarginStr(masked);
+      setNewItemForEdit(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
+    }
+  };
+  
+  const addLinha = () => {
+    if (!selectedMaterialForEdit) {
+      toast({ title: 'Seleção necessária', description: 'Por favor, selecione um item ou serviço.', variant: 'destructive' });
+      return;
+    }
+    const { precoUnitario, id: materialId, descricao, unidade, tipo, quantidade: estoqueAtual, quantidadeMinima } = selectedMaterialForEdit;
+    const numMargemLucro = parseFloat(newItemForEdit.margemLucro.replace(',', '.')) || 0;
+    const numQuantidade = parseFloat(newItemForEdit.quantidade.replace(',', '.'));
+    if (isNaN(numQuantidade) || numQuantidade <= 0 || precoUnitario === null) {
+      toast({ title: 'Valores inválidos', description: 'Preencha a Quantidade e verifique os dados do item.', variant: 'destructive' });
+      return;
+    }
+  
+    if (tipo === 'item' && estoqueAtual != null && quantidadeMinima != null) {
+      const novoEstoque = estoqueAtual - numQuantidade;
+      if (novoEstoque <= quantidadeMinima) {
+        toast({
+          title: "Aviso de Estoque Baixo",
+          description: `O item "${descricao}" atingiu o estoque mínimo. Restam: ${novoEstoque}`,
+          variant: "destructive"
+        });
+      }
+    }
+    
+    const custoFinal = precoUnitario * numQuantidade;
+    const precoVenda = custoFinal * (1 + numMargemLucro / 100);
+    const novoOrcamentoItem: OrcamentoItem = { 
+      id: generateId(), materialId, materialNome: descricao, unidade,
+      quantidade: numQuantidade, precoUnitario, total: custoFinal, 
+      margemLucro: numMargemLucro, precoVenda,
     };
-    
-    const handleAddItemToEditBudget = () => {
-        if (!selectedMaterialForEdit) {
-          toast({ title: 'Seleção necessária', description: 'Por favor, selecione um item ou serviço.', variant: 'destructive' });
-          return;
-        }
-        const { precoUnitario, id: materialId, descricao, unidade } = selectedMaterialForEdit;
-        const numMargemLucro = parseFloat(newItemForEdit.margemLucro.replace(',', '.')) || 0;
-        const numQuantidade = parseFloat(newItemForEdit.quantidade.replace(/[^0-9,]/g, '').replace(',', '.'));
-    
-        if (isNaN(numQuantidade) || numQuantidade <= 0 || precoUnitario === null) {
-          toast({ title: 'Valores inválidos', description: 'Preencha a Quantidade corretamente.', variant: 'destructive' });
-          return;
-        }
-    
-        const custoFinal = precoUnitario * numQuantidade;
-        const precoVenda = custoFinal * (1 + numMargemLucro / 100);
-        
-        const novoOrcamentoItem: OrcamentoItem = { 
-          id: crypto.randomUUID(), materialId, materialNome: descricao, unidade,
-          quantidade: numQuantidade, precoUnitario, total: custoFinal, 
-          margemLucro: numMargemLucro, precoVenda,
-        };
-        
-        setEditingBudgetItens(prev => [...prev, novoOrcamentoItem]);
-        
-        setNewItemForEdit({ materialId: '', quantidade: '', margemLucro: '' });
-        setNewItemQtyStr('');
-        setNewItemMarginStr('');
-    };
+    setEditingBudgetItens(prev => [...prev, novoOrcamentoItem]);
+    setNewItemForEdit({ materialId: '', quantidade: '', margemLucro: '' });
+    setNewItemQtyStr('');
+    setNewItemMarginStr('');
+  };
+  
+  const addLinhaAvulsa = () => {
+    const { descricao, quantidade, unidade } = itemAvulsoInEdit;
+    const numQuantidade = parseFloat(quantidade.replace(',', '.')) || 1;
+    const numPrecoFinal = parseFloat(itemAvulsoPrecoStr.replace(/\D/g, '')) / 100;
 
-    const handleAddItemAvulsoToEditBudget = () => {
-        const { descricao, quantidade, unidade } = itemAvulsoInEdit;
-        const numQuantidade = parseFloat(quantidade.replace(',', '.')) || 1;
-        const numPrecoFinal = parseFloat(itemAvulsoInEditPrecoStr.replace(/\D/g, '')) / 100;
-    
-        if (!descricao.trim()) { toast({ title: "Descrição obrigatória", variant: "destructive" }); return; }
-        if (isNaN(numQuantidade) || numQuantidade <= 0) { toast({ title: "Quantidade inválida", variant: "destructive" }); return; }
-        if (isNaN(numPrecoFinal) || numPrecoFinal <= 0) { toast({ title: "Preço inválido", variant: "destructive" }); return; }
-    
-        const novoOrcamentoItem: OrcamentoItem = {
-          id: crypto.randomUUID(), materialId: 'avulso-' + crypto.randomUUID(),
-          materialNome: descricao, unidade: unidade || 'un',
-          quantidade: numQuantidade, precoUnitario: numPrecoFinal / numQuantidade,
-          total: numPrecoFinal, margemLucro: 0, precoVenda: numPrecoFinal,
-        };
-    
-        setEditingBudgetItens(prev => [...prev, novoOrcamentoItem]);
-    
-        setItemAvulsoInEdit({ descricao: '', quantidade: '', unidade: 'un', precoFinal: '' });
-        setItemAvulsoInEditPrecoStr('');
-        setIsAddingAvulsoInEdit(false);
+    if (!descricao.trim()) { toast({ title: "Descrição obrigatória", variant: "destructive" }); return; }
+    if (isNaN(numQuantidade) || numQuantidade <= 0) { toast({ title: "Quantidade inválida", variant: "destructive" }); return; }
+    if (isNaN(numPrecoFinal) || numPrecoFinal <= 0) { toast({ title: "Preço inválido", variant: "destructive" }); return; }
+
+    const novoOrcamentoItem: OrcamentoItem = {
+      id: generateId(),
+      materialId: 'avulso-' + generateId(),
+      materialNome: descricao,
+      unidade: unidade || 'un',
+      quantidade: numQuantidade,
+      precoUnitario: numPrecoFinal / numQuantidade,
+      total: numPrecoFinal,
+      margemLucro: 0,
+      precoVenda: numPrecoFinal,
     };
 
-    const handleRemoveItemFromEditBudget = (itemId: string) => {
-        setEditingBudgetItens(prev => prev.filter(item => item.id !== itemId));
-    };
+    setEditingBudgetItens(prev => [...prev, novoOrcamentoItem]);
+    setItemAvulsoInEdit({ descricao: '', quantidade: '', unidade: 'un' });
+    setItemAvulsoPrecoStr('');
+    setIsAddingAvulsoInEdit(false);
+  };
+  
+  const removeLinha = (id: string) => {
+    setEditingBudgetItens(prev => prev.filter(i => i.id !== id));
+  };
+  
+  const handleEditItemClick = (item: OrcamentoItem) => {
+    setEditingItem({ ...item });
+    setIsEditItemModalOpen(true);
+  };
 
-    const handleEditItemClick = (item: OrcamentoItem) => {
-        setEditingItem({ ...item });
-        setIsEditItemModalOpen(true);
-    };
+  const handleSaveItemEdit = (itemAtualizado: OrcamentoItem) => {
+    setEditingBudgetItens(prev => prev.map(item => item.id === itemAtualizado.id ? itemAtualizado : item));
+    setIsEditItemModalOpen(false);
+    setEditingItem(null);
+    toast({ title: 'Item atualizado.' });
+  };
 
-    const handleSaveItemEdit = (itemAtualizado: OrcamentoItem) => {
-        setEditingBudgetItens(prev => prev.map(item => item.id === itemAtualizado.id ? itemAtualizado : item));
-        setIsEditItemModalOpen(false);
-        setEditingItem(null);
-        toast({ title: 'Item atualizado.' });
-    };
+  const handleUpdateBudget = async () => {
+    if (!editingBudget) return;
 
-    const handleUpdateBudget = async () => {
-        if (!editingBudget) return;
-        setIsSubmitting(true);
-        const totalVendaFinal = editingBudgetItens.reduce((acc, item) => acc + item.precoVenda, 0);
-        const budgetToUpdate: Orcamento = {
-            ...editingBudget,
-            itens: editingBudgetItens,
-            totalVenda: totalVendaFinal,
-        };
-        await onUpdateBudget(budgetToUpdate);
-        setIsSubmitting(false);
-    };
+    try {
+      setIsSubmitting(true);
+      await onUpdateBudget({
+        ...editingBudget,
+        itens: editingBudgetItens,
+        totalVenda,
+      });
 
-    if (!editingBudget) return null;
+      toast({ title: 'Orçamento atualizado com sucesso.' });
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: 'Erro ao salvar orçamento',
+        description: 'Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    return (
-        <>
-            <Dialog open={isOpen} onOpenChange={onOpenChange}>
-                <DialogContent 
-                    className="max-w-4xl max-h-[90vh] flex flex-col"
-                    onPointerDownOutside={(e) => {
-                        if (Capacitor.isNativePlatform()) e.preventDefault();
-                    }}
-                >
-                    <DialogHeader>
-                        <DialogTitle>Editar Orçamento #{editingBudget.numeroOrcamento}</DialogTitle>
-                        <DialogDescription>
-                        Ajuste os dados do cliente e os itens do orçamento. O status não pode ser alterado aqui.
-                        </DialogDescription>
-                    </DialogHeader>
+  if (!editingBudget) return null;
 
-                    <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 overflow-y-auto p-1 pr-4">
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold border-b pb-2">Dados do Cliente</h3>
-                            <div className="space-y-2">
-                                <Label htmlFor="edit-cliente-nome">Nome</Label>
-                                <Input id="edit-cliente-nome" name="nome" value={editingBudget.cliente.nome} disabled />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="edit-cliente-endereco">Endereço</Label>
-                                <Input 
-                                    id="edit-cliente-endereco" 
-                                    name="endereco" 
-                                    value={editingBudget.cliente.endereco} 
-                                    onChange={(e) => setEditingBudget(prev => prev ? {...prev, cliente: {...prev.cliente, endereco: e.target.value}} : null)}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="edit-validade-dias">Validade da Proposta (dias)</Label>
-                                <Input id="edit-validade-dias" type="number" value={editingBudget.validadeDias} onChange={(e) => setEditingBudget(prev => prev ? {...prev, validadeDias: e.target.value} : null)} placeholder="Ex: 7" />
-                            </div>
-                        </div>
+  return (
+    <>
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent
+          className="max-w-4xl max-h-[90vh] flex flex-col"
+          onPointerDownOutside={e => {
+            if (Capacitor.isNativePlatform()) e.preventDefault();
+          }}
+        >
+            <DialogHeader>
+                <DialogTitle>Editar Orçamento</DialogTitle>
+                <DialogDescription>Ajuste os itens, cliente e outras informações do orçamento.</DialogDescription>
+            </DialogHeader>
 
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold border-b pb-2">Itens do Orçamento</h3>
-                            
-                            <div className="p-2 border rounded-lg space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <Label className="text-xs">{isAddingAvulsoInEdit ? 'Novo Item Avulso' : 'Novo Item da Lista'}</Label>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsAddingAvulsoInEdit(!isAddingAvulsoInEdit)}>
-                                    <ArrowRightLeft className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                                {isAddingAvulsoInEdit ? (
-                                    <div className="grid grid-cols-2 gap-2 items-end">
-                                        <div className="col-span-2"><Label htmlFor="edit-avulso-desc" className="text-xs">Descrição</Label><Input id="edit-avulso-desc" className="h-8" value={itemAvulsoInEdit.descricao} onChange={e => setItemAvulsoInEdit(p => ({...p, descricao: e.target.value}))} /></div>
-                                        <div>
-                                            <Label htmlFor="edit-avulso-qtd" className="text-xs">Qtd</Label>
-                                            <Input 
-                                                id="edit-avulso-qtd" 
-                                                className="h-8" 
-                                                value={itemAvulsoInEdit.quantidade} 
-                                                onChange={e => {
-                                                    const mask = isEditUnitInteger ? maskInteger : maskDecimalWithAutoComma;
-                                                    setItemAvulsoInEdit(p => ({...p, quantidade: mask(e.target.value)}));
-                                                }} 
-                                                placeholder="1" />
-                                        </div>
-                                        <div>
-                                            <Label htmlFor="edit-avulso-un" className="text-xs">Unidade</Label>
-                                            <Select value={itemAvulsoInEdit.unidade} onValueChange={(value) => setItemAvulsoInEdit(p => ({...p, unidade: value, quantidade: ''}))}>
-                                            <SelectTrigger id="edit-avulso-un" className="h-8"><SelectValue /></SelectTrigger>
-                                            <SelectContent>
-                                                {unidadesDeMedida.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
-                                            </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="col-span-2">
-                                            <Label htmlFor="edit-avulso-preco" className="text-xs">Preço Final (R$)</Label>
-                                            <Input id="edit-avulso-preco" className="h-8" value={itemAvulsoInEditPrecoStr} onChange={e => setItemAvulsoInEditPrecoStr(maskCurrency(e.target.value))} placeholder="R$ 50,00" />
-                                        </div>
-                                        <div className="col-span-2"><Button onClick={handleAddItemAvulsoToEditBudget} size="sm" className="w-full h-8"><PlusCircle className="mr-1 h-4 w-4" />Add Avulso</Button></div>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 items-end">
-                                    <div className="col-span-2 lg:col-span-2">
-                                        <Label htmlFor="edit-material-select" className="text-xs">Novo Item</Label>
-                                        <Select value={newItemForEdit.materialId} onValueChange={(val) => handleNewItemForEditChange('materialId', val)}>
-                                        <SelectTrigger id="edit-material-select" className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                        <SelectContent>
-                                            {materiais.map(mat => (<SelectItem key={mat.id} value={mat.id}>{`${mat.descricao} (${formatCurrency(mat.precoUnitario)}/${mat.unidade})`}</SelectItem>))}
-                                        </SelectContent>
-                                        </Select>
-                                    </div>
-                                    {selectedMaterialForEdit && (
-                                        <>
-                                        <div><Label htmlFor="edit-quantidade-novo" className="text-xs">Qtd</Label><Input id="edit-quantidade-novo" className="h-8" type="text" inputMode='decimal' value={newItemQtyStr} onChange={e => handleNewItemForEditChange('quantidade', e.target.value)} /></div>
-                                        <div><Label htmlFor="edit-margem-novo" className="text-xs">Acr.(%)</Label><Input id="edit-margem-novo" className="h-8" type="text" inputMode='decimal' value={newItemMarginStr} onChange={e => handleNewItemForEditChange('margemLucro', e.target.value)} /></div>
-                                        <div><Button onClick={handleAddItemToEditBudget} size="sm" className="w-full h-8"><PlusCircle className="mr-1 h-4 w-4" />Add</Button></div>
-                                        </>
-                                    )}
-                                    </div>
-                                )}
-                            </div>
+            <div className="flex-grow overflow-y-auto p-1 pr-4 space-y-6">
+                {/* DADOS DO CLIENTE */}
+                <div className="space-y-4 p-4 border rounded-lg">
+                    <h3 className="font-semibold text-muted-foreground">Dados do Cliente</h3>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><Label>Nome do Cliente</Label><Input value={editingBudget.cliente.nome} disabled/></div>
+                        <div><Label htmlFor="cliente-endereco">Endereço</Label><Input id="cliente-endereco" name="endereco" value={editingBudget.cliente.endereco} onChange={handleClienteDataChange} /></div>
+                     </div>
+                </div>
 
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Venda</TableHead><TableHead className="w-[80px] text-center">Ações</TableHead></TableRow></TableHeader>
-                                    <TableBody>
-                                    {editingBudgetItens.map(item => (
-                                        <TableRow key={item.id}>
-                                            <TableCell className="py-2">
-                                                <p className="font-medium">{item.materialNome}</p>
-                                                <p className="text-xs text-muted-foreground">{formatNumber(item.quantidade, 2)} {item.unidade} x {formatCurrency(item.precoUnitario)} + {formatNumber(item.margemLucro)}%</p>
-                                            </TableCell>
-                                            <TableCell className="text-right font-bold text-primary py-2">{formatCurrency(item.precoVenda)}</TableCell>
-                                            <TableCell className="flex justify-center gap-1 py-2">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditItemClick(item)}><Pencil className="h-4 w-4 text-primary" /></Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemoveItemFromEditBudget(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                    </TableBody>
-                                    <TableTotalFooter>
-                                        <TableRow className="bg-muted/50 font-bold text-base">
-                                            <TableCell>TOTAL</TableCell>
-                                            <TableCell className="text-right text-primary">{formatCurrency(editingBudgetItens.reduce((acc, item) => acc + item.precoVenda, 0))}</TableCell>
-                                            <TableCell></TableCell>
-                                        </TableRow>
-                                    </TableTotalFooter>
-                                </Table>
-                            </div>
-                        </div>
-                    </div>
-                    <DialogFooter className="pt-4 border-t">
-                        <DialogClose asChild>
-                            <Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button>
-                        </DialogClose>
-                        <Button onClick={handleUpdateBudget} disabled={isSubmitting}>
-                            {isSubmitting ? <Loader2 className="mr-2 animate-spin" /> : <CheckCircle2 className="mr-2"/>} Salvar Alterações
+                {/* ADICIONAR ITENS */}
+                <div className="mb-6 p-4 border rounded-lg space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h4 className="font-semibold text-muted-foreground">
+                            {isAddingAvulsoInEdit ? 'Adicionar Item Avulso' : 'Adicionar Item'}
+                        </h4>
+                        <Button variant="outline" onClick={() => setIsAddingAvulsoInEdit(!isAddingAvulsoInEdit)}>
+                            <ArrowRightLeft className="mr-2 h-4 w-4" />
+                            <span>{isAddingAvulsoInEdit ? 'Item da Lista' : 'Item Avulso'}</span>
                         </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                    </div>
+                    {isAddingAvulsoInEdit ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                            <div className="lg:col-span-2"><Label htmlFor="edit-avulso-desc">Descrição</Label><Input id="edit-avulso-desc" value={itemAvulsoInEdit.descricao} onChange={e => setItemAvulsoInEdit(p => ({...p, descricao: e.target.value}))} /></div>
+                            <div>
+                                <Label htmlFor="edit-avulso-qtd">Qtd.</Label>
+                                <Input id="edit-avulso-qtd" value={itemAvulsoInEdit.quantidade} 
+                                    onChange={e => {
+                                        const mask = isEditUnitInteger ? maskInteger : maskDecimalWithAutoComma;
+                                        setItemAvulsoInEdit(p => ({...p, quantidade: mask(e.target.value)}));
+                                    }} 
+                                placeholder="1" />
+                            </div>
+                            <div>
+                                <Label htmlFor="edit-avulso-un">Unidade</Label>
+                                <Select name="unidade" value={itemAvulsoInEdit.unidade} onValueChange={(value) => setItemAvulsoInEdit(p => ({...p, unidade: value}))}>
+                                    <SelectTrigger id="edit-avulso-un"><SelectValue /></SelectTrigger>
+                                    <SelectContent>{unidadesDeMedida.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}</SelectContent>
+                                </Select>
+                            </div>
+                            <div className="lg:col-span-2">
+                                <Label htmlFor="edit-avulso-preco">Preço Final (R$)</Label>
+                                <Input id="edit-avulso-preco" value={itemAvulsoPrecoStr} onChange={e => setItemAvulsoPrecoStr(maskCurrency(e.target.value))} placeholder="R$ 50,00" />
+                            </div>
+                            <div className="lg:col-span-1"><Button onClick={addLinhaAvulsa} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Add</Button></div>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                            <div className="sm:col-span-2">
+                                <Label htmlFor="edit-material-select">Item / Serviço</Label>
+                                <Select value={newItemForEdit.materialId} onValueChange={(val) => handleNewItemChange('materialId', val)}>
+                                <SelectTrigger id="edit-material-select"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                <SelectContent>{materiais.map(mat => (<SelectItem key={mat.id} value={mat.id}>{`${mat.descricao} (${formatCurrency(mat.precoUnitario)}/${mat.unidade})`}</SelectItem>))}</SelectContent>
+                                </Select>
+                            </div>
+                            {selectedMaterialForEdit && (
+                                <>
+                                <div>
+                                    <Label htmlFor="edit-quantidade-novo">Qtd ({selectedMaterialForEdit.unidade})</Label>
+                                    <Input ref={quantidadeInputRef} id="edit-quantidade-novo" type="text" inputMode='decimal' placeholder="1,50" value={newItemQtyStr} onChange={e => handleNewItemChange('quantidade', e.target.value)} />
+                                </div>
+                                <div><Label htmlFor="edit-margem-lucro">Acréscimo (%)</Label><Input id="edit-margem-lucro" type="text" inputMode='decimal' placeholder="10" value={newItemMarginStr} onChange={e => handleNewItemChange('margemLucro', e.target.value)} /></div>
+                                <div className="lg:col-span-1"><Button onClick={addLinha} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Add</Button></div>
+                                </>
+                            )}
+                        </div>
+                    )}
+                </div>
 
-            {editingItem && (
-                <EditItemModal
-                    isOpen={isEditItemModalOpen}
-                    onOpenChange={setIsEditItemModalOpen}
-                    item={editingItem}
-                    onSave={handleSaveItemEdit}
-                />
-            )}
-        </>
-    );
+                {/* TABELA DE ITENS */}
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Qtd.</TableHead><TableHead className="text-right">Venda</TableHead><TableHead className="text-center">Ações</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                        {editingBudgetItens.map(item => (
+                            <TableRow key={item.id}>
+                                <TableCell>{item.materialNome}</TableCell>
+                                <TableCell className="text-right">{formatNumber(item.quantidade, 2)}</TableCell>
+                                <TableCell className="text-right font-bold text-primary">{formatCurrency(item.precoVenda)}</TableCell>
+                                <TableCell className="flex justify-center gap-1">
+                                    <Button variant="ghost" size="icon" onClick={() => handleEditItemClick(item)}><Pencil className="h-4 w-4 text-primary" /></Button>
+                                    <Button variant="ghost" size="icon" onClick={() => removeLinha(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                        </TableBody>
+                        <TableTotalFooter>
+                            <TableRow className="bg-muted/50 font-bold text-base">
+                                <TableCell colSpan={2}>TOTAL</TableCell>
+                                <TableCell className="text-right text-primary">{formatCurrency(totalVenda)}</TableCell>
+                                <TableCell></TableCell>
+                            </TableRow>
+                        </TableTotalFooter>
+                    </Table>
+                </div>
+            </div>
+
+            <DialogFooter className="pt-4 border-t">
+                <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                <Button onClick={handleUpdateBudget} disabled={isSubmitting || editingBudgetItens.length === 0}>
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Salvar Alterações
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {editingItem && (
+        <EditItemModal
+            isOpen={isEditItemModalOpen}
+            onOpenChange={setIsEditItemModalOpen}
+            item={editingItem}
+            onSave={handleSaveItemEdit}
+        />
+      )}
+    </>
+  );
 }
