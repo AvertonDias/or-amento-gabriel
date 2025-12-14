@@ -37,6 +37,7 @@ import {
   Trash2,
   Pencil,
   ArrowRightLeft,
+  RotateCcw,
 } from 'lucide-react';
 import {
   formatCurrency,
@@ -112,11 +113,23 @@ export function BudgetEditDialog({
 
   const [editingItem, setEditingItem] = useState<OrcamentoItem | null>(null);
   const [isEditItemModalOpen, setIsEditItemModalOpen] = useState(false);
+  const [manualTotal, setManualTotal] = useState<number | null>(null);
+  const [manualTotalStr, setManualTotalStr] = useState('');
+
 
   useEffect(() => {
     if (budget) {
         setEditingBudget({ ...budget });
         setEditingBudgetItens([...budget.itens]);
+        // Verifica se o total do orçamento é diferente do total calculado dos itens
+        const calculatedTotal = budget.itens.reduce((sum, item) => sum + item.precoVenda, 0);
+        if (budget.totalVenda !== calculatedTotal) {
+            setManualTotal(budget.totalVenda);
+            setManualTotalStr(formatCurrency(budget.totalVenda, false));
+        } else {
+            setManualTotal(null);
+            setManualTotalStr('');
+        }
     }
   }, [budget]);
 
@@ -134,7 +147,8 @@ export function BudgetEditDialog({
       : false;
   }, [isAddingAvulsoInEdit, itemAvulsoInEdit.unidade, selectedMaterialForEdit]);
   
-  const totalVenda = useMemo(() => editingBudgetItens.reduce((sum, item) => sum + item.precoVenda, 0), [editingBudgetItens]);
+  const calculatedTotal = useMemo(() => editingBudgetItens.reduce((sum, item) => sum + item.precoVenda, 0), [editingBudgetItens]);
+  const finalTotal = useMemo(() => manualTotal ?? calculatedTotal, [manualTotal, calculatedTotal]);
 
 
   /* ===========================
@@ -275,6 +289,19 @@ export function BudgetEditDialog({
     setEditingItem(null);
     toast({ title: 'Item atualizado.' });
   };
+  
+  const handleManualTotalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const maskedValue = maskCurrency(e.target.value);
+    setManualTotalStr(maskedValue.replace('R$ ', ''));
+    
+    const numericValue = parseFloat(maskedValue.replace(/[^\d,]/g, '').replace(',', '.')) || null;
+    setManualTotal(numericValue);
+  };
+
+  const resetManualTotal = () => {
+    setManualTotal(null);
+    setManualTotalStr('');
+  };
 
   const handleUpdateBudget = async () => {
     if (!editingBudget) return;
@@ -284,7 +311,7 @@ export function BudgetEditDialog({
       await onUpdateBudget({
         ...editingBudget,
         itens: editingBudgetItens,
-        totalVenda,
+        totalVenda: finalTotal,
       });
 
       toast({ title: 'Orçamento atualizado com sucesso.' });
@@ -405,8 +432,34 @@ export function BudgetEditDialog({
                         </TableBody>
                         <TableTotalFooter>
                             <TableRow className="bg-muted/50 font-bold text-base">
-                                <TableCell colSpan={2}>TOTAL</TableCell>
-                                <TableCell className="text-right text-primary">{formatCurrency(totalVenda)}</TableCell>
+                                <TableCell colSpan={2}>TOTAL CALCULADO</TableCell>
+                                <TableCell className="text-right">{formatCurrency(calculatedTotal)}</TableCell>
+                                <TableCell></TableCell>
+                            </TableRow>
+                            <TableRow className="bg-muted/50 font-bold text-lg">
+                                <TableCell colSpan={2}>TOTAL FINAL</TableCell>
+                                <TableCell className="text-right text-primary">
+                                <div className="flex items-center justify-end gap-2">
+                                        <span>R$</span>
+                                        <Input
+                                            type="text"
+                                            value={manualTotalStr}
+                                            onChange={handleManualTotalChange}
+                                            className="w-32 h-8 text-right text-lg font-bold"
+                                            placeholder={formatCurrency(calculatedTotal, false)}
+                                        />
+                                        <Button 
+                                            type="button" 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            onClick={resetManualTotal}
+                                            disabled={manualTotal === null}
+                                            className="h-8 w-8"
+                                        >
+                                            <RotateCcw className="h-4 w-4"/>
+                                        </Button>
+                                </div>
+                                </TableCell>
                                 <TableCell></TableCell>
                             </TableRow>
                         </TableTotalFooter>
@@ -434,3 +487,4 @@ export function BudgetEditDialog({
     </>
   );
 }
+
