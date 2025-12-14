@@ -16,14 +16,14 @@ import { syncEmpresaToFirestore } from '@/services/empresaService';
 
 type SyncableCollection = 'clientes' | 'materiais' | 'orcamentos' | 'empresa';
 
-const syncFunctions: Record<SyncableCollection, (data: any) => Promise<any>> = {
+const syncFunctions: Record<SyncableCollection, (data: any) => Promise<void>> = {
   clientes: syncClienteToFirestore,
   materiais: syncMaterialToFirestore,
   orcamentos: syncOrcamentoToFirestore,
   empresa: syncEmpresaToFirestore,
 };
 
-const deleteFunctions: Record<string, (id: string) => Promise<any>> = {
+const deleteFunctions: Record<string, (id: string) => Promise<void>> = {
   clientes: deleteClienteFromFirestore,
   materiais: deleteMaterialFromFirestore,
   orcamentos: deleteOrcamentoFromFirestore,
@@ -36,7 +36,7 @@ export function useSync() {
   const [isOnline, setIsOnline] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const syncLock = useRef(false); // 🔒 trava real contra concorrência
+  const syncLock = useRef(false);
 
   const pendingItems = useLiveQuery(async () => {
     if (!isOnline || !user) return { count: 0 };
@@ -46,7 +46,7 @@ export function useSync() {
       dexieDB.materiais.where({ syncStatus: 'pending', userId: user.uid }).count(),
       dexieDB.orcamentos.where({ syncStatus: 'pending', userId: user.uid }).count(),
       dexieDB.empresa.where({ syncStatus: 'pending', userId: user.uid }).count(),
-      dexieDB.deletions.count(),
+      dexieDB.deletions.where('userId').equals(user.uid).count(),
     ]);
 
     return { count: clientes + materiais + orcamentos + empresa + deletions };
@@ -57,6 +57,7 @@ export function useSync() {
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
     updateOnlineStatus();
+
     return () => {
       window.removeEventListener('online', updateOnlineStatus);
       window.removeEventListener('offline', updateOnlineStatus);
@@ -69,41 +70,48 @@ export function useSync() {
     syncLock.current = true;
     setIsSyncing(true);
 
-    const syncCollection = async (collectionName: SyncableCollection) => {
-      const items = await (dexieDB as any)[collectionName]
-        .where({ syncStatus: 'pending', userId: user.uid })
-        .toArray();
-
-      for (const item of items) {
-        try {
-          await syncFunctions[collectionName](item.data);
-          await (dexieDB as any)[collectionName].update(item.id, {
-            syncStatus: 'synced',
-          });
-        } catch (error) {
-          console.error(`Erro ao sincronizar ${collectionName} (${item.id})`, error);
-          await (dexieDB as any)[collectionName].update(item.id, {
-            syncStatus: 'error',
-            syncError: String(error),
-          });
-        }
-      }
-    };
-
-    const syncDeletions = async () => {
-      const deletions = await dexieDB.deletions.toArray();
-      for (const item of deletions) {
-        try {
-          const fn = deleteFunctions[item.collection];
-          if (fn) await fn(item.id);
-          await dexieDB.deletions.delete(item.id);
-        } catch (error) {
-          console.error('Erro ao sincronizar exclusão', error);
-        }
-      }
-    };
-
     try {
+      const syncCollection = async (collectionName: SyncableCollection) => {
+        const items = await (dexieDB as any)[collectionName]
+          .where({ syncStatus: 'pending', userId: user.uid })
+          .toArray();
+
+        for (const item of items) {
+          try {
+            await syncFunctions[collectionName](item.data);
+            await (dexieDB as any)[collectionName].update(item.id, {
+              syncStatus: 'synced',
+              syncError: null,
+            });
+          } catch (error) {
+            console.error(`Erro ao sincronizar ${collectionName}`, error);
+            await (dexieDB as any)[collectionName].update(item.id, {
+              syncStatus: 'error',
+              syncError: String(error),
+            });
+          }
+        }
+      };
+
+      const syncDeletions = async () => {
+        const deletions = await dexieDB.deletions
+          .where('userId')
+          .equals(user.uid)
+          .toArray();
+
+        for (const item of deletions) {
+          try {
+            const fn = deleteFunctions[item.collection];
+            if (fn) {
+              await fn(item.id);
+            }
+            await dexieDB.deletions.delete(item.id);
+          } catch (error) {
+            console.error('Erro ao sincronizar exclusão', error);
+          }
+        }
+      };
+
       await syncCollection('empresa');
       await syncCollection('clientes');
       await syncCollection('materiais');
@@ -140,13 +148,18 @@ export function useSync() {
             userId: user.uid,
             data: doc.data(),
             syncStatus: 'synced',
+            syncError: null,
           }));
+
           await (dexieDB as any)[coll].bulkPut(items);
         }
       }
     } catch (error) {
       console.error(error);
-      toast({ title: 'Erro ao buscar dados da nuvem', variant: 'destructive' });
+      toast({
+        title: 'Erro ao buscar dados da nuvem',
+        variant: 'destructive',
+      });
     } finally {
       syncLock.current = false;
       setIsSyncing(false);
@@ -155,16 +168,21 @@ export function useSync() {
 
   useEffect(() => {
     if (isOnline && user) {
-      pushToFirestore().then(pullFromFirestore);
+      (async () => {
+        await pushToFirestore();
+        await pullFromFirestore();
+      })();
     }
   }, [isOnline, user, pushToFirestore, pullFromFirestore]);
 
   useEffect(() => {
-    if (pendingItems?.count && pendingItems.count > 0 && isOnline && !isSyncing) {
+    const count = pendingItems?.count ?? 0;
+  
+    if (count > 0 && isOnline && !isSyncing) {
       pushToFirestore();
     }
   }, [pendingItems, isOnline, isSyncing, pushToFirestore]);
-
+ 
   return {
     isOnline,
     isSyncing,

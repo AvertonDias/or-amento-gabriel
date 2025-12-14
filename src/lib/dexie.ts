@@ -1,19 +1,20 @@
-
 import Dexie, { type EntityTable } from 'dexie';
 import type { ClienteData, EmpresaData, MaterialItem, Orcamento } from './types';
 
-// Interface para o wrapper de dados no Dexie
-interface DexieWrapper<T> {
-  id: string; // Chave primária
+// Wrapper padrão para dados offline + sync
+export interface DexieWrapper<T> {
+  id: string; // chave primária (mesmo ID do Firestore)
   userId: string;
   data: T;
   syncStatus: 'pending' | 'synced';
 }
 
-interface DeletionEntity {
-    id: string;
-    collection: 'clientes' | 'materiais' | 'orcamentos';
-    deletedAt: Date;
+// Registro de exclusões para sincronização offline
+export interface DeletionEntity {
+  id: string; // id do documento excluído
+  userId: string; // dono do dado (OBRIGATÓRIO)
+  collection: 'clientes' | 'materiais' | 'orcamentos';
+  deletedAt: Date;
 }
 
 class MeuOrcamentoDB extends Dexie {
@@ -25,12 +26,17 @@ class MeuOrcamentoDB extends Dexie {
 
   constructor() {
     super('MeuOrcamentoDB');
-    this.version(1).stores({
+
+    // 🔼 Versão incrementada por mudança de schema
+    this.version(2).stores({
       clientes: 'id, userId, *data.nome, syncStatus',
       materiais: 'id, userId, *data.descricao, syncStatus',
-      orcamentos: 'id, userId, *data.numeroOrcamento, *data.cliente.nome, data.dataCriacao, syncStatus',
+      orcamentos:
+        'id, userId, *data.numeroOrcamento, *data.cliente.nome, data.dataCriacao, syncStatus',
       empresa: 'id, userId, syncStatus',
-      deletions: 'id, collection',
+
+      // ✅ userId indexado (problema resolvido)
+      deletions: 'id, userId, collection, deletedAt',
     });
   }
 }
