@@ -299,6 +299,16 @@ export function BudgetEditDialog({
     toast({ title: 'Item atualizado.' });
   };
   
+  const handleToggleLock = () => {
+    const newLockState = !isTotalLocked;
+    if (!newLockState && !manualTotalStr) {
+      // Ao destravar, se o campo manual estiver vazio, preenche com o valor calculado
+      setManualTotalStr(formatCurrency(calculatedTotal, false));
+      setManualTotal(calculatedTotal);
+    }
+    setIsTotalLocked(newLockState);
+  };
+
   const handleManualTotalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const maskedValue = maskCurrency(e.target.value);
     setManualTotalStr(maskedValue.replace('R$ ', ''));
@@ -445,7 +455,7 @@ export function BudgetEditDialog({
                                 <TableCell colSpan={2}>TOTAL</TableCell>
                                 <TableCell className="text-right text-primary">
                                 <div className="flex items-center justify-end gap-2">
-                                     {!isTotalLocked && isTotalEdited && (
+                                    {isTotalEdited && (
                                         <span className="text-sm font-normal text-muted-foreground line-through">
                                             {formatCurrency(calculatedTotal)}
                                         </span>
@@ -473,7 +483,7 @@ export function BudgetEditDialog({
                                         type="button" 
                                         variant="ghost" 
                                         size="icon" 
-                                        onClick={() => setIsTotalLocked(!isTotalLocked)}
+                                        onClick={handleToggleLock}
                                         className="h-8 w-8"
                                     >
                                         {isTotalLocked ? <Lock className="h-4 w-4"/> : <Unlock className="h-4 w-4 text-primary"/>}
@@ -519,4 +529,3 @@ export function BudgetEditDialog({
     </>
   );
 }
-
