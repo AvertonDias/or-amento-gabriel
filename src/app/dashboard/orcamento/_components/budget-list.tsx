@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -6,7 +5,7 @@ import type { Orcamento, EmpresaData, ClienteData } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { Badge, badgeVariants } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { type VariantProps } from 'class-variance-authority';
 
 interface BudgetListProps {
     isLoading: boolean;
@@ -49,7 +49,7 @@ export function BudgetList({ isLoading, budgets, empresa, onUpdateStatus, onDele
     });
     const [selectedPhone, setSelectedPhone] = useState('');
 
-    const getStatusBadgeVariant = (status: Orcamento['status']): "default" | "destructive" | "secondary" | "outline" => {
+    const getStatusBadgeVariant = (status: Orcamento['status']): VariantProps<typeof badgeVariants>["variant"] => {
         switch (status) {
             case 'Aceito': return 'default';
             case 'Recusado': return 'destructive';
@@ -63,7 +63,7 @@ export function BudgetList({ isLoading, budgets, empresa, onUpdateStatus, onDele
         if (selectedPhone && phoneSelectionConfig.onConfirm) {
             phoneSelectionConfig.onConfirm(selectedPhone);
         }
-        setPhoneSelectionConfig({ ...phoneSelectionConfig, isOpen: false });
+        setPhoneSelectionConfig(prev => ({...prev, isOpen: false}));
     };
 
     const handlePrepareCompanyWhatsApp = (orcamento: Orcamento) => {
