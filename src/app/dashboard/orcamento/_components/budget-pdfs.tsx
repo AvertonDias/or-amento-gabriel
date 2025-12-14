@@ -289,6 +289,3 @@ export function BudgetPDFs({ empresa }: { empresa: EmpresaData | null }) {
         </div>
     );
 }
-
-
-    

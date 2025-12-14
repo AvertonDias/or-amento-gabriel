@@ -51,7 +51,6 @@ export function useSync() {
 
     useEffect(() => {
         const updateOnlineStatus = () => {
-            console.log('Network status changed:', navigator.onLine);
             setIsOnline(navigator.onLine);
         }
         window.addEventListener('online', updateOnlineStatus);
@@ -148,7 +147,7 @@ export function useSync() {
             };
             syncData();
         }
-    }, [isOnline, user, pullFromFirestore, pushToFirestore]); // Removido o isSyncing para permitir o gatilho
+    }, [isOnline, user, pullFromFirestore, pushToFirestore]);
 
     // Efeito para reagir a novos itens pendentes
     useEffect(() => {
