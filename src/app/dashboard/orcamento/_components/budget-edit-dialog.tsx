@@ -38,6 +38,8 @@ import {
   Pencil,
   ArrowRightLeft,
   RotateCcw,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import {
   formatCurrency,
@@ -51,6 +53,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Capacitor } from '@capacitor/core';
 import { EditItemModal } from './edit-item-modal';
+import { cn } from '@/lib/utils';
+
 
 /* ===========================
    Helpers
@@ -113,6 +117,8 @@ export function BudgetEditDialog({
 
   const [editingItem, setEditingItem] = useState<OrcamentoItem | null>(null);
   const [isEditItemModalOpen, setIsEditItemModalOpen] = useState(false);
+  
+  const [isTotalLocked, setIsTotalLocked] = useState(true);
   const [manualTotal, setManualTotal] = useState<number | null>(null);
   const [manualTotalStr, setManualTotalStr] = useState('');
 
@@ -121,14 +127,16 @@ export function BudgetEditDialog({
     if (budget) {
         setEditingBudget({ ...budget });
         setEditingBudgetItens([...budget.itens]);
-        // Verifica se o total do orçamento é diferente do total calculado dos itens
+        
         const calculatedTotal = budget.itens.reduce((sum, item) => sum + item.precoVenda, 0);
-        if (budget.totalVenda !== calculatedTotal) {
+        if (budget.totalVenda.toFixed(2) !== calculatedTotal.toFixed(2)) {
             setManualTotal(budget.totalVenda);
             setManualTotalStr(formatCurrency(budget.totalVenda, false));
+            setIsTotalLocked(false); // Se o valor já veio editado, começa desbloqueado
         } else {
             setManualTotal(null);
             setManualTotalStr('');
+            setIsTotalLocked(true);
         }
     }
   }, [budget]);
@@ -149,6 +157,7 @@ export function BudgetEditDialog({
   
   const calculatedTotal = useMemo(() => editingBudgetItens.reduce((sum, item) => sum + item.precoVenda, 0), [editingBudgetItens]);
   const finalTotal = useMemo(() => manualTotal ?? calculatedTotal, [manualTotal, calculatedTotal]);
+  const isTotalEdited = useMemo(() => manualTotal !== null, [manualTotal]);
 
 
   /* ===========================
@@ -301,6 +310,7 @@ export function BudgetEditDialog({
   const resetManualTotal = () => {
     setManualTotal(null);
     setManualTotalStr('');
+    setIsTotalLocked(true);
   };
 
   const handleUpdateBudget = async () => {
@@ -436,28 +446,49 @@ export function BudgetEditDialog({
                                 <TableCell className="text-right">{formatCurrency(calculatedTotal)}</TableCell>
                                 <TableCell></TableCell>
                             </TableRow>
-                            <TableRow className="bg-muted/50 font-bold text-lg">
+                            <TableRow className={cn("bg-muted/50 font-bold text-lg", isTotalEdited && "bg-amber-100 dark:bg-amber-800/20")}>
                                 <TableCell colSpan={2}>TOTAL FINAL</TableCell>
                                 <TableCell className="text-right text-primary">
                                 <div className="flex items-center justify-end gap-2">
-                                        <span>R$</span>
-                                        <Input
-                                            type="text"
-                                            value={manualTotalStr}
-                                            onChange={handleManualTotalChange}
-                                            className="w-32 h-8 text-right text-lg font-bold"
-                                            placeholder={formatCurrency(calculatedTotal, false)}
-                                        />
+                                        {isTotalLocked ? (
+                                            <span className={cn("text-lg font-bold", isTotalEdited && "text-amber-600 dark:text-amber-400")}>
+                                                {formatCurrency(finalTotal)}
+                                            </span>
+                                        ) : (
+                                            <>
+                                            <span>R$</span>
+                                            <Input
+                                                type="text"
+                                                value={manualTotalStr}
+                                                onChange={handleManualTotalChange}
+                                                className="w-32 h-8 text-right text-lg font-bold"
+                                                placeholder={formatCurrency(calculatedTotal, false)}
+                                                autoFocus
+                                                onBlur={() => { if (!manualTotalStr) setIsTotalLocked(true); }}
+                                            />
+                                            </>
+                                        )}
                                         <Button 
                                             type="button" 
                                             variant="ghost" 
                                             size="icon" 
-                                            onClick={resetManualTotal}
-                                            disabled={manualTotal === null}
+                                            onClick={() => setIsTotalLocked(!isTotalLocked)}
                                             className="h-8 w-8"
                                         >
-                                            <RotateCcw className="h-4 w-4"/>
+                                            {isTotalLocked ? <Lock className="h-4 w-4"/> : <Unlock className="h-4 w-4 text-primary"/>}
                                         </Button>
+                                         {isTotalEdited && (
+                                            <Button 
+                                                type="button" 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                onClick={resetManualTotal}
+                                                className="h-8 w-8"
+                                                title="Resetar para o valor calculado"
+                                            >
+                                                <RotateCcw className="h-4 w-4"/>
+                                            </Button>
+                                        )}
                                 </div>
                                 </TableCell>
                                 <TableCell></TableCell>
