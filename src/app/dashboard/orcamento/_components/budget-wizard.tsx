@@ -496,7 +496,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                             <Label htmlFor="quantidade">Qtd ({selectedMaterial.unidade})</Label>
                                             <Input ref={quantidadeInputRef} id="quantidade" type="text" inputMode='decimal' placeholder="1,5" value={quantidadeStr} onChange={e => handleNovoItemChange('quantidade', e.target.value)} />
                                         </div>
-                                        <div><Label htmlFor="margem-lucro">Acréscimo (%)</Label><Input id="margem-lucro" type="text" inputMode='decimal' placeholder="10" value={margemLucroStr} onChange={e => handleNovoItemChange('margem-lucro', e.target.value)} /></div>
+                                        <div><Label htmlFor="margem-lucro">Acréscimo (%)</Label><Input id="margem-lucro" type="text" inputMode='decimal' placeholder="10" value={margemLucroStr} onChange={e => handleNovoItemChange('margemLucro', e.target.value)} /></div>
                                         <div className="lg:col-span-1"><Button onClick={addLinha} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Add</Button></div>
                                         </>
                                     )}

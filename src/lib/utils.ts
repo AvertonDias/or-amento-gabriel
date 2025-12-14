@@ -117,21 +117,23 @@ export const maskCurrency = (value: string): string => {
 
 export const maskDecimal = (value: string): string => {
   if (!value) return "";
-  
-  // Permite apenas números e uma vírgula
-  let v = value.replace(/[^0-9,]/g, '');
-  
-  // Garante que haja apenas uma vírgula
-  const parts = v.split(',');
-  if (parts.length > 2) {
-    v = `${parts[0]},${parts.slice(1).join('')}`;
-  }
 
-  // Limita o número de casas decimais
+  // Permite apenas números e uma vírgula
+  let v = value.replace(/[^0-9,]/g, "");
+
+  // Garante que haja apenas uma vírgula no valor
+  const commaCount = v.split(",").length - 1;
+  if (commaCount > 1) {
+    const firstCommaIndex = v.indexOf(",");
+    v = v.substring(0, firstCommaIndex + 1) + v.substring(firstCommaIndex + 1).replace(/,/g, "");
+  }
+  
+  // Limita o número de casas decimais a 2
+  const parts = v.split(',');
   if (parts[1] && parts[1].length > 2) {
       v = `${parts[0]},${parts[1].substring(0, 2)}`;
   }
-  
+
   return v;
 };
 
