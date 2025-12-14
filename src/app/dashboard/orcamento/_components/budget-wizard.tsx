@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useRef } from 'react';
@@ -15,7 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Loader2, PlusCircle, Trash2, Pencil, ArrowLeft, ArrowRight, FileText, ArrowRightLeft, ChevronsUpDown, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone, maskCurrency, maskDecimal } from '@/lib/utils';
+import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone, maskCurrency, maskDecimal, maskInteger } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { Capacitor } from '@capacitor/core';
 import { EditItemModal } from './edit-item-modal';
@@ -29,6 +28,8 @@ const unidadesDeMedida = [
   { value: 'L', label: 'Litro (L)' },
   { value: 'serv', label: 'Serviço (serv)' },
 ];
+
+const integerUnits = ['un', 'h', 'serv'];
 
 interface BudgetWizardProps {
     isOpen: boolean;
@@ -67,6 +68,13 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
     const selectedMaterial = useMemo(() => {
         return materiais.find(m => m.id === novoItem.materialId);
     }, [materiais, novoItem.materialId]);
+
+    const isCurrentUnitInteger = useMemo(() => {
+        if (isAddingAvulso) {
+            return integerUnits.includes(itemAvulso.unidade);
+        }
+        return selectedMaterial ? integerUnits.includes(selectedMaterial.unidade) : false;
+    }, [isAddingAvulso, itemAvulso.unidade, selectedMaterial]);
     
     const totalVenda = useMemo(() => orcamentoItens.reduce((sum, item) => sum + item.precoVenda, 0), [orcamentoItens]);
 
@@ -145,7 +153,8 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
             setNovoItem(prev => ({ ...prev, [field]: value }));
             setTimeout(() => quantidadeInputRef.current?.focus(), 0);
         } else if (field === 'quantidade') {
-            const masked = maskDecimal(value);
+            const mask = isCurrentUnitInteger ? maskInteger : maskDecimal;
+            const masked = mask(value);
             setQuantidadeStr(masked);
             setNovoItem(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
         } else if (field === 'margemLucro') {
@@ -439,7 +448,17 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                 {isAddingAvulso ? (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
                                     <div className="lg:col-span-2"><Label htmlFor="avulso-desc">Descrição</Label><Input id="avulso-desc" value={itemAvulso.descricao} onChange={e => setItemAvulso(p => ({...p, descricao: e.target.value}))} /></div>
-                                    <div><Label htmlFor="avulso-qtd">Qtd.</Label><Input id="avulso-qtd" value={itemAvulso.quantidade} onChange={e => setItemAvulso(p => ({...p, quantidade: maskDecimal(e.target.value)}))} placeholder="1" /></div>
+                                    <div>
+                                        <Label htmlFor="avulso-qtd">Qtd.</Label>
+                                        <Input 
+                                            id="avulso-qtd" 
+                                            value={itemAvulso.quantidade} 
+                                            onChange={e => {
+                                                const mask = isCurrentUnitInteger ? maskInteger : maskDecimal;
+                                                setItemAvulso(p => ({...p, quantidade: mask(e.target.value)}));
+                                            }} 
+                                            placeholder="1" />
+                                    </div>
                                     <div>
                                         <Label htmlFor="avulso-un">Unidade</Label>
                                         <Select name="unidade" value={itemAvulso.unidade} onValueChange={(value) => setItemAvulso(p => ({...p, unidade: value}))}>
@@ -473,7 +492,10 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                     </div>
                                     {selectedMaterial && (
                                         <>
-                                        <div><Label htmlFor="quantidade">Qtd ({selectedMaterial.unidade})</Label><Input ref={quantidadeInputRef} id="quantidade" type="text" inputMode='decimal' placeholder="1,5" value={quantidadeStr} onChange={e => handleNovoItemChange('quantidade', e.target.value)} /></div>
+                                        <div>
+                                            <Label htmlFor="quantidade">Qtd ({selectedMaterial.unidade})</Label>
+                                            <Input ref={quantidadeInputRef} id="quantidade" type="text" inputMode='decimal' placeholder="1,5" value={quantidadeStr} onChange={e => handleNovoItemChange('quantidade', e.target.value)} />
+                                        </div>
                                         <div><Label htmlFor="margem-lucro">Acréscimo (%)</Label><Input id="margem-lucro" type="text" inputMode='decimal' placeholder="10" value={margemLucroStr} onChange={e => handleNovoItemChange('margem-lucro', e.target.value)} /></div>
                                         <div className="lg:col-span-1"><Button onClick={addLinha} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Add</Button></div>
                                         </>
@@ -553,5 +575,3 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
         </>
     );
 }
-
-    

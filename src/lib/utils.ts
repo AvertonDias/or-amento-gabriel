@@ -1,4 +1,3 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -119,17 +118,27 @@ export const maskCurrency = (value: string): string => {
 export const maskDecimal = (value: string): string => {
   if (!value) return "";
   
-  // 1. Permite apenas números e uma vírgula
+  // Permite apenas números e uma vírgula
   let v = value.replace(/[^0-9,]/g, '');
   
-  // 2. Garante que haja apenas uma vírgula
+  // Garante que haja apenas uma vírgula
   const parts = v.split(',');
   if (parts.length > 2) {
     v = `${parts[0]},${parts.slice(1).join('')}`;
   }
+
+  // Limita o número de casas decimais
+  if (parts[1] && parts[1].length > 2) {
+      v = `${parts[0]},${parts[1].substring(0, 2)}`;
+  }
   
   return v;
 };
+
+export const maskInteger = (value: string): string => {
+  if (!value) return "";
+  return value.replace(/[^0-9]/g, '');
+}
 
 
 // --- Funções de Validação de CPF e CNPJ ---
