@@ -133,4 +133,3 @@ export const deleteOrcamentoFromFirestore = async (orcamentoId: string) => {
   const orcamentoDocRef = doc(firestoreDB, 'orcamentos', orcamentoId);
   await deleteDocFirestore(orcamentoDocRef);
 };
-
