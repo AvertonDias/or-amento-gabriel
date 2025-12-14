@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { maskDecimal, maskInteger, maskCurrency } from '@/lib/utils';
+import { maskDecimal, maskInteger, maskCurrency, maskDecimalWithAutoComma } from '@/lib/utils';
 import { Capacitor } from '@capacitor/core';
 import { Lock, Unlock } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -59,7 +59,7 @@ export function EditItemModal({ isOpen, onOpenChange, item, onSave }: EditItemMo
         if (name === 'materialNome') {
             newItemState.materialNome = value;
         } else if (name === 'quantidade') {
-            const mask = isCurrentUnitInteger ? maskInteger : maskDecimal;
+            const mask = isCurrentUnitInteger ? maskInteger : maskDecimalWithAutoComma;
             newQuantidadeStr = mask(value);
         } else if (name === 'margemLucro') { 
             newMargemStr = maskDecimal(value);
