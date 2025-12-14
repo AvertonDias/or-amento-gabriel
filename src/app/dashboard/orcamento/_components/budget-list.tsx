@@ -378,5 +378,3 @@ export function BudgetList({ isLoading, budgets, empresa, onUpdateStatus, onDele
         </>
     );
 }
-
-    
