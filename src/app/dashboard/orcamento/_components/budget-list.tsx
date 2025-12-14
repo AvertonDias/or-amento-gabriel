@@ -350,7 +350,7 @@ export function BudgetList({ isLoading, budgets, empresa, onUpdateStatus, onDele
                     </Card>
                 )
             })}
-             <Dialog open={phoneSelectionConfig.isOpen} onOpenChange={() => setPhoneSelectionConfig(prev => ({...prev, isOpen: false}))}>
+             <Dialog open={phoneSelectionConfig.isOpen} onOpenChange={(open) => setPhoneSelectionConfig(prev => ({...prev, isOpen: open}))}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{phoneSelectionConfig.title}</DialogTitle>
