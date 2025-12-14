@@ -311,7 +311,7 @@ export default function OrcamentoPage() {
   };
 
   const anyLoading = loadingAuth || Object.values(isLoading).some(Boolean);
-  const clienteFiltrado = clienteIdParam ? clientes.find(c => c.id === clienteIdParam) : null;
+  const clienteFiltrado = clienteIdParam ? (clientes.find(c => c.id === clienteIdParam) ?? null) : null;
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
@@ -382,11 +382,7 @@ export default function OrcamentoPage() {
       )}
 
       <AlertDialog open={isExpiredModalOpen} onOpenChange={setIsExpiredModalOpen}>
-        <AlertDialogContent
-            onPointerDownOutside={(e) => {
-              if (Capacitor.isNativePlatform()) e.preventDefault();
-            }}
-        >
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-6 w-6 text-yellow-500" />
@@ -418,5 +414,3 @@ export default function OrcamentoPage() {
     </div>
   );
 }
-
-    
