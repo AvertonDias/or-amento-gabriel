@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, FormEvent, useEffect, useCallback, useMemo } from 'react';
@@ -103,7 +104,7 @@ export default function ClientesPage() {
 
   const editingClientCpfCnpjStatus = useMemo(() => {
     if (!editingClient?.cpfCnpj) return 'incomplete';
-    return validateCpfCnpj(editingClient?.cpfCnpj);
+    return validateCpfCnpj(editingClient.cpfCnpj);
   }, [editingClient?.cpfCnpj]);
 
   const fetchPageData = useCallback(async () => {
@@ -496,7 +497,7 @@ const handleImportContacts = async () => {
             const opts = { multiple: false };
             const contacts = await (navigator as any).contacts.select(props, opts);
             processSelectedContacts(contacts);
-        } catch (error: any) => {
+        } catch (error: any) {
             if (error.name !== 'AbortError') {
                 setIsApiNotSupportedAlertOpen(true);
                 console.error('Erro ao importar contato via Web API:', error);
