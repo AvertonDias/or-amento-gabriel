@@ -141,7 +141,7 @@ export const maskDecimal = (value: string): string => {
 };
 
 export const maskDecimalWithAutoComma = (value: string): string => {
-  if (!value) return "";
+  if (!value) return "0,00";
 
   let v = value.replace(/\D/g, "").replace(/^0+/, "");
 
@@ -151,6 +151,7 @@ export const maskDecimalWithAutoComma = (value: string): string => {
 
   return `${v.slice(0, -2)},${v.slice(-2)}`;
 };
+
 
 export const maskInteger = (value: string): string =>
   value ? value.replace(/\D/g, "") : "";
