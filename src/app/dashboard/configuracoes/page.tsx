@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { maskCpfCnpj, maskTelefone, validateCpfCnpj } from '@/lib/utils';
 import { auth } from '@/lib/firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { getEmpresaData, saveEmpresaData } from '@/services/empresaService';
+import { saveEmpresaData } from '@/services/empresaService';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -21,6 +21,8 @@ import { User as FirebaseUser, sendPasswordResetEmail } from 'firebase/auth';
 import { ThemePicker } from '@/components/theme-picker';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/dexie';
 
 const initialEmpresaState: Omit<EmpresaData, 'id' | 'userId'> = {
   nome: '',
@@ -33,30 +35,24 @@ const initialEmpresaState: Omit<EmpresaData, 'id' | 'userId'> = {
 export default function ConfiguracoesPage() {
   const [user, loadingAuth] = useAuthState(auth);
   const [empresa, setEmpresa] = useState<EmpresaData | null>(null);
-  const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  
   const { toast } = useToast();
 
-  const fetchEmpresaData = useCallback(async () => {
-    if (!user) return;
-    setIsLoadingData(true);
-    try {
-      const data = await getEmpresaData(user.uid);
-      setEmpresa(data || { ...initialEmpresaState, userId: user.uid });
-    } catch(error) {
-       toast({ title: "Erro ao buscar dados", description: "Não foi possível carregar os dados da empresa.", variant: "destructive"})
-       setEmpresa({ ...initialEmpresaState, userId: user.uid });
-    } finally {
-      setIsLoadingData(false);
-    }
-  }, [user, toast]);
+  const empresaData = useLiveQuery(() => 
+    user ? db.empresa.get(user.uid) : undefined, 
+    [user]
+  );
+  const isLoadingData = loadingAuth || empresaData === undefined;
+
 
   useEffect(() => {
-    if (user) {
-      fetchEmpresaData();
+    if (empresaData) {
+      setEmpresa(empresaData.data);
+    } else if (user && !isLoadingData) {
+      // Se não há dados no Dexie, use o estado inicial
+      setEmpresa({ ...initialEmpresaState, userId: user.uid, id: user.uid });
     }
-  }, [user, fetchEmpresaData]);
+  }, [empresaData, user, isLoadingData]);
 
   const cpfCnpjStatus = useMemo(() => {
     if (!empresa?.cnpj) return 'incomplete';
@@ -202,25 +198,15 @@ export default function ConfiguracoesPage() {
           dataToSave.userId = user.uid;
       }
       
-      const savedData = await saveEmpresaData(user.uid, dataToSave);
-      setEmpresa(savedData);
+      await saveEmpresaData(user.uid, dataToSave);
       toast({
         title: 'Sucesso!',
-        description: 'Os dados da empresa foram salvos com sucesso.',
+        description: 'Os dados da empresa foram salvos localmente e serão sincronizados.',
       });
     } catch(error: any) {
-       let description = 'Não foi possível salvar os dados no Firestore.';
-       if (error.code === 'permission-denied') {
-          description = 'Você não tem permissão para salvar estes dados. Verifique as regras de segurança do Firestore.';
-       } else if (error.code === 'resource-exhausted' || (error.message && error.message.includes('too large'))) {
-          description = 'A imagem da logo é muito grande. Escolha uma imagem menor.';
-       } else if (error.message) {
-          description = error.message;
-       }
-
        toast({
         title: 'Erro ao Salvar',
-        description: description,
+        description: error.message || "Ocorreu um erro.",
         variant: 'destructive',
       });
       console.error("Erro ao salvar dados da empresa:", error);
@@ -254,7 +240,6 @@ export default function ConfiguracoesPage() {
     }
   };
 
-  const showSkeleton = loadingAuth || isLoadingData;
   const isCpfCnpjInvalid = empresa?.cnpj ? cpfCnpjStatus === 'invalid' : false;
 
   return (
@@ -279,7 +264,7 @@ export default function ConfiguracoesPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                {showSkeleton ? (
+                {isLoadingData ? (
                     <div className="space-y-6">
                     <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
                     <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
@@ -401,7 +386,7 @@ export default function ConfiguracoesPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                {showSkeleton ? (
+                {loadingAuth ? (
                     <div className="space-y-4">
                         <Skeleton className="h-10 w-full" />
                         <Skeleton className="h-10 w-40" />

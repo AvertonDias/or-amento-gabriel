@@ -1,6 +1,8 @@
 
+import { v4 as uuidv4 } from 'uuid';
+
 export interface EmpresaData {
-  id?: string; // Firestore document ID
+  id: string; // Firestore document ID
   userId: string;
   nome: string;
   endereco: string;
@@ -11,11 +13,11 @@ export interface EmpresaData {
 }
 
 export interface ClienteData {
-  id?: string; // Firestore document ID
+  id: string; // Firestore document ID
   userId: string;
   nome: string;
   endereco: string;
-  telefones: { nome: string; numero: string }[];
+  telefones: { nome: string; numero: string; principal?: boolean }[];
   email?: string;
   cpfCnpj?: string;
 }
@@ -57,3 +59,11 @@ export interface Orcamento {
   dataAceite: string | null; // ISO Date String
   dataRecusa: string | null; // ISO Date String
 }
+
+// Helper para garantir que o ID exista
+export const ensureId = <T extends { id?: string }>(obj: T): T & { id: string } => {
+  if (obj.id) {
+    return obj as T & { id: string };
+  }
+  return { ...obj, id: uuidv4() };
+};

@@ -1,72 +1,74 @@
 
-import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy, runTransaction, getDoc } from 'firebase/firestore';
+import { db as firestoreDB } from '@/lib/firebase';
+import { doc, updateDoc as updateDocFirestore, deleteDoc as deleteDocFirestore, setDoc } from 'firebase/firestore';
+import { db as dexieDB } from '@/lib/dexie';
 import type { MaterialItem } from '@/lib/types';
+import { v4 as uuidv4 } from 'uuid';
 
-const getMateriaisCollection = () => {
-  return collection(db, 'materiais');
-};
+// --- Funções que interagem com o Dexie (local) ---
 
-// Add a new material
-export const addMaterial = async (userId: string, material: Omit<MaterialItem, 'id' | 'userId'>) => {
-  const materiaisCollection = getMateriaisCollection();
-  await addDoc(materiaisCollection, {
+export const addMaterial = async (userId: string, material: Omit<MaterialItem, 'id' | 'userId'>): Promise<string> => {
+  const newId = uuidv4();
+  const dataToSave: MaterialItem = {
     ...material,
+    id: newId,
     userId,
+  };
+  await dexieDB.materiais.put({
+    id: newId,
+    userId: userId,
+    data: dataToSave,
+    syncStatus: 'pending',
   });
+  return newId;
 };
 
-// Update an existing material
 export const updateMaterial = async (userId: string, materialId: string, material: Partial<Omit<MaterialItem, 'id' | 'userId'>>) => {
-  const materialDoc = doc(db, 'materiais', materialId);
-  await updateDoc(materialDoc, { ...material, userId });
-};
+  const existing = await dexieDB.materiais.get(materialId);
+  if (!existing) throw new Error("Material não encontrado para atualização.");
 
-// Update stock for a material
-export const updateEstoque = async (userId: string, materialId: string, quantidadeUtilizada: number) => {
-  const materialDocRef = doc(db, 'materiais', materialId);
-
-  try {
-    await runTransaction(db, async (transaction) => {
-      const materialDoc = await transaction.get(materialDocRef);
-      if (!materialDoc.exists()) {
-        throw new Error("Material não encontrado!");
-      }
-
-      const materialData = materialDoc.data() as MaterialItem;
-
-      if (materialData.tipo !== 'item' || materialData.quantidade === null || materialData.quantidade === undefined) {
-         console.log(`Material ${materialId} não é um item de estoque, pulando atualização.`);
-         return; 
-      }
-      
-      const novaQuantidade = materialData.quantidade - quantidadeUtilizada;
-
-      transaction.update(materialDocRef, { quantidade: novaQuantidade });
-    });
-  } catch (error) {
-    console.error("Erro na transação de atualização de estoque: ", error);
-    throw error;
-  }
-};
-
-
-// Delete a material
-export const deleteMaterial = async (userId: string, materialId: string) => {
-  const materialDoc = doc(db, 'materiais', materialId);
-  await deleteDoc(materialDoc);
-};
-
-// Get all materials for a user
-export const getMateriais = (userId: string): Promise<MaterialItem[]> => {
-  const materiaisCollection = getMateriaisCollection();
-  const q = query(materiaisCollection, where('userId', '==', userId), orderBy('descricao', 'asc'));
-  
-  return getDocs(q).then((querySnapshot) => {
-      const materiais: MaterialItem[] = [];
-      querySnapshot.forEach((doc) => {
-        materiais.push({ id: doc.id, ...doc.data() } as MaterialItem);
-      });
-      return materiais;
+  const updatedData = { ...existing.data, ...material, userId };
+  await dexieDB.materiais.put({
+    ...existing,
+    data: updatedData,
+    syncStatus: 'pending',
   });
+};
+
+export const updateEstoque = async (userId: string, materialId: string, quantidadeUtilizada: number) => {
+    const existing = await dexieDB.materiais.get(materialId);
+    if (!existing) throw new Error("Material não encontrado para atualização de estoque.");
+
+    const materialData = existing.data;
+    if (materialData.tipo !== 'item' || materialData.quantidade === null || materialData.quantidade === undefined) {
+        console.log(`Material ${materialId} não é um item de estoque, pulando atualização.`);
+        return;
+    }
+    
+    const novaQuantidade = materialData.quantidade - quantidadeUtilizada;
+    const updatedData = { ...materialData, quantidade: novaQuantidade };
+
+    await dexieDB.materiais.put({
+        ...existing,
+        data: updatedData,
+        syncStatus: 'pending'
+    });
+};
+
+export const deleteMaterial = async (materialId: string) => {
+  await dexieDB.materiais.delete(materialId);
+  await dexieDB.deletions.put({ id: materialId, collection: 'materiais', deletedAt: new Date() });
+};
+
+
+// --- Funções para sincronização com Firestore ---
+
+export const syncMaterialToFirestore = async (materialData: MaterialItem) => {
+    const materialDocRef = doc(firestoreDB, 'materiais', materialData.id);
+    await setDoc(materialDocRef, materialData, { merge: true });
+};
+
+export const deleteMaterialFromFirestore = async (materialId: string) => {
+    const materialDocRef = doc(firestoreDB, 'materiais', materialId);
+    await deleteDocFirestore(materialDocRef);
 };

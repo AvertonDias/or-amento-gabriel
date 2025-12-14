@@ -1,159 +1,108 @@
 
 'use client';
 
-import { db, auth } from '@/lib/firebase';
+import { db as firestoreDB } from '@/lib/firebase';
 import {
-  collection,
-  addDoc,
   doc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  getDocs,
-  orderBy,
-  limit,
+  updateDoc as updateDocFirestore,
+  deleteDoc as deleteDocFirestore,
+  setDoc,
 } from 'firebase/firestore';
+import { db as dexieDB } from '@/lib/dexie';
 import type { Orcamento } from '@/lib/types';
+import { v4 as uuidv4 } from 'uuid';
 
-const getOrcamentosCollection = () => {
-  return collection(db, 'orcamentos');
+// --- Funções que interagem com o Dexie (local) ---
+
+export const getNextOrcamentoNumber = async (userId: string): Promise<string> => {
+  const currentYear = new Date().getFullYear();
+  
+  const orcamentosDoAno = await dexieDB.orcamentos
+    .where('userId').equals(userId)
+    .filter(o => o.data.numeroOrcamento.endsWith(`-${currentYear}`))
+    .toArray();
+
+  let lastSequence = 0;
+  if (orcamentosDoAno.length > 0) {
+    orcamentosDoAno.forEach(o => {
+      const seq = parseInt(o.data.numeroOrcamento.split('-')[0], 10);
+      if (!isNaN(seq) && seq > lastSequence) {
+        lastSequence = seq;
+      }
+    });
+  }
+
+  const newSequence = lastSequence + 1;
+  return `${String(newSequence).padStart(3, '0')}-${currentYear}`;
 };
 
-// Add a new orcamento
-export const addOrcamento = (orcamento: Omit<Orcamento, 'id'>): Promise<void> => {
+export const addOrcamento = async (orcamento: Omit<Orcamento, 'id'>): Promise<string> => {
   if (!orcamento || !orcamento.cliente) {
-    console.error(
-      '[ORCAMENTO SERVICE - addOrcamento] Tentativa de salvar orçamento com dados inválidos.'
-    );
-    return Promise.reject(new Error('Dados do orçamento ou cliente inválidos.'));
+    throw new Error('Dados do orçamento ou cliente inválidos.');
   }
-  console.log(
-    `[ORCAMENTO SERVICE - addOrcamento] Tentando salvar orçamento para cliente: ${orcamento.cliente.nome}`
-  );
-  const orcamentosCollection = getOrcamentosCollection();
+
+  const newId = uuidv4();
+  const dataToSave: Orcamento = {
+    ...orcamento,
+    id: newId,
+  };
+
+  await dexieDB.orcamentos.put({
+    id: newId,
+    userId: orcamento.userId,
+    data: dataToSave,
+    syncStatus: 'pending',
+  });
+
+  return newId;
+};
+
+export const updateOrcamento = async (orcamentoId: string, orcamento: Partial<Orcamento>) => {
+  const existing = await dexieDB.orcamentos.get(orcamentoId);
+  if (!existing) throw new Error("Orçamento não encontrado para atualização.");
   
-  // Retorna a promessa de addDoc. Ela se resolverá quando a escrita for concluída no cache local.
-  return addDoc(orcamentosCollection, { ...orcamento })
-    .then(() => {
-        console.log("[ORCAMENTO SERVICE - addOrcamento] Orçamento adicionado/enfileirado offline com sucesso.");
-    })
-    .catch(error => {
-      console.error(
-        '[ORCAMENTO SERVICE - addOrcamento] Erro ao adicionar orçamento:',
-        error
-      );
-      // Relança o erro para a UI tratar.
-      throw error;
+  // Assegura que não estamos sobrescrevendo o ID
+  const { id, ...restOfBudget } = orcamento;
+
+  const updatedData = { ...existing.data, ...restOfBudget };
+  await dexieDB.orcamentos.put({
+    ...existing,
+    data: updatedData,
+    syncStatus: 'pending',
   });
 };
 
-
-// Update an existing orcamento
-export const updateOrcamento = async (
-  orcamentoId: string,
-  orcamento: Partial<Orcamento>
-) => {
-  if (!orcamento.userId) throw new Error('userId é obrigatório para atualizar');
-  const orcamentoDoc = doc(db, 'orcamentos', orcamentoId);
-  await updateDoc(orcamentoDoc, orcamento);
-};
-
-// Update an orcamento status
 export const updateOrcamentoStatus = async (
   budgetId: string,
   status: Orcamento['status'],
   payload: object
 ) => {
-  const userId = auth.currentUser?.uid;
-  if (!userId) {
-    throw new Error('Usuário não autenticado.');
-  }
-  const orcamentoDoc = doc(db, 'orcamentos', budgetId);
-  await updateDoc(orcamentoDoc, { status, ...payload });
-};
+    const existing = await dexieDB.orcamentos.get(budgetId);
+    if (!existing) throw new Error("Orçamento não encontrado.");
 
-// Delete an orcamento
-export const deleteOrcamento = (orcamentoId: string) => {
-  const orcamentoDoc = doc(db, 'orcamentos', orcamentoId);
-  return deleteDoc(orcamentoDoc);
-};
-
-
-// Get all orcamentos for a user
-export const getOrcamentos = (userId: string): Promise<Orcamento[]> => {
-    const orcamentosCollection = getOrcamentosCollection();
-    const q = query(
-      orcamentosCollection,
-      where('userId', '==', userId),
-      orderBy('dataCriacao', 'desc')
-    );
-    return getDocs(q).then(querySnapshot => {
-        const orcamentos: Orcamento[] = [];
-        querySnapshot.forEach((doc) => {
-            orcamentos.push({ id: doc.id, ...doc.data() } as Orcamento);
-        });
-        return orcamentos;
+    const updatedData = { ...existing.data, status, ...payload };
+    await dexieDB.orcamentos.put({
+        ...existing,
+        data: updatedData,
+        syncStatus: 'pending',
     });
 };
 
-// Get the next sequential orcamento number for the current year
-export const getNextOrcamentoNumber = (
-  userId: string
-): Promise<string> => {
-  if (!userId) {
-    return Promise.reject(new Error('User ID é nulo, impossível gerar número do orçamento.'));
-  }
 
-  console.log(
-    `[ORCAMENTO SERVICE - getNextOrcamentoNumber] Chamado com userId: ${userId}`
-  );
+export const deleteOrcamento = async (orcamentoId: string) => {
+  await dexieDB.orcamentos.delete(orcamentoId);
+  await dexieDB.deletions.put({ id: orcamentoId, collection: 'orcamentos', deletedAt: new Date() });
+};
 
-  const orcamentosCollection = getOrcamentosCollection();
-    const q = query(
-      orcamentosCollection,
-      where('userId', '==', userId),
-      orderBy('dataCriacao', 'desc'),
-      limit(1)
-    );
 
-  return getDocs(q).then(querySnapshot => {
-    const currentYear = new Date().getFullYear();
-    let lastSequence = 0;
+// --- Funções para sincronização com Firestore ---
 
-    if (!querySnapshot.empty) {
-      const lastBudget = querySnapshot.docs[0].data() as Orcamento;
-      const numeroOrcamento = lastBudget.numeroOrcamento;
-      const dataCriacao = new Date(lastBudget.dataCriacao);
+export const syncOrcamentoToFirestore = async (orcamentoData: Orcamento) => {
+  const orcamentoDocRef = doc(firestoreDB, 'orcamentos', orcamentoData.id);
+  await setDoc(orcamentoDocRef, orcamentoData, { merge: true });
+};
 
-      if (numeroOrcamento && dataCriacao.getFullYear() === currentYear) {
-        const parts = numeroOrcamento.split('-');
-        if (parts.length === 2 && parts[1] === String(currentYear)) {
-          const sequence = parseInt(parts[0], 10);
-          if (!isNaN(sequence)) {
-            lastSequence = sequence;
-          }
-        }
-      }
-    }
-     const newSequence = lastSequence + 1;
-    const newNumeroOrcamento = `${String(newSequence).padStart(
-      3,
-      '0'
-    )}-${currentYear}`;
-    console.log(
-      `[ORCAMENTO SERVICE - getNextOrcamentoNumber] Última sequência para ${currentYear}: ${lastSequence}. Novo número: ${newNumeroOrcamento}`
-    );
-    return newNumeroOrcamento;
-  }).catch((error: any) => {
-     console.warn(
-      'Falha ao buscar número sequencial online (provavelmente offline), usando fallback:',
-      error.message
-    );
-    const offlineNumber = `TEMP-${Date.now()}-${new Date().getFullYear()}`;
-    console.log(
-      `[ORCAMENTO SERVICE - getNextOrcamentoNumber] Gerando número de fallback offline: ${offlineNumber}`
-    );
-    return offlineNumber;
-  })
+export const deleteOrcamentoFromFirestore = async (orcamentoId: string) => {
+  const orcamentoDocRef = doc(firestoreDB, 'orcamentos', orcamentoId);
+  await deleteDocFirestore(orcamentoDocRef);
 };

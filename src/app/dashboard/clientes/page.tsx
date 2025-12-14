@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, FormEvent, useEffect, useCallback, useMemo } from 'react';
@@ -9,12 +10,14 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
-import { addCliente, deleteCliente, getClientes, updateCliente } from '@/services/clientesService';
-import { getOrcamentos } from '@/services/orcamentosService';
+import { addCliente, deleteCliente, updateCliente } from '@/services/clientesService';
 import { useRouter } from 'next/navigation';
 import { Accordion } from "@/components/ui/accordion";
 import { usePermissionDialog } from '@/hooks/use-permission-dialog';
 import { Input } from '@/components/ui/input';
+
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/dexie';
 
 // --- Imports para Capacitor ---
 import { Capacitor } from '@capacitor/core';
@@ -53,58 +56,35 @@ export interface BudgetCounts {
 export default function ClientesPage() {
   const [user, loadingAuth] = useAuthState(auth);
   const router = useRouter();
-  const [clientes, setClientes] = useState<ClienteData[]>([]);
-  const [orcamentos, setOrcamentos] = useState<Orcamento[]>([]);
-  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  const clientes = useLiveQuery(() => 
+    user ? db.clientes.where('userId').equals(user.uid).sortBy('data.nome') : [],
+    [user]
+  )?.map(c => c.data);
+
+  const orcamentos = useLiveQuery(() =>
+    user ? db.orcamentos.where('userId').equals(user.uid).toArray() : [],
+    [user]
+  )?.map(o => o.data);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
   const [newClient, setNewClient] = useState(initialNewClientState);
-  
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<ClienteData | null>(null);
-
   const [isContactSelectionModalOpen, setIsContactSelectionModalOpen] = useState(false);
   const [selectedContactDetails, setSelectedContactDetails] = useState<SelectedContactDetails | null>(null);
-
   const [isDuplicateAlertOpen, setIsDuplicateAlertOpen] = useState(false);
   const [duplicateMessage, setDuplicateMessage] = useState("");
-  
   const [isApiNotSupportedAlertOpen, setIsApiNotSupportedAlertOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-
 
   const { toast } = useToast();
   const { requestPermission } = usePermissionDialog();
 
-  const fetchPageData = useCallback(async () => {
-    if (!user) return;
-    setIsLoadingData(true);
-    try {
-      const [clientesData, orcamentosData] = await Promise.all([
-        getClientes(user.uid),
-        getOrcamentos(user.uid),
-      ]);
-      setClientes(clientesData);
-      setOrcamentos(orcamentosData);
-    } catch (error: any) {
-      console.error("Erro ao buscar dados:", error);
-      toast({ title: 'Erro ao carregar dados da página', description: error.message, variant: 'destructive' });
-    } finally {
-      setIsLoadingData(false);
-    }
-  }, [user, toast]);
-
-  useEffect(() => {
-    if (user) {
-      fetchPageData();
-    } else if (!loadingAuth) {
-      setClientes([]);
-      setOrcamentos([]);
-      setIsLoadingData(false);
-    }
-  }, [user, loadingAuth, fetchPageData]);
+  const isLoadingData = loadingAuth || clientes === undefined || orcamentos === undefined;
 
   const filteredClientes = useMemo(() => {
+    if (!clientes) return [];
     if (!searchTerm) {
       return clientes;
     }
@@ -114,6 +94,8 @@ export default function ClientesPage() {
   }, [clientes, searchTerm]);
 
   const budgetCountsByClient = useMemo(() => {
+    if (!clientes || !orcamentos) return {};
+
     const counts: Record<string, BudgetCounts> = {};
     clientes.forEach(cliente => {
         if (!cliente.id) return;
@@ -132,6 +114,7 @@ export default function ClientesPage() {
   }, [clientes, orcamentos]);
 
   const checkForDuplicates = (): string | null => {
+    if (!clientes) return null;
     let message = null;
     const newClientNameLower = newClient.nome.trim().toLowerCase();
     const newClientNumbers = newClient.telefones.map(t => t.numero).filter(Boolean);
@@ -153,7 +136,6 @@ export default function ClientesPage() {
     });
     return message;
   };
-
 
   const handleAdicionarCliente = async (clientData: Omit<ClienteData, 'id' | 'userId'>) => {
     if (!user) {
@@ -178,10 +160,9 @@ export default function ClientesPage() {
       };
       await addCliente(user.uid, dataToSave);
       setNewClient(initialNewClientState);
-      await fetchPageData(); // Refresh list
       toast({
         title: 'Sucesso!',
-        description: 'Cliente adicionado.',
+        description: 'Cliente adicionado e pendente de sincronização.',
       });
     } catch (error) {
       console.error("Erro ao adicionar cliente:", error);
@@ -195,9 +176,9 @@ export default function ClientesPage() {
     if (!user) return;
     try {
         await deleteCliente(id);
-        await fetchPageData(); // Refresh list
         toast({
             title: 'Cliente Removido',
+            description: 'A remoção será sincronizada.',
             variant: 'destructive',
         });
     } catch(error) {
@@ -229,8 +210,7 @@ export default function ClientesPage() {
         await updateCliente(id, payload);
         setIsEditModalOpen(false);
         setEditingClient(null);
-        await fetchPageData(); // Refresh list
-        toast({ title: 'Sucesso!', description: 'Cliente atualizado com sucesso.' });
+        toast({ title: 'Sucesso!', description: 'Cliente atualizado localmente. Sincronizando...' });
     } catch(error) {
         console.error("Erro ao atualizar cliente:", error);
         toast({ title: 'Erro ao atualizar cliente', variant: 'destructive' });
@@ -372,8 +352,6 @@ export default function ClientesPage() {
     router.push(`/dashboard/orcamento?clienteId=${clienteId}`);
   };
 
-  const showSkeleton = loadingAuth || isLoadingData;
-
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
       <Card>
@@ -383,7 +361,7 @@ export default function ClientesPage() {
             Cadastro de Clientes
           </CardTitle>
           <CardDescription>
-            Adicione e gerencie os seus clientes. Estes dados ficarão salvos na nuvem e poderão ser usados nos orçamentos.
+            Adicione e gerencie os seus clientes. Estes dados ficam salvos no seu dispositivo e são sincronizados quando há internet.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -398,7 +376,7 @@ export default function ClientesPage() {
             />
           </Accordion>
 
-          {showSkeleton ? (
+          {isLoadingData ? (
             <div className="space-y-4">
                <div className="flex items-center justify-between">
                 <Skeleton className="h-8 w-1/3" />
@@ -409,7 +387,7 @@ export default function ClientesPage() {
                  <Skeleton className="h-20 w-full" />
               </div>
             </div>
-          ) : clientes.length > 0 ? (
+          ) : clientes && clientes.length > 0 ? (
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
                 <h2 className="text-xl font-semibold">Clientes Cadastrados</h2>
@@ -433,9 +411,6 @@ export default function ClientesPage() {
                           </Button>
                         )}
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => fetchPageData()} disabled={isLoadingData}>
-                    <RefreshCw className={`h-5 w-5 ${isLoadingData ? 'animate-spin' : ''}`} />
-                  </Button>
                 </div>
               </div>
                <ClientList
@@ -447,7 +422,7 @@ export default function ClientesPage() {
                />
             </div>
           ) : (
-             <p className="text-center text-muted-foreground py-8">Nenhum cliente cadastrado ainda. Se você já cadastrou, pode ser necessário criar um índice no Firestore. Verifique o console para erros.</p>
+             <p className="text-center text-muted-foreground py-8">Nenhum cliente cadastrado ainda.</p>
           )}
         </CardContent>
       </Card>
@@ -456,7 +431,6 @@ export default function ClientesPage() {
         isEditModalOpen={isEditModalOpen}
         setIsEditModalOpen={setIsEditModalOpen}
         editingClient={editingClient}
-        setEditingClient={setEditingClient}
         onSaveEdit={handleSalvarEdicao}
         isSubmitting={isSubmitting}
         

@@ -1,55 +1,69 @@
 
-import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, orderBy, getDoc } from 'firebase/firestore';
+import { db as firestoreDB } from '@/lib/firebase';
+import { collection, addDoc as addDocFirestore, doc, updateDoc as updateDocFirestore, deleteDoc as deleteDocFirestore } from 'firebase/firestore';
+import { db as dexieDB } from '@/lib/dexie';
 import type { ClienteData } from '@/lib/types';
+import { v4 as uuidv4 } from 'uuid';
 
-const getClientesCollection = () => {
-  return collection(db, 'clientes');
-};
+// --- Funções que interagem com o Dexie (local) ---
 
-// Add a new client and return its ID
-export const addCliente = (userId: string, cliente: Omit<ClienteData, 'id' | 'userId'>): Promise<string> => {
-  const clientesCollection = getClientesCollection();
-  
-  const dataToSave = {
+export const addCliente = async (userId: string, cliente: Omit<ClienteData, 'id' | 'userId'>): Promise<string> => {
+  const newId = uuidv4();
+  const dataToSave: ClienteData = {
     ...cliente,
+    id: newId,
     userId,
   };
-  return addDoc(clientesCollection, dataToSave).then(docRef => docRef.id);
+
+  await dexieDB.clientes.put({
+    id: newId,
+    userId: userId,
+    data: dataToSave,
+    syncStatus: 'pending',
+  });
+  
+  return newId;
 };
 
-// Update an existing client
-export const updateCliente = (clienteId: string, cliente: Partial<Omit<ClienteData, 'id' | 'userId'>>) => {
-  const clienteDoc = doc(db, 'clientes', clienteId);
-  const dataToUpdate: Partial<Omit<ClienteData, 'id'>> = { ...cliente };
+export const updateCliente = async (clienteId: string, cliente: Partial<Omit<ClienteData, 'id' | 'userId'>>) => {
+    const existing = await dexieDB.clientes.get(clienteId);
+    if (!existing) throw new Error("Cliente não encontrado para atualização.");
 
-  return updateDoc(clienteDoc, dataToUpdate);
-};
+    const updatedData = { ...existing.data, ...cliente };
 
-
-// Delete a client
-export const deleteCliente = (clienteId: string) => {
-  const clienteDoc = doc(db, 'clientes', clienteId);
-  return deleteDoc(clienteDoc);
-};
-
-// Get all clients for a user
-export const getClientes = async (userId: string): Promise<ClienteData[]> => {
-    const clientesCollection = getClientesCollection();
-    const q = query(clientesCollection, where('userId', '==', userId), orderBy('nome', 'asc'));
-    
-    const querySnapshot = await getDocs(q);
-    const clientes: ClienteData[] = [];
-    querySnapshot.forEach((doc) => {
-        const data = doc.data();
-
-        let telefones = data.telefones || [];
-        // Migração de estrutura antiga para nova
-        if (!Array.isArray(telefones) || telefones.length === 0) {
-            telefones = [{ nome: 'Principal', numero: data.telefone || '' }];
-        }
-
-        clientes.push({ id: doc.id, ...data, telefones } as ClienteData);
+    await dexieDB.clientes.put({
+        ...existing,
+        data: updatedData,
+        syncStatus: 'pending',
     });
-    return clientes;
+};
+
+export const deleteCliente = async (clienteId: string) => {
+    // Para exclusão, a maneira mais simples é remover localmente e marcar como pendente para exclusão no servidor.
+    // Uma abordagem mais robusta poderia ter uma tabela 'deletions' ou um status 'deleted'.
+    // Por simplicidade aqui, vamos apenas remover localmente e deixar a sincronização lidar com isso.
+    await dexieDB.clientes.delete(clienteId);
+    // O sync service deve ser capaz de identificar que um item que existe no firestore não existe mais localmente
+    // e então deletá-lo do firestore. Ou, adicionar um item a uma "fila de exclusão".
+    // Adicionaremos uma lógica simples na sincronização para isso.
+    await dexieDB.deletions.put({ id: clienteId, collection: 'clientes', deletedAt: new Date() });
+};
+
+
+// --- Funções que interagem com o Firestore (usadas pela sincronização) ---
+
+export const syncClienteToFirestore = async (clienteData: ClienteData) => {
+    const clienteDocRef = doc(firestoreDB, 'clientes', clienteData.id);
+    // `setDoc` com `merge: true` funciona como um "upsert"
+    await updateDocFirestore(clienteDocRef, clienteData, { merge: true } as any);
+};
+
+export const addClienteToFirestore = async (clienteData: ClienteData) => {
+    const docRef = doc(firestoreDB, 'clientes', clienteData.id);
+    await updateDocFirestore(docRef, clienteData);
+};
+
+export const deleteClienteFromFirestore = async (clienteId: string) => {
+    const clienteDoc = doc(firestoreDB, 'clientes', clienteId);
+    await deleteDocFirestore(clienteDoc);
 };

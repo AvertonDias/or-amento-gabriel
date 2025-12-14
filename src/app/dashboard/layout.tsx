@@ -17,12 +17,16 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { Contacts } from '@capacitor-community/contacts';
 import { DesktopSidebar } from '@/components/layout/desktop-sidebar';
 import { MobileNavbar } from '@/components/layout/mobile-navbar';
+import { useSync } from '@/hooks/useSync'; // Import the sync hook
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { requestPermission } = usePermissionDialog();
+  
+  // Initialize the sync hook
+  useSync();
 
   // Android Back Button Handler
   useEffect(() => {

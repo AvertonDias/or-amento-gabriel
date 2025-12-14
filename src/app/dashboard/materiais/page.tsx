@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, FormEvent, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, FormEvent, useEffect, useMemo } from 'react';
 import type { MaterialItem } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,18 +16,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency, formatNumber, maskCurrency, maskDecimal } from '@/lib/utils';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
-import { addMaterial, deleteMaterial, getMateriais, updateMaterial } from '@/services/materiaisService';
+import { addMaterial, deleteMaterial, updateMaterial } from '@/services/materiaisService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from '@/lib/utils';
 import { Capacitor } from '@capacitor/core';
-
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/dexie';
 
 const initialNewItemState: Omit<MaterialItem, 'id' | 'userId'> = {
   descricao: '',
@@ -55,10 +51,13 @@ const normalizeString = (str: string) => {
 
 export default function MateriaisPage() {
   const [user, loadingAuth] = useAuthState(auth);
-  const [materiais, setMateriais] = useState<MaterialItem[]>([]);
-  const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<'item' | 'servico'>('item');
+
+  const materiais = useLiveQuery(() => 
+    user ? db.materiais.where('userId').equals(user.uid).sortBy('data.descricao') : [],
+    [user]
+  )?.map(m => m.data);
 
   const [newItem, setNewItem] = useState({ ...initialNewItemState, tipo: activeTab });
   
@@ -79,30 +78,10 @@ export default function MateriaisPage() {
 
   const { toast } = useToast();
   
-  const fetchMateriais = useCallback(async () => {
-    if (!user) return;
-    setIsLoadingData(true);
-    try {
-      const data = await getMateriais(user.uid);
-      setMateriais(data);
-    } catch (error) {
-      console.error("Erro ao buscar materiais:", error);
-      toast({ title: 'Erro ao carregar materiais', variant: 'destructive' });
-    } finally {
-      setIsLoadingData(false);
-    }
-  }, [user, toast]);
+  const isLoadingData = loadingAuth || materiais === undefined;
 
-  useEffect(() => {
-    if (user) {
-      fetchMateriais();
-    } else if (!loadingAuth) {
-      setMateriais([]);
-      setIsLoadingData(false);
-    }
-  }, [user, loadingAuth, fetchMateriais]);
-  
   const filteredMateriais = useMemo(() => {
+    if (!materiais) return [];
     if (!searchTerm) {
       return materiais;
     }
@@ -173,10 +152,9 @@ export default function MateriaisPage() {
       setPrecoUnitarioStr('');
       setQuantidadeStr('');
       setQuantidadeMinimaStr('');
-      await fetchMateriais(); // Refresh list
       toast({
         title: "Sucesso!",
-        description: `${activeTab === 'item' ? 'Item' : 'Serviço'} adicionado.`,
+        description: `${activeTab === 'item' ? 'Item' : 'Serviço'} adicionado e pendente de sincronização.`,
       });
     } catch (error) {
        toast({ title: `Erro ao adicionar ${activeTab === 'item' ? 'item' : 'serviço'}`, variant: 'destructive' });
@@ -203,8 +181,7 @@ export default function MateriaisPage() {
       setPrecoUnitarioStr('');
       setQuantidadeStr('');
       setQuantidadeMinimaStr('');
-      await fetchMateriais();
-      toast({ title: "Sucesso!", description: "Item atualizado com sucesso." });
+      toast({ title: "Sucesso!", description: "Item atualizado localmente e pendente de sincronização." });
     } catch (error) {
       toast({ title: 'Erro ao atualizar item', variant: 'destructive' });
     } finally {
@@ -220,6 +197,7 @@ export default function MateriaisPage() {
         return;
     }
     const normalizedNewDesc = normalizeString(newItem.descricao);
+    if (!materiais) return;
     const existingItem = materiais.find(m => normalizeString(m.descricao) === normalizedNewDesc && m.tipo === newItem.tipo);
     if (existingItem) { setConflictingItem(existingItem); setIsUpdateConfirmOpen(true); return; }
     setIsSubmitting(true);
@@ -238,9 +216,8 @@ export default function MateriaisPage() {
   const handleRemoverMaterial = async (id: string) => {
     if (!user) return;
     try {
-        await deleteMaterial(user.uid, id);
-        await fetchMateriais();
-        toast({ title: "Item Removido", variant: "destructive" });
+        await deleteMaterial(id);
+        toast({ title: "Item Removido", description: "A remoção será sincronizada.", variant: "destructive" });
     } catch(error) {
         toast({ title: 'Erro ao remover item', variant: 'destructive' });
     }
@@ -300,16 +277,13 @@ export default function MateriaisPage() {
         await updateMaterial(user.uid, id, materialToUpdate);
         setIsEditModalOpen(false);
         setEditingMaterial(null);
-        await fetchMateriais();
-        toast({ title: "Sucesso!", description: "Item atualizado com sucesso." });
+        toast({ title: "Sucesso!", description: "Item atualizado localmente e pendente de sincronização." });
     } catch(error) {
         toast({ title: 'Erro ao atualizar item', variant: 'destructive' });
     } finally {
         setIsSubmitting(false);
     }
   };
-
-  const showSkeleton = loadingAuth || isLoadingData;
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
@@ -322,7 +296,7 @@ export default function MateriaisPage() {
           </CardTitle>
           <CardDescription>
             Adicione e gerencie os itens e serviços que serão usados nos orçamentos.
-            Estes dados ficarão salvos na nuvem.
+            Estes dados ficam salvos no seu dispositivo e são sincronizados quando há internet.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -411,12 +385,12 @@ export default function MateriaisPage() {
           </Accordion>
 
           <div className="mt-8">
-            {showSkeleton ? (
+            {isLoadingData ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-between"><Skeleton className="h-8 w-1/3" /><Skeleton className="h-8 w-24" /></div>
                 <div className="space-y-2"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
               </div>
-            ) : materiais.length > 0 ? (
+            ) : materiais && materiais.length > 0 ? (
               <div>
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
                   <h2 className="text-xl font-semibold">Itens e Serviços Cadastrados</h2>
@@ -440,9 +414,6 @@ export default function MateriaisPage() {
                         </Button>
                       )}
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => fetchMateriais()} disabled={isLoadingData}>
-                      <RefreshCw className={`h-4 w-4 ${isLoadingData ? 'animate-spin' : ''}`} />
-                    </Button>
                   </div>
                 </div>
                 
@@ -628,3 +599,4 @@ export default function MateriaisPage() {
 
 
     
+

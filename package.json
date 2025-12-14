@@ -43,6 +43,8 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
+    "dexie": "^4.0.7",
+    "dexie-react-hooks": "^1.1.7",
     "firebase": "^11.9.1",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.1",
