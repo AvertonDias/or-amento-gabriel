@@ -141,15 +141,15 @@ export const maskDecimal = (value: string): string => {
 };
 
 export const maskDecimalWithAutoComma = (value: string): string => {
-  if (!value) return "0,00";
+    if (!value) return "0,00";
+    
+    let v = value.replace(/\D/g, "").replace(/^0+/, "");
 
-  let v = value.replace(/\D/g, "").replace(/^0+/, "");
+    if (v.length === 0) return "0,00";
+    if (v.length === 1) return `0,0${v}`;
+    if (v.length === 2) return `0,${v}`;
 
-  if (v.length === 0) return "0,00";
-  if (v.length === 1) return `0,0${v}`;
-  if (v.length === 2) return `0,${v}`;
-
-  return `${v.slice(0, -2)},${v.slice(-2)}`;
+    return `${v.slice(0, -2)},${v.slice(-2)}`;
 };
 
 

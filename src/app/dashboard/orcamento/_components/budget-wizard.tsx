@@ -171,7 +171,8 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
         }
         const { precoUnitario, id: materialId, descricao, unidade, tipo, quantidade: estoqueAtual, quantidadeMinima } = selectedMaterial;
         const numMargemLucro = parseFloat(novoItem.margemLucro.replace(',', '.')) || 0;
-        const numQuantidade = parseFloat(novoItem.quantidade.replace(/[^0-9,]/g, '').replace(',', '.'));
+        const numQuantidade = parseFloat(novoItem.quantidade.replace(',', '.'));
+
         if (isNaN(numQuantidade) || numQuantidade <= 0 || precoUnitario === null) {
           toast({ title: 'Valores inválidos', description: 'Preencha a Quantidade e verifique os dados do item.', variant: 'destructive' });
           return;
