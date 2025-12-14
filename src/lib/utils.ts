@@ -124,29 +124,22 @@ export const maskCurrency = (value: string): string => {
 
 export const maskDecimal = (value: string, decimals: number = 2): string => {
   if (!value) return "";
-  let v = value.replace(/[^0-9]/g, ''); // Remove tudo que não for dígito
-  if (v === '') return "";
-
-  // Se o valor já tiver uma vírgula, vamos reposicioná-la se necessário
-  if (value.includes(',')) {
-    const parts = value.split(',');
-    const integerPart = parts[0].replace(/[^0-9]/g, '');
-    const decimalPart = parts[1].replace(/[^0-9]/g, '');
-    return `${integerPart},${decimalPart.slice(0, decimals)}`;
+  
+  // 1. Permite apenas números e uma vírgula
+  let v = value.replace(/[^0-9,]/g, '');
+  
+  // 2. Garante que haja apenas uma vírgula
+  const parts = v.split(',');
+  if (parts.length > 2) {
+    v = `${parts[0]},${parts.slice(1).join('')}`;
   }
   
-  // Se não tem vírgula, formata o número
-  // Remove zeros à esquerda
-  v = v.replace(/^0+/, '');
-
-  if (v.length <= decimals) {
-      return "0," + v.padStart(decimals, '0');
+  // 3. Limita o número de casas decimais
+  if (parts[1] && parts[1].length > decimals) {
+    v = `${parts[0]},${parts[1].substring(0, decimals)}`;
   }
 
-  const integerPart = v.slice(0, v.length - decimals);
-  const decimalPart = v.slice(v.length - decimals);
-
-  return `${integerPart},${decimalPart}`;
+  return v;
 };
 
 
