@@ -50,7 +50,10 @@ export function useSync() {
     }, [isOnline, user]);
 
     useEffect(() => {
-        const updateOnlineStatus = () => setIsOnline(navigator.onLine);
+        const updateOnlineStatus = () => {
+            console.log('Network status changed:', navigator.onLine);
+            setIsOnline(navigator.onLine);
+        }
         window.addEventListener('online', updateOnlineStatus);
         window.addEventListener('offline', updateOnlineStatus);
         updateOnlineStatus();
@@ -61,8 +64,9 @@ export function useSync() {
     }, []);
 
     const pushToFirestore = useCallback(async () => {
-        if (!user || !isOnline) return;
+        if (!user || !isOnline || isSyncing) return;
         
+        setIsSyncing(true);
         console.log("Starting push to Firestore...");
         
         const syncCollection = async (collectionName: SyncableCollection) => {
@@ -102,11 +106,13 @@ export function useSync() {
         } catch (error) {
              console.error("Error during push to Firestore:", error);
              toast({ title: 'Erro na sincronização', description: 'Não foi possível enviar todas as alterações.', variant: 'destructive' });
+        } finally {
+            setIsSyncing(false);
         }
-    }, [user, isOnline, toast]);
+    }, [user, isOnline, toast, isSyncing]);
     
     const pullFromFirestore = useCallback(async () => {
-        if (!user || !isOnline) return;
+        if (!user || !isOnline || isSyncing) return;
         setIsSyncing(true);
         console.log("Starting pull from Firestore...");
 
@@ -131,26 +137,25 @@ export function useSync() {
         } finally {
              setIsSyncing(false);
         }
-    }, [user, isOnline, toast]);
+    }, [user, isOnline, toast, isSyncing]);
 
+    // Efeito para sincronização inicial e ao ficar online
     useEffect(() => {
         if (isOnline && user && !isSyncing) {
             const syncData = async () => {
-                await pullFromFirestore();
-                await pushToFirestore();
+                await pushToFirestore(); // Envia pendentes primeiro
+                await pullFromFirestore(); // Depois busca atualizações da nuvem
             };
             syncData();
-            
-            const intervalId = setInterval(syncData, 5 * 60 * 1000); // Sincroniza a cada 5 minutos
-            return () => clearInterval(intervalId);
         }
-    }, [isOnline, user, isSyncing, pullFromFirestore, pushToFirestore]);
+    }, [isOnline, user, pullFromFirestore, pushToFirestore]); // Removido o isSyncing para permitir o gatilho
 
+    // Efeito para reagir a novos itens pendentes
     useEffect(() => {
-        if (pendingItems && pendingItems.count > 0 && isOnline) {
+        if (pendingItems && pendingItems.count > 0 && isOnline && !isSyncing) {
             pushToFirestore();
         }
-    }, [pendingItems, isOnline, pushToFirestore]);
+    }, [pendingItems, isOnline, pushToFirestore, isSyncing]);
 
 
     return { isOnline, isSyncing, pendingCount: pendingItems?.count ?? 0 };
