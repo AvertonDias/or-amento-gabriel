@@ -32,7 +32,7 @@ export function EditItemModal({ isOpen, onOpenChange, item, onSave }: EditItemMo
         return editingItem ? integerUnits.includes(editingItem.unidade) : false;
     }, [editingItem]);
 
-    const isAvulso = useMemo(() => editingItem?.materialId.startsWith('avulso-'), [editingItem]);
+    const isAvulso = useMemo(() => editingItem?.materialId?.startsWith('avulso-'), [editingItem]);
     
     useEffect(() => {
         if (item) {
@@ -43,7 +43,7 @@ export function EditItemModal({ isOpen, onOpenChange, item, onSave }: EditItemMo
             setEditingPrecoUnitarioStr(maskCurrency(String(item.precoUnitario)));
             
             // Itens avulsos sempre têm o preço desbloqueado para edição
-            setIsPriceUnlocked(item.materialId.startsWith('avulso-'));
+            setIsPriceUnlocked(!!item.materialId && item.materialId.startsWith('avulso-'));
         }
     }, [item]);
 
