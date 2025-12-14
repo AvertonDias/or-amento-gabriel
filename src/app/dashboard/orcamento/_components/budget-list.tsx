@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -345,5 +344,6 @@ export function BudgetList({ isLoading, budgets, empresa, onUpdateStatus, onDele
         </Card>
     ));
 }
+
 
 
