@@ -44,12 +44,13 @@ export const addOrcamento = async (orcamento: Omit<Orcamento, 'id'>): Promise<st
   const newId = uuidv4();
   const dataToSave: Orcamento = {
     ...orcamento,
+    id: newId,
     cliente: {
       ...orcamento.cliente,
       cpfCnpj: orcamento.cliente.cpfCnpj || null,
       email: orcamento.cliente.email || null,
+      endereco: orcamento.cliente.endereco || '',
     },
-    id: newId,
   };
 
   await dexieDB.orcamentos.put({
@@ -71,8 +72,12 @@ export const updateOrcamento = async (orcamentoId: string, orcamento: Partial<Or
   const updatedData = { ...existing.data, ...restOfBudget };
   
   // Garante que campos opcionais não sejam undefined
-  updatedData.cliente.cpfCnpj = updatedData.cliente.cpfCnpj || null;
-  updatedData.cliente.email = updatedData.cliente.email || null;
+  if (updatedData.cliente) {
+    updatedData.cliente.cpfCnpj = updatedData.cliente.cpfCnpj || null;
+    updatedData.cliente.email = updatedData.cliente.email || null;
+    updatedData.cliente.endereco = updatedData.cliente.endereco || '';
+  }
+
 
   await dexieDB.orcamentos.put({
     ...existing,

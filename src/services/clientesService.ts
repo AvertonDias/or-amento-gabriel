@@ -1,3 +1,4 @@
+
 import { db as firestoreDB } from '@/lib/firebase';
 import { collection, addDoc as addDocFirestore, doc, updateDoc as updateDocFirestore, deleteDoc as deleteDocFirestore, setDoc } from 'firebase/firestore';
 import { db as dexieDB } from '@/lib/dexie';
@@ -52,7 +53,6 @@ export const deleteCliente = async (clienteId: string) => {
 export const syncClienteToFirestore = async (clienteData: ClienteData) => {
     const clienteDocRef = doc(firestoreDB, 'clientes', clienteData.id);
     // `setDoc` com `merge: true` funciona como um "upsert", criando ou atualizando.
-    // Isso resolve o erro "No document to update".
     await setDoc(clienteDocRef, clienteData, { merge: true });
 };
 
