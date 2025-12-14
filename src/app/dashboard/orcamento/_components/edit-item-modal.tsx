@@ -1,13 +1,13 @@
 
 'use client';
 
-import React, { useState, useEffect, FormEvent } from 'react';
+import React, { useState, useEffect, FormEvent, useMemo } from 'react';
 import type { OrcamentoItem } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { maskDecimal } from '@/lib/utils';
+import { maskDecimal, maskInteger, maskDecimalWithAutoComma } from '@/lib/utils';
 import { Capacitor } from '@capacitor/core';
 
 interface EditItemModalProps {
@@ -17,15 +17,29 @@ interface EditItemModalProps {
     onSave: (item: OrcamentoItem) => void;
 }
 
+const integerUnits = ['un', 'h', 'serv'];
+
 export function EditItemModal({ isOpen, onOpenChange, item, onSave }: EditItemModalProps) {
     const [editingItem, setEditingItem] = useState<OrcamentoItem | null>(null);
     const [editingQuantidadeStr, setEditingQuantidadeStr] = useState('');
     const [editingMargemLucroStr, setEditingMargemLucroStr] = useState('');
 
+    const isCurrentUnitInteger = useMemo(() => {
+        return editingItem ? integerUnits.includes(editingItem.unidade) : false;
+    }, [editingItem]);
+
     useEffect(() => {
         if (item) {
             setEditingItem({ ...item });
-            setEditingQuantidadeStr(String(item.quantidade).replace('.', ','));
+
+            const isInteger = integerUnits.includes(item.unidade);
+            if (isInteger) {
+                setEditingQuantidadeStr(String(item.quantidade));
+            } else {
+                // For decimals, format with 2 places for display
+                setEditingQuantidadeStr(String(item.quantidade.toFixed(2)).replace('.', ','));
+            }
+
             setEditingMargemLucroStr(String(item.margemLucro).replace('.', ','));
         }
     }, [item]);
@@ -34,8 +48,9 @@ export function EditItemModal({ isOpen, onOpenChange, item, onSave }: EditItemMo
         if (!editingItem) return;
         const { name, value } = e.target;
         
-        if (name === 'quantidade') { 
-            setEditingQuantidadeStr(maskDecimal(value));
+        if (name === 'quantidade') {
+            const mask = isCurrentUnitInteger ? maskInteger : maskDecimal;
+            setEditingQuantidadeStr(mask(value));
         } else if (name === 'margemLucro') { 
             setEditingMargemLucroStr(maskDecimal(value));
         } else if (name === 'materialNome') {
@@ -85,7 +100,7 @@ export function EditItemModal({ isOpen, onOpenChange, item, onSave }: EditItemMo
                 </DialogHeader>
                 <form onSubmit={handleSalvarEdicaoItem} className="space-y-4 py-4">
                     <div><Label htmlFor="edit-nome">Nome do Item</Label><Input id="edit-nome" name="materialNome" value={editingItem.materialNome} onChange={handleEditItemFormChange}/></div>
-                    <div><Label htmlFor="edit-quantidade">Quantidade ({editingItem.unidade})</Label><Input id="edit-quantidade" name="quantidade" type="text" inputMode='decimal' value={editingQuantidadeStr} onChange={handleEditItemFormChange}/></div>
+                    <div><Label htmlFor="edit-quantidade">Quantidade ({editingItem.unidade})</Label><Input id="edit-quantidade" name="quantidade" type="text" inputMode={isCurrentUnitInteger ? 'numeric' : 'decimal'} value={editingQuantidadeStr} onChange={handleEditItemFormChange}/></div>
                     <div><Label htmlFor="edit-margemLucro">Acréscimo (%)</Label><Input id="edit-margemLucro" name="margemLucro" type="text" inputMode='decimal' value={editingMargemLucroStr} onChange={handleEditItemFormChange}/></div>
                     <DialogFooter>
                         <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
