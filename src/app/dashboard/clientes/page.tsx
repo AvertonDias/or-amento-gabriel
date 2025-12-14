@@ -1,48 +1,29 @@
-
 'use client';
 
 import React, { useState, FormEvent, useEffect, useCallback, useMemo } from 'react';
 import type { ClienteData, Orcamento } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Users, PlusCircle, Pencil, Contact, RefreshCw, CheckCircle, XCircle, History, FileText, MoreVertical, AlertTriangle, Search } from 'lucide-react';
+import { Users, PlusCircle, RefreshCw, Search, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { maskCpfCnpj, maskTelefone, validateCpfCnpj } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { addCliente, deleteCliente, getClientes, updateCliente } from '@/services/clientesService';
 import { getOrcamentos } from '@/services/orcamentosService';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
+import { Accordion } from "@/components/ui/accordion";
 import { usePermissionDialog } from '@/hooks/use-permission-dialog';
-
+import { Input } from '@/components/ui/input';
 
 // --- Imports para Capacitor ---
 import { Capacitor } from '@capacitor/core';
 import { Contacts, PermissionStatus } from '@capacitor-community/contacts';
 
+// --- Components ---
+import { ClientForm } from './_components/client-form';
+import { ClientList } from './_components/client-list';
+import { ClientModals } from './_components/client-modals';
 
 const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
   nome: '',
@@ -52,24 +33,22 @@ const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
   email: '',
 };
 
-interface SelectedContactDetails {
+export interface SelectedContactDetails {
   name: string[];
   email: string[];
   tel: string[];
   address: any[];
 }
 
-type OrcamentoStatus = 'Pendente' | 'Aceito' | 'Recusado' | 'Vencido';
+export type OrcamentoStatus = 'Pendente' | 'Aceito' | 'Recusado' | 'Vencido';
 
-interface BudgetCounts {
+export interface BudgetCounts {
     Pendente: number;
     Aceito: number;
     Recusado: number;
     Vencido: number;
     Total: number;
 }
-
-type PermissionState = 'prompt' | 'granted' | 'denied';
 
 export default function ClientesPage() {
   const [user, loadingAuth] = useAuthState(auth);
@@ -96,16 +75,6 @@ export default function ClientesPage() {
 
   const { toast } = useToast();
   const { requestPermission } = usePermissionDialog();
-  
-  const newClientCpfCnpjStatus = useMemo(() => {
-    if (!newClient.cpfCnpj) return 'incomplete';
-    return validateCpfCnpj(newClient.cpfCnpj);
-  }, [newClient.cpfCnpj]);
-
-  const editingClientCpfCnpjStatus = useMemo(() => {
-    if (!editingClient?.cpfCnpj) return 'incomplete';
-    return validateCpfCnpj(editingClient?.cpfCnpj);
-  }, [editingClient?.cpfCnpj]);
 
   const fetchPageData = useCallback(async () => {
     if (!user) return;
@@ -162,51 +131,6 @@ export default function ClientesPage() {
     return counts;
   }, [clientes, orcamentos]);
 
-  const handleNewClientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    let maskedValue = value;
-    if (name === 'cpfCnpj') {
-      maskedValue = maskCpfCnpj(value);
-    }
-    setNewClient(prev => ({ ...prev, [name]: maskedValue }));
-  };
-
-  const handleTelefoneChange = (index: number, field: 'nome' | 'numero', value: string, targetState: 'new' | 'edit') => {
-    const setter = targetState === 'new' ? setNewClient : setEditingClient;
-    const maskedValue = field === 'numero' ? maskTelefone(value) : value;
-
-    setter((prev: ClienteData | Omit<ClienteData, 'id' | 'userId'> | null) => {
-        if (!prev) return null;
-        const novosTelefones = [...(prev.telefones || [])];
-        novosTelefones[index] = { ...novosTelefones[index], [field]: maskedValue };
-        return { ...prev, telefones: novosTelefones };
-    });
-  };
-
-  const addTelefone = (targetState: 'new' | 'edit') => {
-      const setter = targetState === 'new' ? setNewClient : setEditingClient;
-      setter((prev: ClienteData | Omit<ClienteData, 'id' | 'userId'> | null) => {
-          if (!prev) return null;
-          return {
-              ...prev,
-              telefones: [...(prev.telefones || []), { nome: '', numero: '' }]
-          };
-      });
-  };
-
-  const removeTelefone = (index: number, targetState: 'new' | 'edit') => {
-      const setter = targetState === 'new' ? setNewClient : setEditingClient;
-      setter((prev: ClienteData | Omit<ClienteData, 'id' | 'userId'> | null) => {
-          if (!prev) return null;
-          if (prev.telefones.length <= 1) {
-              toast({ title: "Ação não permitida", description: "Deve haver pelo menos um número de telefone.", variant: "destructive" });
-              return prev;
-          }
-          const novosTelefones = prev.telefones.filter((_: { nome: string; numero: string; }, i: number) => i !== index);
-          return { ...prev, telefones: novosTelefones };
-      });
-  };
-
   const checkForDuplicates = (): string | null => {
     let message = null;
     const newClientNameLower = newClient.nome.trim().toLowerCase();
@@ -231,31 +155,13 @@ export default function ClientesPage() {
   };
 
 
-  const handleAdicionarCliente = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleAdicionarCliente = async (clientData: Omit<ClienteData, 'id' | 'userId'>) => {
     if (!user) {
         toast({ title: 'Usuário não autenticado', variant: 'destructive' });
         return;
     }
-    if (!newClient.nome) {
-      toast({
-        title: 'Campo Obrigatório',
-        description: 'O campo Nome é obrigatório.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (newClient.cpfCnpj && newClientCpfCnpjStatus === 'invalid') {
-        toast({ title: "Documento inválido", description: "O CPF/CNPJ inserido não é válido.", variant: "destructive" });
-        return;
-    }
-
-    if (!newClient.telefones.some(t => t.numero.trim() !== '')) {
-      toast({ title: "Telefone obrigatório", description: "Pelo menos um número de telefone deve ser preenchido.", variant: "destructive" });
-      return;
-    }
-
+    
+    setNewClient(clientData); // Temporarily set for duplicate check
 
     const duplicateInfo = checkForDuplicates();
     if (duplicateInfo) {
@@ -266,14 +172,11 @@ export default function ClientesPage() {
 
     setIsSubmitting(true);
     try {
-      const clientData = {
-        nome: newClient.nome,
-        cpfCnpj: newClient.cpfCnpj,
-        endereco: newClient.endereco,
-        telefones: newClient.telefones.filter(t => t.numero.trim() !== ''),
-        email: newClient.email,
+      const dataToSave = {
+        ...clientData,
+        telefones: clientData.telefones.filter(t => t.numero.trim() !== ''),
       };
-      await addCliente(user.uid, clientData);
+      await addCliente(user.uid, dataToSave);
       setNewClient(initialNewClientState);
       await fetchPageData(); // Refresh list
       toast({
@@ -313,31 +216,15 @@ export default function ClientesPage() {
     setIsEditModalOpen(true);
   };
   
-  const handleSalvarEdicao = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!editingClient || !editingClient.id || !user) return;
-
-    if (!editingClient.nome) {
-      toast({ title: 'Campo Obrigatório', description: 'O campo Nome é obrigatório.', variant: 'destructive' });
-      return;
-    }
-
-    if (editingClient.cpfCnpj && editingClientCpfCnpjStatus === 'invalid') {
-        toast({ title: "Documento inválido", description: "O CPF/CNPJ inserido não é válido.", variant: "destructive" });
-        return;
-    }
-
-    if (!editingClient.telefones.some(t => t.numero.trim() !== '')) {
-      toast({ title: "Telefone obrigatório", description: "Pelo menos um número de telefone deve ser preenchido.", variant: "destructive" });
-      return;
-    }
+  const handleSalvarEdicao = async (clientToUpdate: ClienteData) => {
+    if (!clientToUpdate || !clientToUpdate.id || !user) return;
     
     setIsSubmitting(true);
     try {
-        const { id, ...clientToUpdate } = editingClient;
+        const { id, ...data } = clientToUpdate;
         const payload = {
-          ...clientToUpdate,
-          telefones: clientToUpdate.telefones.filter(t => t.numero.trim() !== ''),
+          ...data,
+          telefones: data.telefones.filter(t => t.numero.trim() !== ''),
         };
         await updateCliente(id, payload);
         setIsEditModalOpen(false);
@@ -354,24 +241,15 @@ export default function ClientesPage() {
   
   const formatAddress = (address: any): string => {
     if (!address) return '';
-    // Formato da API Web
     const webParts = [
-        address.addressLine1,
-        address.addressLine2,
-        address.city,
-        address.region,
-        address.postalCode,
-        address.country
+        address.addressLine1, address.addressLine2, address.city,
+        address.region, address.postalCode, address.country
     ].filter(Boolean);
     if(webParts.length > 0) return webParts.join(', ');
 
-    // Formato do Plugin Capacitor
-     const capacitorParts = [
-        address.street,
-        address.city,
-        address.state,
-        address.postalCode,
-        address.country
+    const capacitorParts = [
+        address.street, address.city, address.state,
+        address.postalCode, address.country
     ].filter(Boolean);
     if(capacitorParts.length > 0) return capacitorParts.join(', ');
 
@@ -380,162 +258,108 @@ export default function ClientesPage() {
 
   const normalizePhoneNumber = (tel: string) => {
     if (!tel) return '';
-    // Remove tudo que não for dígito
     let onlyDigits = tel.replace(/\D/g, '');
-    
-    // Remove o prefixo internacional +55 se presente no início
     if (onlyDigits.startsWith('55')) {
       onlyDigits = onlyDigits.substring(2);
     }
     return onlyDigits;
   };
   
-const processSelectedContacts = (contacts: any[]) => {
-    if (!contacts || contacts.length === 0) return;
+  const processSelectedContacts = (contacts: any[]) => {
+      if (!contacts || contacts.length === 0) return;
 
-    const contact = contacts[0];
-    let adaptedContact;
-    const isNative = Capacitor.isNativePlatform();
+      const contact = contacts[0];
+      const isNative = Capacitor.isNativePlatform();
+      let adaptedContact;
 
-    // Adaptar a estrutura de dados do Capacitor para a estrutura esperada
-    if (isNative) {
-        adaptedContact = {
-            name: contact.name?.display ? [contact.name.display] : [],
-            email: contact.emailAddresses?.map((e: any) => e.address) || [],
-            tel: contact.phoneNumbers?.map((p: any) => p.number) || [],
-            address: contact.postalAddresses?.map((a: any) => ({
-                street: a.street, city: a.city, state: a.state,
-                postalCode: a.postalCode, country: a.country,
-            })) || [],
-        };
-    } else {
-        // Estrutura da API Web
-        adaptedContact = {
-            name: contact.name || [],
-            email: contact.email || [],
-            tel: contact.tel || [],
-            address: contact.address || [],
-        };
-    }
-
-    const hasMultipleOptions = (adaptedContact.tel?.length > 1 || adaptedContact.email?.length > 1 || adaptedContact.address?.length > 1);
-
-    if (hasMultipleOptions) {
-        setSelectedContactDetails(adaptedContact);
-        setIsContactSelectionModalOpen(true);
-    } else {
-        const formattedAddress = adaptedContact.address?.[0] ? formatAddress(adaptedContact.address[0]) : '';
-        const phoneNumber = normalizePhoneNumber(adaptedContact.tel?.[0] || '');
-
-        const partialClient = {
-            nome: adaptedContact.name?.[0] || '',
-            email: adaptedContact.email?.[0] || '',
-            telefones: [{ nome: 'Principal', numero: phoneNumber ? maskTelefone(phoneNumber) : '' }],
-            endereco: formattedAddress,
-            cpfCnpj: '',
-        };
-        setNewClient(partialClient);
-        toast({
-            title: 'Contato Importado!',
-            description: 'Os dados do contato foram preenchidos no formulário.',
-        });
-    }
-};
-
-const handleImportContacts = async () => {
-    const isNative = Capacitor.isNativePlatform();
-
-    if (isNative) {
-        try {
-            let permStatus: PermissionStatus = await Contacts.checkPermissions();
-            if (permStatus.contacts !== 'granted') {
-                const granted = await requestPermission({
-                    title: "Acessar Contatos?",
-                    description: "Para facilitar a criação de novos clientes, o app pode importar nomes e números da sua agenda. Deseja permitir?",
-                });
-                if (granted) {
-                    permStatus = await Contacts.requestPermissions();
-                }
-            }
-
-            if (permStatus.contacts !== 'granted') {
-                 toast({
-                    title: "Permissão necessária",
-                    description: "Por favor, conceda acesso aos contatos nas configurações do seu celular.",
-                    variant: "destructive",
-                });
-                return;
-            }
-
-            const result = await Contacts.getContacts({
-                projection: { name: true, phones: true, emails: true, postalAddresses: true }
-            });
-
-            if (result.contacts.length === 0) {
-              toast({
-                  title: 'Nenhum contato selecionado',
-                  description: 'Você não selecionou nenhum contato para importar.',
-              });
-              return;
-            }
-            processSelectedContacts(result.contacts);
-        } catch (error: any) {
-            console.error('Erro ao buscar contatos no Capacitor:', error);
-            toast({
-                title: 'Erro ao importar',
-                description: 'Não foi possível ler os contatos do dispositivo.',
-                variant: 'destructive',
-            });
-        }
-    } else {
-        if (!('contacts' in navigator && 'select' in (navigator as any).contacts)) {
-            setIsApiNotSupportedAlertOpen(true);
-            return;
-        }
-        try {
-            const props = ['name', 'email', 'tel', 'address'];
-            const opts = { multiple: false };
-            const contacts = await (navigator as any).contacts.select(props, opts);
-            processSelectedContacts(contacts);
-        } catch (error: any) {
-            if (error.name !== 'AbortError') {
-                setIsApiNotSupportedAlertOpen(true);
-                console.error('Erro ao importar contato via Web API:', error);
-            }
-        }
-    }
-};
-  
-  const handleConfirmContactSelection = (e: FormEvent) => {
-    e.preventDefault();
-    if (!selectedContactDetails) return;
-
-    const formData = new FormData(e.target as HTMLFormElement);
-    const selectedTelRaw = formData.get('tel') as string || '';
-    const selectedEmail = formData.get('email') as string || '';
-    const selectedAddressString = formData.get('address') as string || '';
-    
-    let formattedAddress = '';
-    if (selectedAddressString) {
-      try {
-        const selectedAddress = JSON.parse(selectedAddressString);
-        formattedAddress = formatAddress(selectedAddress);
-      } catch (error) {
-        console.error("Error parsing selected address", error);
+      if (isNative) {
+          adaptedContact = {
+              name: contact.name?.display ? [contact.name.display] : [],
+              email: contact.emailAddresses?.map((e: any) => e.address) || [],
+              tel: contact.phoneNumbers?.map((p: any) => p.number) || [],
+              address: contact.postalAddresses?.map((a: any) => ({
+                  street: a.street, city: a.city, state: a.state,
+                  postalCode: a.postalCode, country: a.country,
+              })) || [],
+          };
+      } else {
+          adaptedContact = {
+              name: contact.name || [], email: contact.email || [],
+              tel: contact.tel || [], address: contact.address || [],
+          };
       }
-    }
 
-    const phoneNumber = normalizePhoneNumber(selectedTelRaw);
+      const hasMultipleOptions = (adaptedContact.tel?.length > 1 || adaptedContact.email?.length > 1 || adaptedContact.address?.length > 1);
 
-    const partialClient = {
-      nome: selectedContactDetails.name?.[0] || '',
-      email: selectedEmail,
-      telefones: [{ nome: 'Principal', numero: phoneNumber ? maskTelefone(phoneNumber) : '' }],
-      endereco: formattedAddress,
-      cpfCnpj: '',
-    };
-    
-    setNewClient(partialClient);
+      if (hasMultipleOptions) {
+          setSelectedContactDetails(adaptedContact);
+          setIsContactSelectionModalOpen(true);
+      } else {
+          const formattedAddress = adaptedContact.address?.[0] ? formatAddress(adaptedContact.address[0]) : '';
+          const phoneNumber = normalizePhoneNumber(adaptedContact.tel?.[0] || '');
+
+          setNewClient({
+              nome: adaptedContact.name?.[0] || '',
+              email: adaptedContact.email?.[0] || '',
+              telefones: [{ nome: 'Principal', numero: phoneNumber }],
+              endereco: formattedAddress,
+              cpfCnpj: '',
+          });
+
+          toast({
+              title: 'Contato Importado!',
+              description: 'Os dados do contato foram preenchidos no formulário.',
+          });
+      }
+  };
+
+  const handleImportContacts = async () => {
+      const isNative = Capacitor.isNativePlatform();
+
+      if (isNative) {
+          try {
+              let permStatus: PermissionStatus = await Contacts.checkPermissions();
+              if (permStatus.contacts !== 'granted') {
+                  const granted = await requestPermission({
+                      title: "Acessar Contatos?",
+                      description: "Para facilitar a criação de novos clientes, o app pode importar nomes e números da sua agenda. Deseja permitir?",
+                  });
+                  if (granted) permStatus = await Contacts.requestPermissions();
+              }
+
+              if (permStatus.contacts !== 'granted') {
+                   toast({ title: "Permissão necessária", description: "Por favor, conceda acesso aos contatos nas configurações do seu celular.", variant: "destructive" });
+                   return;
+              }
+
+              const result = await Contacts.getContacts({
+                  projection: { name: true, phones: true, emails: true, postalAddresses: true }
+              });
+
+              processSelectedContacts(result.contacts);
+          } catch (error: any) {
+              console.error('Erro ao buscar contatos no Capacitor:', error);
+              toast({ title: 'Erro ao importar', description: 'Não foi possível ler os contatos do dispositivo.', variant: 'destructive' });
+          }
+      } else {
+          if (!('contacts' in navigator && 'select' in (navigator as any).contacts)) {
+              setIsApiNotSupportedAlertOpen(true);
+              return;
+          }
+          try {
+              const contacts = await (navigator as any).contacts.select(['name', 'email', 'tel', 'address'], { multiple: false });
+              processSelectedContacts(contacts);
+          } catch (error: any) {
+              if (error.name !== 'AbortError') {
+                  setIsApiNotSupportedAlertOpen(true);
+                  console.error('Erro ao importar contato via Web API:', error);
+              }
+          }
+      }
+  };
+  
+  const handleConfirmContactSelection = (selectedData: Partial<ClienteData>) => {
+    setNewClient(prev => ({ ...prev, ...selectedData }));
     setIsContactSelectionModalOpen(false);
     setSelectedContactDetails(null);
     toast({
@@ -548,42 +372,7 @@ const handleImportContacts = async () => {
     router.push(`/dashboard/orcamento?clienteId=${clienteId}`);
   };
 
-  const getStatusBadgeVariant = (status: OrcamentoStatus): "default" | "destructive" | "secondary" | "warning" => {
-    switch (status) {
-        case 'Aceito': return 'default';
-        case 'Recusado': return 'destructive';
-        case 'Vencido': return 'warning';
-        case 'Pendente': return 'secondary';
-        default: return 'secondary';
-    }
-  }
-
-  const BudgetBadges = ({ counts }: { counts: BudgetCounts | undefined }) => {
-    if (!counts || counts.Total === 0) {
-        return <p className="text-xs text-muted-foreground mt-1">Nenhum orçamento</p>;
-    }
-
-    const statusOrder: OrcamentoStatus[] = ['Pendente', 'Aceito', 'Recusado', 'Vencido'];
-
-    return (
-        <div className="flex flex-wrap items-center gap-2 mt-2">
-            {statusOrder.map(status => {
-                if (counts[status] > 0) {
-                    return (
-                        <Badge key={status} variant={getStatusBadgeVariant(status)} className="text-xs">
-                            {counts[status]} {status}
-                        </Badge>
-                    );
-                }
-                return null;
-            })}
-        </div>
-    );
-};
-  
   const showSkeleton = loadingAuth || isLoadingData;
-  const isCpfCnpjInvalid = newClient.cpfCnpj ? newClientCpfCnpjStatus === 'invalid' : false;
-  const isEditingCpfCnpjInvalid = editingClient?.cpfCnpj ? editingClientCpfCnpjStatus === 'invalid' : false;
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
@@ -599,104 +388,14 @@ const handleImportContacts = async () => {
         </CardHeader>
         <CardContent>
           <Accordion type="single" collapsible className="w-full mb-6 border-b">
-            <AccordionItem value="add-client-form" className="border-b-0">
-              <AccordionTrigger className="hover:no-underline py-4">
-                  <h2 className="text-xl font-semibold flex items-center gap-2 text-primary">
-                    <PlusCircle className="h-5 w-5" /> Adicionar Novo Cliente
-                  </h2>
-              </AccordionTrigger>
-              <AccordionContent>
-                <form onSubmit={handleAdicionarCliente} className="space-y-6 pt-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="nome">Nome Completo / Razão Social</Label>
-                      <Input id="nome" name="nome" value={newClient.nome} onChange={handleNewClientChange} placeholder="Ex: João da Silva" required />
-                    </div>
-                    <div>
-                      <Label htmlFor="cpfCnpj">CPF / CNPJ</Label>
-                      <div className="relative">
-                          <Input 
-                            id="cpfCnpj" 
-                            name="cpfCnpj" 
-                            value={newClient.cpfCnpj || ''} 
-                            onChange={handleNewClientChange} 
-                            placeholder="XXX.XXX.XXX-XX ou XX.XXX.XXX/XXXX-XX"
-                            className={cn(
-                                newClient.cpfCnpj && 'pr-10',
-                                newClientCpfCnpjStatus === 'valid' && 'border-green-500 focus-visible:ring-green-500',
-                                newClientCpfCnpjStatus === 'invalid' && 'border-destructive focus-visible:ring-destructive'
-                            )}
-                          />
-                          {newClient.cpfCnpj && (
-                            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                              {newClientCpfCnpjStatus === 'valid' && <CheckCircle className="h-5 w-5 text-green-500" />}
-                              {newClientCpfCnpjStatus === 'invalid' && <XCircle className="h-5 w-5 text-destructive" />}
-                            </div>
-                          )}
-                      </div>
-                      {newClient.cpfCnpj && (
-                           <p className={cn(
-                              "text-xs mt-1",
-                              newClientCpfCnpjStatus === 'invalid' ? 'text-destructive' : 'text-muted-foreground'
-                           )}>
-                            {newClientCpfCnpjStatus === 'invalid' ? 'Documento inválido.' : newClientCpfCnpjStatus === 'incomplete' ? 'Documento incompleto.' : 'Documento válido.'}
-                           </p>
-                        )}
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label htmlFor="endereco">Endereço Completo</Label>
-                      <Input id="endereco" name="endereco" value={newClient.endereco} onChange={handleNewClientChange} placeholder="Rua, Número, Bairro, Cidade - UF" />
-                    </div>
-                    <div className="md:col-span-2 space-y-4">
-                      <Label>Telefones de Contato</Label>
-                      
-                        {(newClient.telefones || []).map((tel, index) => (
-                          <div key={index} className="flex items-center gap-2">
-                            <div className="flex-grow grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                <div className="sm:col-span-1">
-                                <Label htmlFor={`new-tel-nome-${index}`} className="text-xs text-muted-foreground">Apelido</Label>
-                                <Input id={`new-tel-nome-${index}`} value={tel.nome} onChange={(e) => handleTelefoneChange(index, 'nome', e.target.value, 'new')} placeholder="Ex: Principal" />
-                                </div>
-                                <div className="sm:col-span-2">
-                                <Label htmlFor={`new-tel-numero-${index}`} className="text-xs text-muted-foreground">Número</Label>
-                                <Input id={`new-tel-numero-${index}`} value={tel.numero} onChange={(e) => handleTelefoneChange(index, 'numero', e.target.value, 'new')} placeholder="(DD) XXXXX-XXXX" />
-                                </div>
-                            </div>
-                            <Button type="button" variant="ghost" size="icon" onClick={() => removeTelefone(index, 'new')} disabled={newClient.telefones.length <= 1}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        ))}
-                      
-                         <Button type="button" variant="outline" size="sm" onClick={() => addTelefone('new')} className="w-full sm:w-auto">
-                            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Telefone
-                        </Button>
-                      </div>
-
-                    <div>
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" name="email" type="email" value={newClient.email || ''} onChange={handleNewClientChange} placeholder="contato@email.com" />
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting || isCpfCnpjInvalid}>
-                      {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                      Adicionar Cliente
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full sm:w-auto"
-                        onClick={handleImportContacts}
-                        disabled={isSubmitting}
-                    >
-                        <Contact className="mr-2 h-4 w-4" />
-                        Importar dos Contatos
-                    </Button>
-                  </div>
-                </form>
-              </AccordionContent>
-            </AccordionItem>
+            <ClientForm
+                key={JSON.stringify(newClient)}
+                initialData={newClient}
+                onSubmit={handleAdicionarCliente}
+                onImportContacts={handleImportContacts}
+                isSubmitting={isSubmitting}
+                triggerTitle="Adicionar Novo Cliente"
+            />
           </Accordion>
 
           {showSkeleton ? (
@@ -734,92 +433,18 @@ const handleImportContacts = async () => {
                           </Button>
                         )}
                   </div>
-                  <Button variant="ghost" size="icon" onClick={fetchPageData} disabled={isLoadingData}>
+                  <Button variant="ghost" size="icon" onClick={() => fetchPageData()} disabled={isLoadingData}>
                     <RefreshCw className={`h-5 w-5 ${isLoadingData ? 'animate-spin' : ''}`} />
                   </Button>
                 </div>
               </div>
-
-               <Accordion type="multiple" className="w-full">
-                  {filteredClientes.map(item => (
-                    <AccordionItem value={item.id!} key={item.id} className="border-b">
-                      <div className="flex items-center w-full group">
-                          <AccordionTrigger className="flex-1 hover:no-underline py-3 px-2 rounded-t-lg data-[state=open]:bg-muted/50">
-                              <div className="flex items-center gap-3">
-                                <span className="font-medium text-lg text-primary">{item.nome}</span>
-                              </div>
-                          </AccordionTrigger>
-                          <div className="flex items-center gap-2 pr-2">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
-                                      <MoreVertical className="h-5 w-5" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                  <DropdownMenuItem onClick={() => handleEditClick(item)}>
-                                      <Pencil className="mr-2 h-4 w-4" />
-                                      Editar Cliente
-                                  </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleViewBudgets(item.id!)}>
-                                      <History className="mr-2 h-4 w-4" />
-                                      Ver Orçamentos
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <div className={cn(
-                                        "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-                                        "text-destructive focus:bg-destructive/10 focus:text-destructive"
-                                      )}
-                                      onSelect={(e) => e.preventDefault()}
-                                      >
-                                          <Trash2 className="mr-2 h-4 w-4" />
-                                          Excluir Cliente
-                                      </div>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                            <AlertDialogDescription>Esta ação não pode ser desfeita. Isso excluirá permanentemente o cliente.</AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleRemoverCliente(item.id!)}>Sim, Excluir</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                            {budgetCountsByClient[item.id!]?.Total > 0 && (
-                              <Badge className="h-6 w-6 rounded-full p-0 flex items-center justify-center text-xs">
-                                {budgetCountsByClient[item.id!].Total}
-                              </Badge>
-                            )}
-                          </div>
-                      </div>
-                      <AccordionContent className="p-4 space-y-3">
-                          {item.cpfCnpj && <p className="text-sm"><span className="font-medium text-muted-foreground">CPF/CNPJ:</span> {item.cpfCnpj}</p>}
-                          {item.telefones?.map((tel, index) => (
-                            <p key={index} className="text-sm">
-                                <span className="font-medium text-muted-foreground">{tel.nome || `Telefone ${index + 1}`}:</span> {tel.numero}
-                            </p>
-                          ))}
-                          {item.email && <p className="text-sm"><span className="font-medium text-muted-foreground">Email:</span> {item.email}</p>}
-                          {item.endereco && <p className="text-sm"><span className="font-medium text-muted-foreground">Endereço:</span> {item.endereco}</p>}
-                          <div className="pt-2">
-                            <p 
-                                className="text-sm font-medium text-muted-foreground mb-2 cursor-pointer hover:text-primary transition-colors"
-                                onClick={() => handleViewBudgets(item.id!)}
-                            >
-                                Histórico de Orçamentos
-                            </p>
-                            <BudgetBadges counts={budgetCountsByClient[item.id!]} />
-                          </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-              </Accordion>
+               <ClientList
+                 clientes={filteredClientes}
+                 budgetCounts={budgetCountsByClient}
+                 onEdit={handleEditClick}
+                 onDelete={handleRemoverCliente}
+                 onViewBudgets={handleViewBudgets}
+               />
             </div>
           ) : (
              <p className="text-center text-muted-foreground py-8">Nenhum cliente cadastrado ainda. Se você já cadastrou, pode ser necessário criar um índice no Firestore. Verifique o console para erros.</p>
@@ -827,223 +452,26 @@ const handleImportContacts = async () => {
         </CardContent>
       </Card>
 
-      {/* DIALOGS SECTION */}
+      <ClientModals
+        isEditModalOpen={isEditModalOpen}
+        setIsEditModalOpen={setIsEditModalOpen}
+        editingClient={editingClient}
+        setEditingClient={setEditingClient}
+        onSaveEdit={handleSalvarEdicao}
+        isSubmitting={isSubmitting}
+        
+        isContactSelectionModalOpen={isContactSelectionModalOpen}
+        setIsContactSelectionModalOpen={setIsContactSelectionModalOpen}
+        selectedContactDetails={selectedContactDetails}
+        onConfirmContactSelection={handleConfirmContactSelection}
+        
+        isDuplicateAlertOpen={isDuplicateAlertOpen}
+        setIsDuplicateAlertOpen={setIsDuplicateAlertOpen}
+        duplicateMessage={duplicateMessage}
 
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent 
-            className="max-w-lg"
-            onPointerDownOutside={(e) => {
-              if (Capacitor.isNativePlatform()) e.preventDefault();
-            }}
-        >
-          <DialogHeader>
-            <DialogTitle>Editar Cliente</DialogTitle>
-            <DialogDescription>
-              Faça as alterações necessárias nos dados do cliente.
-            </DialogDescription>
-          </DialogHeader>
-          {editingClient && (
-            <form onSubmit={handleSalvarEdicao} className="space-y-4 py-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="edit-nome">Nome</Label>
-                  <Input id="edit-nome" name="nome" value={editingClient.nome} onChange={(e) => setEditingClient(p => p ? {...p, nome: e.target.value} : null)} required />
-                </div>
-                <div>
-                  <Label htmlFor="edit-cpfCnpj">CPF / CNPJ</Label>
-                  <div className="relative">
-                      <Input 
-                        id="edit-cpfCnpj" 
-                        name="cpfCnpj" 
-                        value={editingClient.cpfCnpj || ''} 
-                        onChange={(e) => setEditingClient(p => p ? {...p, cpfCnpj: maskCpfCnpj(e.target.value)} : null)}
-                        className={cn(
-                            editingClient.cpfCnpj && 'pr-10',
-                            editingClientCpfCnpjStatus === 'valid' && 'border-green-500 focus-visible:ring-green-500',
-                            editingClientCpfCnpjStatus === 'invalid' && 'border-destructive focus-visible:ring-destructive'
-                        )}
-                      />
-                      {editingClient.cpfCnpj && (
-                        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                          {editingClientCpfCnpjStatus === 'valid' && <CheckCircle className="h-5 w-5 text-green-500" />}
-                          {editingClientCpfCnpjStatus === 'invalid' && <XCircle className="h-5 w-5 text-destructive" />}
-                        </div>
-                      )}
-                  </div>
-                   {editingClient.cpfCnpj && (
-                       <p className={cn(
-                          "text-xs mt-1",
-                          editingClientCpfCnpjStatus === 'invalid' ? 'text-destructive' : 'text-muted-foreground'
-                       )}>
-                        {editingClientCpfCnpjStatus === 'invalid' ? 'Documento inválido.' : editingClientCpfCnpjStatus === 'incomplete' ? 'Documento incompleto.' : 'Documento válido.'}
-                       </p>
-                    )}
-                </div>
-                <div className="md:col-span-2">
-                  <Label htmlFor="edit-endereco">Endereço</Label>
-                  <Input id="edit-endereco" name="endereco" value={editingClient.endereco} onChange={(e) => setEditingClient(p => p ? {...p, endereco: e.target.value} : null)} />
-                </div>
-                
-                <div className="md:col-span-2 space-y-4">
-                    <Label>Telefones de Contato</Label>
-                    
-                    {(editingClient.telefones || []).map((tel, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <div className="flex-grow grid grid-cols-1 sm:grid-cols-3 gap-2">
-                            <div className="sm:col-span-1">
-                                <Label htmlFor={`edit-tel-nome-${index}`} className="text-xs text-muted-foreground">Apelido</Label>
-                                <Input id={`edit-tel-nome-${index}`} value={tel.nome} onChange={(e) => handleTelefoneChange(index, 'nome', e.target.value, 'edit')} placeholder="Ex: Principal" />
-                            </div>
-                            <div className="sm:col-span-2">
-                                <Label htmlFor={`edit-tel-numero-${index}`} className="text-xs text-muted-foreground">Número</Label>
-                                <Input id={`edit-tel-numero-${index}`} value={tel.numero} onChange={(e) => handleTelefoneChange(index, 'numero', e.target.value, 'edit')} placeholder="(DD) XXXXX-XXXX" />
-                            </div>
-                        </div>
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeTelefone(index, 'edit')} disabled={editingClient.telefones.length <= 1}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    ))}
-                    
-                     <Button type="button" variant="outline" size="sm" onClick={() => addTelefone('edit')} className="w-full sm:w-auto">
-                        <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Telefone
-                    </Button>
-                </div>
-                
-                <div>
-                  <Label htmlFor="edit-email">Email</Label>
-                  <Input id="edit-email" name="email" type="email" value={editingClient.email || ''} onChange={(e) => setEditingClient(p => p ? {...p, email: e.target.value} : null)} />
-                </div>
-              </div>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button>
-                </DialogClose>
-                <Button type="submit" disabled={isSubmitting || isEditingCpfCnpjInvalid}>
-                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                   Salvar Alterações
-                </Button>
-              </DialogFooter>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={isContactSelectionModalOpen} onOpenChange={setIsContactSelectionModalOpen}>
-        <DialogContent
-            onPointerDownOutside={(e) => {
-              if (Capacitor.isNativePlatform()) e.preventDefault();
-            }}
-        >
-          <DialogHeader>
-            <DialogTitle>Escolha os Detalhes do Contato</DialogTitle>
-            <DialogDescription>
-              O contato selecionado tem múltiplas informações. Escolha quais usar.
-            </DialogDescription>
-          </DialogHeader>
-          {selectedContactDetails && (
-            <form onSubmit={handleConfirmContactSelection} className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Nome</Label>
-                <Input value={selectedContactDetails.name?.[0] || 'Sem nome'} disabled />
-              </div>
-
-              {selectedContactDetails.tel?.length > 1 && (
-                <div className="space-y-2">
-                  <Label htmlFor="tel-select">Telefone</Label>
-                  <Select name="tel">
-                    <SelectTrigger id="tel-select">
-                      <SelectValue placeholder="Selecione um telefone..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {selectedContactDetails.tel.map((tel, i) => (
-                        <SelectItem key={i} value={tel}>{tel}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {selectedContactDetails.email?.length > 1 && (
-                <div className="space-y-2">
-                  <Label htmlFor="email-select">Email</Label>
-                  <Select name="email">
-                    <SelectTrigger id="email-select">
-                      <SelectValue placeholder="Selecione um email..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {selectedContactDetails.email.map((email, i) => (
-                        <SelectItem key={i} value={email}>{email}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {selectedContactDetails.address?.length > 1 && (
-                <div className="space-y-2">
-                  <Label htmlFor="address-select">Endereço</Label>
-                  <Select name="address">
-                    <SelectTrigger id="address-select">
-                      <SelectValue placeholder="Selecione um endereço..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {selectedContactDetails.address.map((addr, i) => {
-                        const formatted = formatAddress(addr);
-                        return <SelectItem key={i} value={JSON.stringify(addr)}>{formatted}</SelectItem>
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button" variant="outline" onClick={() => setSelectedContactDetails(null)}>Cancelar</Button>
-                </DialogClose>
-                <Button type="submit">Confirmar Seleção</Button>
-              </DialogFooter>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={isDuplicateAlertOpen} onOpenChange={setIsDuplicateAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cliente Duplicado</AlertDialogTitle>
-            <AlertDialogDescription>
-              {duplicateMessage}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setIsDuplicateAlertOpen(false)}>
-              Entendido
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      
-      <AlertDialog open={isApiNotSupportedAlertOpen} onOpenChange={setIsApiNotSupportedAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Recurso Indisponível</AlertDialogTitle>
-            <AlertDialogDescription>
-              A importação de contatos não é suportada pelo seu navegador atual. Para usar esta funcionalidade, recomendamos usar o Google Chrome ou Microsoft Edge em seu dispositivo.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setIsApiNotSupportedAlertOpen(false)}>
-              Entendido
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
+        isApiNotSupportedAlertOpen={isApiNotSupportedAlertOpen}
+        setIsApiNotSupportedAlertOpen={setIsApiNotSupportedAlertOpen}
+      />
     </div>
   );
 }
-
-    
-
-    
