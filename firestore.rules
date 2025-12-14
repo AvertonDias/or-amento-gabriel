@@ -8,9 +8,10 @@ service cloud.firestore {
       allow read, write: if request.auth.uid == userId;
     }
 
-    // Regras para coleções onde os documentos contêm um campo 'userId'
+    // Regra genérica para as outras coleções
     match /{collection}/{docId} {
       allow read, create, update: if request.auth.uid != null && request.resource.data.userId == request.auth.uid;
+      // Permite a exclusão se o usuário for o dono do documento que está sendo excluído
       allow delete: if request.auth.uid != null && resource.data.userId == request.auth.uid;
     }
   }
