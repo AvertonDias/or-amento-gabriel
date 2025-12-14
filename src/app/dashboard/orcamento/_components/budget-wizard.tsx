@@ -14,7 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Loader2, PlusCircle, Trash2, Pencil, ArrowLeft, ArrowRight, FileText, ArrowRightLeft, ChevronsUpDown, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone, maskCurrency, maskDecimal, maskInteger } from '@/lib/utils';
+import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone, maskCurrency, maskDecimal, maskInteger, maskDecimalWithAutoComma } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { Capacitor } from '@capacitor/core';
 import { EditItemModal } from './edit-item-modal';
@@ -153,12 +153,12 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
             setNovoItem(prev => ({ ...prev, [field]: value }));
             setTimeout(() => quantidadeInputRef.current?.focus(), 0);
         } else if (field === 'quantidade') {
-            const mask = isCurrentUnitInteger ? maskInteger : maskDecimal;
+            const mask = isCurrentUnitInteger ? maskInteger : maskDecimalWithAutoComma;
             const masked = mask(value);
             setQuantidadeStr(masked);
             setNovoItem(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
         } else if (field === 'margemLucro') {
-            const masked = maskDecimal(value);
+            const masked = maskDecimalWithAutoComma(value);
             setMargemLucroStr(masked);
             setNovoItem(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
         }
@@ -454,7 +454,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                             id="avulso-qtd" 
                                             value={itemAvulso.quantidade} 
                                             onChange={e => {
-                                                const mask = isCurrentUnitInteger ? maskInteger : maskDecimal;
+                                                const mask = isCurrentUnitInteger ? maskInteger : maskDecimalWithAutoComma;
                                                 setItemAvulso(p => ({...p, quantidade: mask(e.target.value)}));
                                             }} 
                                             placeholder="1" />
@@ -494,9 +494,9 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                         <>
                                         <div>
                                             <Label htmlFor="quantidade">Qtd ({selectedMaterial.unidade})</Label>
-                                            <Input ref={quantidadeInputRef} id="quantidade" type="text" inputMode='decimal' placeholder="1,5" value={quantidadeStr} onChange={e => handleNovoItemChange('quantidade', e.target.value)} />
+                                            <Input ref={quantidadeInputRef} id="quantidade" type="text" inputMode='decimal' placeholder="1,50" value={quantidadeStr} onChange={e => handleNovoItemChange('quantidade', e.target.value)} />
                                         </div>
-                                        <div><Label htmlFor="margem-lucro">Acréscimo (%)</Label><Input id="margem-lucro" type="text" inputMode='decimal' placeholder="10" value={margemLucroStr} onChange={e => handleNovoItemChange('margemLucro', e.target.value)} /></div>
+                                        <div><Label htmlFor="margem-lucro">Acréscimo (%)</Label><Input id="margem-lucro" type="text" inputMode='decimal' placeholder="10,00" value={margemLucroStr} onChange={e => handleNovoItemChange('margemLucro', e.target.value)} /></div>
                                         <div className="lg:col-span-1"><Button onClick={addLinha} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Add</Button></div>
                                         </>
                                     )}
