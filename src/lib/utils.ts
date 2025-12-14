@@ -108,21 +108,15 @@ export const maskCnpj = (value: string): string => {
 }
 
 export const maskCurrency = (value: string): string => {
-    if (!value) return "R$ 0,00";
+    if (!value) return "";
     let v = value.replace(/\D/g, ''); // Remove tudo que não é dígito
-    if (v === '') return "R$ 0,00";
-    // Adiciona zeros à esquerda se necessário para ter pelo menos 3 dígitos
-    while (v.length < 3) {
-      v = '0' + v;
-    }
-    // Formata o valor
     v = (parseInt(v, 10) / 100).toFixed(2) + '';
     v = v.replace(".", ",");
     v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
     return 'R$ ' + v;
 }
 
-export const maskDecimal = (value: string, decimals: number = 2): string => {
+export const maskDecimal = (value: string): string => {
   if (!value) return "";
   
   // 1. Permite apenas números e uma vírgula
@@ -134,11 +128,6 @@ export const maskDecimal = (value: string, decimals: number = 2): string => {
     v = `${parts[0]},${parts.slice(1).join('')}`;
   }
   
-  // 3. Limita o número de casas decimais
-  if (parts[1] && parts[1].length > decimals) {
-    v = `${parts[0]},${parts[1].substring(0, decimals)}`;
-  }
-
   return v;
 };
 

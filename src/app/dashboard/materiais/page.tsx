@@ -131,7 +131,7 @@ export default function MateriaisPage() {
     if (name === 'precoUnitario') {
       const maskedValue = maskCurrency(value);
       setPrecoUnitarioStr(maskedValue);
-      const numericValue = parseFloat(maskedValue.replace(/\D/g, '')) / 100 || null;
+      const numericValue = parseFloat(maskedValue.replace(/[^\d,]/g, '').replace(',', '.')) || null;
       setNewItem(prev => ({...prev, precoUnitario: numericValue }));
     } else {
         const maskedValue = maskDecimal(value);
@@ -267,7 +267,7 @@ export default function MateriaisPage() {
     if (name === 'precoUnitario') {
       const maskedValue = maskCurrency(value);
       setEditingPrecoUnitarioStr(maskedValue);
-      const numericValue = parseFloat(maskedValue.replace(/\D/g, '')) / 100 || null;
+      const numericValue = parseFloat(maskedValue.replace(/[^\d,]/g, '').replace(',', '.')) || null;
       setEditingMaterial(prev => prev ? { ...prev, precoUnitario: numericValue } : null);
     } else {
         const maskedValue = maskDecimal(value);

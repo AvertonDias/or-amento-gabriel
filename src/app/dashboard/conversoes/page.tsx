@@ -124,7 +124,7 @@ export default function ConversoesPage() {
     const P = parseFloat(peso.replace(',', '.'));
     const L_mm = parseFloat(largura.replace(',', '.'));
     const E_mm = parseFloat(espessura.replace(',', '.'));
-    const V = parseFloat(valorInput.replace(/\D/g, '')) / 100;
+    const V = parseFloat(valorInput.replace(/[^\d]/g, '')) / 100;
     const D = DENSIDADES[material];
 
     if (isNaN(P) || isNaN(L_mm) || isNaN(E_mm) || !D || L_mm === 0 || E_mm === 0 || D === 0) {
@@ -302,8 +302,8 @@ export default function ConversoesPage() {
     setIsSubmitting(false);
   };
   
-  const handleDecimalInputChange = (setter: React.Dispatch<React.SetStateAction<string>>, decimals: number = 2) => (e: React.ChangeEvent<HTMLInputElement>) => {
-      setter(maskDecimal(e.target.value, decimals));
+  const handleDecimalInputChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      setter(maskDecimal(e.target.value));
   };
 
   const currentUnitOptions = UNIT_LABELS[convType] || {};
@@ -332,7 +332,7 @@ export default function ConversoesPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="espessura" className="flex items-center gap-1"><Ruler className="w-4 h-4" /> Espessura (mm)</Label>
-              <Input id="espessura" type="text" inputMode="decimal" value={espessura} onChange={(e) => setEspessura(maskDecimal(e.target.value, 2))} placeholder="Ex: 0,50" />
+              <Input id="espessura" type="text" inputMode="decimal" value={espessura} onChange={(e) => setEspessura(maskDecimal(e.target.value))} placeholder="Ex: 0,50" />
             </div>
              <div className="space-y-2">
               <Label htmlFor="price-mode">Tipo de Valor</Label>
@@ -417,7 +417,7 @@ export default function ConversoesPage() {
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
                 <div className="md:col-span-2 space-y-2">
                     <Label htmlFor="from-value">Valor</Label>
-                    <Input id="from-value" type="text" inputMode="decimal" value={unitValue} onChange={handleDecimalInputChange(setUnitValue, 3)} placeholder="Digite o valor" />
+                    <Input id="from-value" type="text" inputMode="decimal" value={unitValue} onChange={handleDecimalInputChange(setUnitValue)} placeholder="Digite o valor" />
                 </div>
                  <div className="md:col-span-2 space-y-2">
                     <Label htmlFor="from-unit">De</Label>

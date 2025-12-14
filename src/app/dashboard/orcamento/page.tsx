@@ -263,7 +263,7 @@ export default function OrcamentoPage() {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [orcamentoItens, setOrcamentoItens] = useState<OrcamentoItem[]>([]);
-  const [clienteData, setClienteData] = useState<Omit<ClienteData, 'userId' | 'id'> & {id?: string}>({ id: undefined, nome: '', endereco: '', telefones: [{nome: 'Principal', numero: ''}], email: '', cpfCnpj: ''});
+  const [clienteData, setClienteData] = useState<Omit<ClienteData, 'userId' | 'id'> & {id?: string; telefones: {nome: string, numero: string, principal?: boolean}[]}>({ id: undefined, nome: '', endereco: '', telefones: [{nome: 'Principal', numero: '', principal: true}], email: '', cpfCnpj: ''});
   const [validadeDias, setValidadeDias] = useState('7');
   
   const [isLoading, setIsLoading] = useState({
@@ -503,7 +503,7 @@ export default function OrcamentoPage() {
   const handleOpenWizard = () => {
     // Reset state before opening
     setOrcamentoItens([]);
-    setClienteData({ id: undefined, nome: '', endereco: '', telefones: [{nome: 'Principal', numero: ''}], email: '', cpfCnpj: ''});
+    setClienteData({ id: undefined, nome: '', endereco: '', telefones: [{nome: 'Principal', numero: '', principal: true}], email: '', cpfCnpj: ''});
     setValidadeDias('7');
     setIsAddingAvulso(false);
     setWizardStep(1);
@@ -571,7 +571,7 @@ export default function OrcamentoPage() {
         setQuantidadeStr(masked);
         setNovoItem(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
     } else if (field === 'margemLucro') {
-        const masked = maskDecimal(value, 1);
+        const masked = maskDecimal(value);
         setMargemLucroStr(masked);
         setNovoItem(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
     }
@@ -583,7 +583,7 @@ export default function OrcamentoPage() {
         setNewItemQtyStr(masked);
         setNewItemForEdit(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
     } else if (field === 'margemLucro') {
-        const masked = maskDecimal(value, 1);
+        const masked = maskDecimal(value);
         setNewItemMarginStr(masked);
         setNewItemForEdit(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
     } else {
