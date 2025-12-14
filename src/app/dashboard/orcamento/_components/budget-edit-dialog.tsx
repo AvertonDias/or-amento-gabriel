@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, FormEvent } from 'react';
+import React, { useState, useEffect, FormEvent, useMemo } from 'react';
 import type { Orcamento, OrcamentoItem, MaterialItem } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -301,5 +301,7 @@ export function BudgetEditDialog({ isOpen, onOpenChange, budget, materiais, onUp
     );
 }
 
+
+    
 
     
