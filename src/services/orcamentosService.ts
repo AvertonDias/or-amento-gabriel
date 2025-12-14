@@ -11,6 +11,7 @@ import {
 import { db as dexieDB } from '@/lib/dexie';
 import type { Orcamento } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
+import { auth } from '@/lib/firebase';
 
 // --- Funções que interagem com o Dexie (local) ---
 
@@ -47,8 +48,8 @@ export const addOrcamento = async (orcamento: Omit<Orcamento, 'id'>): Promise<st
     id: newId,
     cliente: {
       ...orcamento.cliente,
-      cpfCnpj: orcamento.cliente.cpfCnpj || null,
-      email: orcamento.cliente.email || null,
+      cpfCnpj: orcamento.cliente.cpfCnpj || '',
+      email: orcamento.cliente.email || '',
       endereco: orcamento.cliente.endereco || ''
     },
   };
@@ -73,8 +74,8 @@ export const updateOrcamento = async (orcamentoId: string, orcamento: Partial<Or
   
   // Garante que campos opcionais não sejam undefined
   if (updatedData.cliente) {
-    updatedData.cliente.cpfCnpj = updatedData.cliente.cpfCnpj || null;
-    updatedData.cliente.email = updatedData.cliente.email || null;
+    updatedData.cliente.cpfCnpj = updatedData.cliente.cpfCnpj || '';
+    updatedData.cliente.email = updatedData.cliente.email || '';
     updatedData.cliente.endereco = updatedData.cliente.endereco || '';
   }
 
@@ -104,8 +105,16 @@ export const updateOrcamentoStatus = async (
 
 
 export const deleteOrcamento = async (orcamentoId: string) => {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Usuário não autenticado.");
+
   await dexieDB.orcamentos.delete(orcamentoId);
-  await dexieDB.deletions.put({ id: orcamentoId, collection: 'orcamentos', deletedAt: new Date() });
+  await dexieDB.deletions.put({ 
+      id: orcamentoId, 
+      userId: user.uid, 
+      collection: 'orcamentos', 
+      deletedAt: new Date() 
+  });
 };
 
 
@@ -124,3 +133,4 @@ export const deleteOrcamentoFromFirestore = async (orcamentoId: string) => {
   const orcamentoDocRef = doc(firestoreDB, 'orcamentos', orcamentoId);
   await deleteDocFirestore(orcamentoDocRef);
 };
+

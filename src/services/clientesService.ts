@@ -4,6 +4,7 @@ import { collection, addDoc as addDocFirestore, doc, updateDoc as updateDocFires
 import { db as dexieDB } from '@/lib/dexie';
 import type { ClienteData } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
+import { auth } from '@/lib/firebase';
 
 // --- Funções que interagem com o Dexie (local) ---
 
@@ -43,8 +44,16 @@ export const updateCliente = async (clienteId: string, cliente: Partial<Omit<Cli
 };
 
 export const deleteCliente = async (clienteId: string) => {
+    const user = auth.currentUser;
+    if (!user) throw new Error("Usuário não autenticado.");
+    
     await dexieDB.clientes.delete(clienteId);
-    await dexieDB.deletions.put({ id: clienteId, collection: 'clientes', deletedAt: new Date() });
+    await dexieDB.deletions.put({ 
+        id: clienteId, 
+        userId: user.uid, 
+        collection: 'clientes', 
+        deletedAt: new Date() 
+    });
 };
 
 
@@ -60,3 +69,4 @@ export const deleteClienteFromFirestore = async (clienteId: string) => {
     const clienteDoc = doc(firestoreDB, 'clientes', clienteId);
     await deleteDocFirestore(clienteDoc);
 };
+

@@ -4,6 +4,7 @@ import { doc, updateDoc as updateDocFirestore, deleteDoc as deleteDocFirestore, 
 import { db as dexieDB } from '@/lib/dexie';
 import type { MaterialItem } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
+import { auth } from '@/lib/firebase';
 
 // --- Funções que interagem com o Dexie (local) ---
 
@@ -56,8 +57,16 @@ export const updateEstoque = async (userId: string, materialId: string, quantida
 };
 
 export const deleteMaterial = async (materialId: string) => {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Usuário não autenticado.");
+  
   await dexieDB.materiais.delete(materialId);
-  await dexieDB.deletions.put({ id: materialId, collection: 'materiais', deletedAt: new Date() });
+  await dexieDB.deletions.put({ 
+    id: materialId, 
+    userId: user.uid, 
+    collection: 'materiais', 
+    deletedAt: new Date() 
+  });
 };
 
 
@@ -72,3 +81,4 @@ export const deleteMaterialFromFirestore = async (materialId: string) => {
     const materialDocRef = doc(firestoreDB, 'materiais', materialId);
     await deleteDocFirestore(materialDocRef);
 };
+
