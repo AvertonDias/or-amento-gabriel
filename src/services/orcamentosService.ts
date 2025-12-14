@@ -49,7 +49,7 @@ export const addOrcamento = async (orcamento: Omit<Orcamento, 'id'>): Promise<st
       ...orcamento.cliente,
       cpfCnpj: orcamento.cliente.cpfCnpj || null,
       email: orcamento.cliente.email || null,
-      endereco: orcamento.cliente.endereco || '',
+      endereco: orcamento.cliente.endereco || ''
     },
   };
 
@@ -113,7 +113,11 @@ export const deleteOrcamento = async (orcamentoId: string) => {
 
 export const syncOrcamentoToFirestore = async (orcamentoData: Orcamento) => {
   const orcamentoDocRef = doc(firestoreDB, 'orcamentos', orcamentoData.id);
-  await setDoc(orcamentoDocRef, orcamentoData, { merge: true });
+  // Limpeza de valores undefined antes de enviar para o Firestore
+  const cleanData = JSON.parse(JSON.stringify(orcamentoData, (key, value) => 
+    (value === undefined ? null : value)
+  ));
+  await setDoc(orcamentoDocRef, cleanData, { merge: true });
 };
 
 export const deleteOrcamentoFromFirestore = async (orcamentoId: string) => {

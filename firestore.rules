@@ -3,23 +3,15 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /empresa/{empresaId} {
-      allow read, write: if request.auth.uid == resource.data.userId;
+    // Regra para a coleção 'empresa', onde o ID do documento é o ID do usuário
+    match /empresa/{userId} {
+      allow read, write: if request.auth.uid == userId;
     }
 
-    match /clientes/{clienteId} {
-      allow read, delete: if resource.data.userId == request.auth.uid;
-      allow create, update: if request.resource.data.userId == request.auth.uid;
-    }
-    
-    match /materiais/{materialId} {
-      allow read, delete: if resource.data.userId == request.auth.uid;
-      allow create, update: if request.resource.data.userId == request.auth.uid;
-    }
-
-    match /orcamentos/{orcamentoId} {
-      allow read, delete: if resource.data.userId == request.auth.uid;
-      allow create, update: if request.resource.data.userId == request.auth.uid;
+    // Regras para coleções onde os documentos contêm um campo 'userId'
+    match /{collection}/{docId} {
+      allow read, delete: if request.auth.uid != null && resource.data.userId == request.auth.uid;
+      allow create, update: if request.auth.uid != null && request.resource.data.userId == request.auth.uid;
     }
   }
 }
