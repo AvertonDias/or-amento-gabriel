@@ -1,220 +1,212 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
+/* ===========================
+   Utilitário de classes
+=========================== */
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(value: number | null | undefined, showSymbol: boolean = true): string {
-  if (value === null || value === undefined || isNaN(value)) {
-    return showSymbol ? 'R$ 0,00' : '0,00';
+/* ===========================
+   Formatação de valores
+=========================== */
+export function formatCurrency(
+  value: number | null | undefined,
+  showSymbol: boolean = true
+): string {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return showSymbol ? "R$ 0,00" : "0,00";
   }
 
-  const options: Intl.NumberFormatOptions = {
-    style: 'currency',
-    currency: 'BRL',
+  const formatted = new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  };
+  }).format(value);
 
-  const formatted = new Intl.NumberFormat('pt-BR', options).format(value);
-  
-  return showSymbol ? formatted : formatted.replace('R$', '').trim();
+  return showSymbol ? formatted : formatted.replace("R$", "").trim();
 }
 
-export function formatSmallValueCurrency(value: number | null | undefined, digits: number = 5): string {
-  const options: Intl.NumberFormatOptions = {
-    style: 'currency',
-    currency: 'BRL',
+export function formatSmallValueCurrency(
+  value: number | null | undefined,
+  digits: number = 5
+): string {
+  const safeValue =
+    value === null || value === undefined || Number.isNaN(value) ? 0 : value;
+
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
-  };
-  if (value === null || value === undefined || isNaN(value)) {
-    return new Intl.NumberFormat('pt-BR', options).format(0);
-  }
-  return new Intl.NumberFormat('pt-BR', options).format(value);
+  }).format(safeValue);
 }
 
-export function formatNumber(value: number | null | undefined, decimalPlaces: number = 2): string {
-  if (value === null || value === undefined || isNaN(value)) {
-    return '0';
+export function formatNumber(
+  value: number | null | undefined,
+  decimalPlaces: number = 2
+): string {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return "0";
   }
 
-  const options: Intl.NumberFormatOptions = {
+  if (decimalPlaces === 0) {
+    return Math.trunc(value).toString();
+  }
+
+  return new Intl.NumberFormat("pt-BR", {
     minimumFractionDigits: decimalPlaces,
     maximumFractionDigits: decimalPlaces,
-  };
-
-  const formatted = new Intl.NumberFormat('pt-BR', options).format(value);
-  // Se o valor for inteiro e não for para mostrar casas decimais, não adiciona `,00`
-  if (decimalPlaces === 0 && value % 1 === 0) {
-    return String(value);
-  }
-  return formatted;
+  }).format(value);
 }
 
+/* ===========================
+   Máscaras
+=========================== */
 export const maskTelefone = (value: string): string => {
-  if (!value) return ""
-  const onlyNums = value.replace(/[^\d]/g, '')
-  
+  if (!value) return "";
+
+  const onlyNums = value.replace(/\D/g, "");
+
   if (onlyNums.length <= 10) {
-    // (XX) XXXX-XXXX
     return onlyNums
-      .replace(/(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{4})(\d)/, '$1-$2')
-      .slice(0, 14)
-  } else {
-    // (XX) XXXXX-XXXX
-    return onlyNums
-      .replace(/(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{5})(\d)/, '$1-$2')
-      .replace(/(-\d{4})\d+?$/, '$1') // Truncate after 4 digits of the second part
-      .slice(0, 15)
+      .replace(/(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{4})(\d)/, "$1-$2")
+      .slice(0, 14);
   }
-}
+
+  return onlyNums
+    .replace(/(\d{2})(\d)/, "($1) $2")
+    .replace(/(\d{5})(\d)/, "$1-$2")
+    .slice(0, 15);
+};
 
 export const maskCpfCnpj = (value: string): string => {
-  if (!value) return ""
-  const onlyNums = value.replace(/[^\d]/g, '')
+  if (!value) return "";
+
+  const onlyNums = value.replace(/\D/g, "");
 
   if (onlyNums.length <= 11) {
-    // CPF mask
     return onlyNums
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
-      .slice(0, 14) // max length for CPF
-  } else {
-    // CNPJ mask
-    return onlyNums
-      .replace(/(\d{2})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1/$2')
-      .replace(/(\d{4})(\d{1,2})/, '$1-$2')
-      .slice(0, 18) // max length for CNPJ
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})/, "$1-$2")
+      .slice(0, 14);
   }
-}
+
+  return onlyNums
+    .replace(/(\d{2})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1/$2")
+    .replace(/(\d{4})(\d{1,2})/, "$1-$2")
+    .slice(0, 18);
+};
 
 export const maskCnpj = (value: string): string => {
-  if (!value) return ""
+  if (!value) return "";
+
   return value
-    .replace(/\D/g, '')
-    .replace(/(\d{2})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1/$2')
-    .replace(/(\d{4})(\d)/, '$1-$2')
-    .slice(0, 18)
-}
+    .replace(/\D/g, "")
+    .replace(/(\d{2})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2")
+    .slice(0, 18);
+};
 
 export const maskCurrency = (value: string): string => {
-    if (!value) return "";
-    let v = value.replace(/\D/g, ''); // Remove tudo que não é dígito
-    v = (parseInt(v, 10) / 100).toFixed(2) + '';
-    v = v.replace(".", ",");
-    v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
-    return 'R$ ' + v;
-}
+  if (!value) return "";
+
+  let v = value.replace(/\D/g, "");
+  v = (parseInt(v || "0", 10) / 100).toFixed(2);
+  v = v.replace(".", ",");
+  v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.");
+
+  return "R$ " + v;
+};
 
 export const maskDecimal = (value: string): string => {
   if (!value) return "";
 
-  // Permite apenas números e uma vírgula
   let v = value.replace(/[^0-9,]/g, "");
+  const parts = v.split(",");
 
-  // Garante que haja apenas uma vírgula no valor
-  const commaCount = v.split(",").length - 1;
-  if (commaCount > 1) {
-    const firstCommaIndex = v.indexOf(",");
-    v = v.substring(0, firstCommaIndex + 1) + v.substring(firstCommaIndex + 1).replace(/,/g, "");
-  }
-  
-  // Limita o número de casas decimais a 2
-  const parts = v.split(',');
-  if (parts[1] && parts[1].length > 2) {
-      v = `${parts[0]},${parts[1].substring(0, 2)}`;
+  if (parts[1]?.length > 2) {
+    v = `${parts[0]},${parts[1].slice(0, 2)}`;
   }
 
   return v;
 };
 
 export const maskDecimalWithAutoComma = (value: string): string => {
-    if (!value) return "";
-    let v = value.replace(/\D/g, ''); // Remove tudo que não é dígito
-    if (!v) return "";
-    v = v.replace(/^0+/, ''); // Remove zeros à esquerda
-    if (v.length === 0) return "0,00";
-    if (v.length === 1) return "0,0" + v;
-    if (v.length === 2) return "0," + v;
-    return v.slice(0, -2) + ',' + v.slice(-2);
-}
-
-export const maskInteger = (value: string): string => {
   if (!value) return "";
-  return value.replace(/[^0-9]/g, '');
-}
 
+  let v = value.replace(/\D/g, "").replace(/^0+/, "");
 
-// --- Funções de Validação de CPF e CNPJ ---
+  if (v.length === 0) return "0,00";
+  if (v.length === 1) return `0,0${v}`;
+  if (v.length === 2) return `0,${v}`;
 
+  return `${v.slice(0, -2)},${v.slice(-2)}`;
+};
+
+export const maskInteger = (value: string): string =>
+  value ? value.replace(/\D/g, "") : "";
+
+/* ===========================
+   Validação CPF / CNPJ
+=========================== */
 function validateCPF(cpf: string): boolean {
-  cpf = cpf.replace(/[^\d]/g, '');
+  cpf = cpf.replace(/\D/g, "");
   if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
 
   let sum = 0;
-  let remainder;
-  for (let i = 1; i <= 9; i++) sum += parseInt(cpf.substring(i - 1, i)) * (11 - i);
-  remainder = (sum * 10) % 11;
-  if ((remainder === 10) || (remainder === 11)) remainder = 0;
-  if (remainder !== parseInt(cpf.substring(9, 10))) return false;
+  for (let i = 0; i < 9; i++) sum += Number(cpf[i]) * (10 - i);
+  let check = (sum * 10) % 11;
+  if (check === 10) check = 0;
+  if (check !== Number(cpf[9])) return false;
 
   sum = 0;
-  for (let i = 1; i <= 10; i++) sum += parseInt(cpf.substring(i - 1, i)) * (12 - i);
-  remainder = (sum * 10) % 11;
-  if ((remainder === 10) || (remainder === 11)) remainder = 0;
-  if (remainder !== parseInt(cpf.substring(10, 11))) return false;
+  for (let i = 0; i < 10; i++) sum += Number(cpf[i]) * (11 - i);
+  check = (sum * 10) % 11;
+  if (check === 10) check = 0;
 
-  return true;
+  return check === Number(cpf[10]);
 }
 
 function validateCNPJ(cnpj: string): boolean {
-  cnpj = cnpj.replace(/[^\d]/g, '');
+  cnpj = cnpj.replace(/\D/g, "");
   if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false;
 
-  let length = cnpj.length - 2;
-  let numbers = cnpj.substring(0, length);
-  const digits = cnpj.substring(length);
-  let sum = 0;
-  let pos = length - 7;
-  for (let i = length; i >= 1; i--) {
-    sum += parseInt(numbers.charAt(length - i)) * pos--;
-    if (pos < 2) pos = 9;
-  }
-  let result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
-  if (result !== parseInt(digits.charAt(0))) return false;
+  const calc = (length: number) => {
+    let sum = 0;
+    let pos = length - 7;
 
-  length = length + 1;
-  numbers = cnpj.substring(0, length);
-  sum = 0;
-  pos = length - 7;
-  for (let i = length; i >= 1; i--) {
-    sum += parseInt(numbers.charAt(length - i)) * pos--;
-    if (pos < 2) pos = 9;
-  }
-  result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
-  if (result !== parseInt(digits.charAt(1))) return false;
+    for (let i = length; i >= 1; i--) {
+      sum += Number(cnpj[length - i]) * pos--;
+      if (pos < 2) pos = 9;
+    }
 
-  return true;
+    return sum % 11 < 2 ? 0 : 11 - (sum % 11);
+  };
+
+  return calc(12) === Number(cnpj[12]) && calc(13) === Number(cnpj[13]);
 }
 
-export function validateCpfCnpj(doc: string): 'valid' | 'invalid' | 'incomplete' {
-  if (!doc) return 'incomplete';
-  const onlyNums = doc.replace(/[^\d]/g, '');
-  
-  if (onlyNums.length > 11) { // É CNPJ
-    if (onlyNums.length < 14) return 'incomplete';
-    return validateCNPJ(onlyNums) ? 'valid' : 'invalid';
-  } else { // É CPF
-    if (onlyNums.length < 11) return 'incomplete';
-    return validateCPF(onlyNums) ? 'valid' : 'invalid';
+export function validateCpfCnpj(
+  doc: string
+): "valid" | "invalid" | "incomplete" {
+  if (!doc) return "incomplete";
+
+  const onlyNums = doc.replace(/\D/g, "");
+
+  if (onlyNums.length > 11) {
+    if (onlyNums.length < 14) return "incomplete";
+    return validateCNPJ(onlyNums) ? "valid" : "invalid";
   }
+
+  if (onlyNums.length < 11) return "incomplete";
+  return validateCPF(onlyNums) ? "valid" : "invalid";
 }
