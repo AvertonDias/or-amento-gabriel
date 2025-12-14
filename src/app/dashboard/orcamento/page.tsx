@@ -256,6 +256,10 @@ export default function OrcamentoPage() {
     }
   };
   
+  const handleGerarPDF = (orcamento: Orcamento, type: 'client' | 'internal') => {
+    budgetPdfRef.current?.handleGerarPDF(orcamento, type);
+  }
+
   const clienteFiltrado = clienteIdParam ? (clientes?.find(c => c.id === clienteIdParam) ?? null) : null;
 
   return (
@@ -299,7 +303,7 @@ export default function OrcamentoPage() {
                     onDelete={handleRemoverOrcamento}
                     onEdit={handleOpenEditBudgetModal}
                     clienteFiltrado={clienteFiltrado}
-                    onGeneratePDF={(orcamento) => budgetPdfRef.current?.handleGerarPDF(orcamento, 'client')}
+                    onGeneratePDF={handleGerarPDF}
                 />
             </CardContent>
         </Card>

@@ -51,7 +51,7 @@ interface BudgetListProps {
   onDelete: (budgetId: string) => void;
   onEdit: (budget: Orcamento) => void;
   clienteFiltrado: ClienteData | null;
-  onGeneratePDF: (budget: Orcamento) => void;
+  onGeneratePDF: (budget: Orcamento, type: 'client' | 'internal') => void;
 }
 
 export function BudgetList({
@@ -153,7 +153,7 @@ export function BudgetList({
   return (
     <>
       {/* DIALOG DE SELEÇÃO DE TELEFONE */}
-      <Dialog open={phoneSelectionConfig.isOpen}>
+      <Dialog open={phoneSelectionConfig.isOpen} onOpenChange={(isOpen) => setPhoneSelectionConfig(prev => ({ ...prev, isOpen }))}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{phoneSelectionConfig.title}</DialogTitle>
@@ -233,10 +233,22 @@ export function BudgetList({
                                     Editar
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator/>
-                                <DropdownMenuItem onClick={() => onGeneratePDF(orcamento)}>
-                                    <FileText className="mr-2 h-4 w-4"/>
-                                    Gerar PDF
-                                </DropdownMenuItem>
+                                <DropdownMenuSub>
+                                  <DropdownMenuSubTrigger>
+                                      <FileText className="mr-2 h-4 w-4"/>
+                                      Gerar PDF
+                                  </DropdownMenuSubTrigger>
+                                  <DropdownMenuPortal>
+                                      <DropdownMenuSubContent>
+                                          <DropdownMenuItem onClick={() => onGeneratePDF(orcamento, 'client')}>
+                                              Para Cliente
+                                          </DropdownMenuItem>
+                                           <DropdownMenuItem onClick={() => onGeneratePDF(orcamento, 'internal')}>
+                                              Para Controle Interno
+                                          </DropdownMenuItem>
+                                      </DropdownMenuSubContent>
+                                  </DropdownMenuPortal>
+                                </DropdownMenuSub>
                                 <DropdownMenuItem onClick={() => handleSendWhatsApp(orcamento)}>
                                     <MessageCircle className="mr-2 h-4 w-4"/>
                                     Enviar por WhatsApp
