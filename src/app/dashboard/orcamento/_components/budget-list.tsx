@@ -228,7 +228,10 @@ export function BudgetList({
                                         <DropdownMenuSeparator/>
                                     </>
                                 )}
-                                <DropdownMenuItem onClick={() => onEdit(orcamento)}>
+                                <DropdownMenuItem 
+                                  onClick={() => onEdit(orcamento)}
+                                  disabled={orcamento.status === 'Aceito' || orcamento.status === 'Vencido'}
+                                >
                                     <Pencil className="mr-2 h-4 w-4"/>
                                     Editar
                                 </DropdownMenuItem>
