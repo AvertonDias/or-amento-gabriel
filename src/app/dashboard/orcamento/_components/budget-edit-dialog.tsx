@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableTotalFooter } from '@/components/ui/table';
 import { Loader2, CheckCircle2, PlusCircle, Trash2, Pencil, ArrowRightLeft } from 'lucide-react';
-import { formatCurrency, formatNumber, maskCurrency, maskDecimal } from '@/lib/utils';
+import { formatCurrency, formatNumber, maskCurrency, maskDecimal, maskInteger, maskDecimalWithAutoComma } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Capacitor } from '@capacitor/core';
 import { EditItemModal } from './edit-item-modal';
@@ -24,6 +24,8 @@ const unidadesDeMedida = [
   { value: 'L', label: 'Litro (L)' },
   { value: 'serv', label: 'Serviço (serv)' },
 ];
+
+const integerUnits = ['un', 'h', 'serv'];
 
 interface BudgetEditDialogProps {
     isOpen: boolean;
@@ -62,9 +64,18 @@ export function BudgetEditDialog({ isOpen, onOpenChange, budget, materiais, onUp
         return materiais.find(m => m.id === newItemForEdit.materialId);
     }, [materiais, newItemForEdit.materialId]);
 
+    const isEditUnitInteger = useMemo(() => {
+        if (isAddingAvulsoInEdit) {
+            return integerUnits.includes(itemAvulsoInEdit.unidade);
+        }
+        return selectedMaterialForEdit ? integerUnits.includes(selectedMaterialForEdit.unidade) : false;
+    }, [isAddingAvulsoInEdit, itemAvulsoInEdit.unidade, selectedMaterialForEdit]);
+
+
     const handleNewItemForEditChange = (field: keyof typeof newItemForEdit, value: string) => {
         if (field === 'quantidade') {
-            const masked = maskDecimal(value);
+            const mask = isEditUnitInteger ? maskInteger : maskDecimalWithAutoComma;
+            const masked = mask(value);
             setNewItemQtyStr(masked);
             setNewItemForEdit(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
         } else if (field === 'margemLucro') {
@@ -211,10 +222,21 @@ export function BudgetEditDialog({ isOpen, onOpenChange, budget, materiais, onUp
                                 {isAddingAvulsoInEdit ? (
                                     <div className="grid grid-cols-2 gap-2 items-end">
                                         <div className="col-span-2"><Label htmlFor="edit-avulso-desc" className="text-xs">Descrição</Label><Input id="edit-avulso-desc" className="h-8" value={itemAvulsoInEdit.descricao} onChange={e => setItemAvulsoInEdit(p => ({...p, descricao: e.target.value}))} /></div>
-                                        <div><Label htmlFor="edit-avulso-qtd" className="text-xs">Qtd</Label><Input id="edit-avulso-qtd" className="h-8" value={itemAvulsoInEdit.quantidade} onChange={e => setItemAvulsoInEdit(p => ({...p, quantidade: maskDecimal(e.target.value)}))} placeholder="1" /></div>
+                                        <div>
+                                            <Label htmlFor="edit-avulso-qtd" className="text-xs">Qtd</Label>
+                                            <Input 
+                                                id="edit-avulso-qtd" 
+                                                className="h-8" 
+                                                value={itemAvulsoInEdit.quantidade} 
+                                                onChange={e => {
+                                                    const mask = isEditUnitInteger ? maskInteger : maskDecimalWithAutoComma;
+                                                    setItemAvulsoInEdit(p => ({...p, quantidade: mask(e.target.value)}));
+                                                }} 
+                                                placeholder="1" />
+                                        </div>
                                         <div>
                                             <Label htmlFor="edit-avulso-un" className="text-xs">Unidade</Label>
-                                            <Select value={itemAvulsoInEdit.unidade} onValueChange={(value) => setItemAvulsoInEdit(p => ({...p, unidade: value}))}>
+                                            <Select value={itemAvulsoInEdit.unidade} onValueChange={(value) => setItemAvulsoInEdit(p => ({...p, unidade: value, quantidade: ''}))}>
                                             <SelectTrigger id="edit-avulso-un" className="h-8"><SelectValue /></SelectTrigger>
                                             <SelectContent>
                                                 {unidadesDeMedida.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
@@ -300,8 +322,3 @@ export function BudgetEditDialog({ isOpen, onOpenChange, budget, materiais, onUp
         </>
     );
 }
-
-
-    
-
-    
