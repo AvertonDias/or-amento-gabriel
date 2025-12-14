@@ -141,11 +141,11 @@ export const maskDecimalWithAutoComma = (value: string): string => {
     if (!value) return "";
     let v = value.replace(/\D/g, ''); // Remove tudo que não é dígito
     if (!v) return "";
-    v = v.padStart(3, '0');
-    v = v.slice(0, -2) + ',' + v.slice(-2);
-    // Remove zeros à esquerda, exceto se for o único dígito antes da vírgula
-    v = v.replace(/^(0)(\d)/, '$2');
-    return v;
+    v = v.replace(/^0+/, ''); // Remove zeros à esquerda
+    if (v.length === 0) return "0,00";
+    if (v.length === 1) return "0,0" + v;
+    if (v.length === 2) return "0," + v;
+    return v.slice(0, -2) + ',' + v.slice(-2);
 }
 
 export const maskInteger = (value: string): string => {
