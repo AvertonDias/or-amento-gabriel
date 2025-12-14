@@ -8,8 +8,10 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Pencil, Trash2, History, MoreVertical } from 'lucide-react';
-import type { ClienteData, OrcamentoStatus, BudgetCounts } from '@/app/dashboard/clientes/page';
+import type { ClienteData } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import type { OrcamentoStatus, BudgetCounts } from '../page';
+
 
 interface ClientListProps {
     clientes: ClienteData[];

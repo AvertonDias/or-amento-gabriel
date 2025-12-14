@@ -66,10 +66,14 @@ export const updateOrcamento = async (orcamentoId: string, orcamento: Partial<Or
   const existing = await dexieDB.orcamentos.get(orcamentoId);
   if (!existing) throw new Error("Orçamento não encontrado para atualização.");
   
-  // Assegura que não estamos sobrescrevendo o ID
   const { id, ...restOfBudget } = orcamento;
 
   const updatedData = { ...existing.data, ...restOfBudget };
+  
+  // Garante que campos opcionais não sejam undefined
+  updatedData.cliente.cpfCnpj = updatedData.cliente.cpfCnpj || null;
+  updatedData.cliente.email = updatedData.cliente.email || null;
+
   await dexieDB.orcamentos.put({
     ...existing,
     data: updatedData,
