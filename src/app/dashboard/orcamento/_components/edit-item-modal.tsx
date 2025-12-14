@@ -7,8 +7,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { maskDecimal, maskInteger, maskDecimalWithAutoComma } from '@/lib/utils';
+import { maskDecimal, maskInteger, maskCurrency } from '@/lib/utils';
 import { Capacitor } from '@capacitor/core';
+import { Lock, Unlock } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface EditItemModalProps {
     isOpen: boolean;
@@ -23,24 +25,25 @@ export function EditItemModal({ isOpen, onOpenChange, item, onSave }: EditItemMo
     const [editingItem, setEditingItem] = useState<OrcamentoItem | null>(null);
     const [editingQuantidadeStr, setEditingQuantidadeStr] = useState('');
     const [editingMargemLucroStr, setEditingMargemLucroStr] = useState('');
+    const [editingPrecoUnitarioStr, setEditingPrecoUnitarioStr] = useState('');
+    const [isPriceUnlocked, setIsPriceUnlocked] = useState(false);
 
     const isCurrentUnitInteger = useMemo(() => {
         return editingItem ? integerUnits.includes(editingItem.unidade) : false;
     }, [editingItem]);
 
+    const isAvulso = useMemo(() => editingItem?.materialId.startsWith('avulso-'), [editingItem]);
+    
     useEffect(() => {
         if (item) {
             setEditingItem({ ...item });
-
             const isInteger = integerUnits.includes(item.unidade);
-            if (isInteger) {
-                setEditingQuantidadeStr(String(item.quantidade));
-            } else {
-                // For decimals, format with 2 places for display
-                setEditingQuantidadeStr(String(item.quantidade.toFixed(2)).replace('.', ','));
-            }
-
+            setEditingQuantidadeStr(isInteger ? String(item.quantidade) : String(item.quantidade).replace('.', ','));
             setEditingMargemLucroStr(String(item.margemLucro).replace('.', ','));
+            setEditingPrecoUnitarioStr(maskCurrency(String(item.precoUnitario)));
+            
+            // Itens avulsos sempre têm o preço desbloqueado para edição
+            setIsPriceUnlocked(item.materialId.startsWith('avulso-'));
         }
     }, [item]);
 
@@ -48,14 +51,36 @@ export function EditItemModal({ isOpen, onOpenChange, item, onSave }: EditItemMo
         if (!editingItem) return;
         const { name, value } = e.target;
         
-        if (name === 'quantidade') {
+        let newItemState = { ...editingItem };
+        let newQuantidadeStr = editingQuantidadeStr;
+        let newMargemStr = editingMargemLucroStr;
+        let newPrecoUnitarioStr = editingPrecoUnitarioStr;
+        
+        if (name === 'materialNome') {
+            newItemState.materialNome = value;
+        } else if (name === 'quantidade') {
             const mask = isCurrentUnitInteger ? maskInteger : maskDecimal;
-            setEditingQuantidadeStr(mask(value));
+            newQuantidadeStr = mask(value);
         } else if (name === 'margemLucro') { 
-            setEditingMargemLucroStr(maskDecimal(value));
-        } else if (name === 'materialNome') {
-           setEditingItem(prev => prev ? { ...prev, materialNome: value } : null);
+            newMargemStr = maskDecimal(value);
+        } else if (name === 'precoUnitario') {
+            newPrecoUnitarioStr = maskCurrency(value);
         }
+
+        const numQuantidade = parseFloat(newQuantidadeStr.replace(',', '.')) || 0;
+        const numMargemLucro = parseFloat(newMargemStr.replace(',', '.')) || 0;
+        const numPrecoUnitario = (parseFloat(newPrecoUnitarioStr.replace(/[^\d,]/g, '').replace(',', '.')) || 0);
+
+        newItemState.quantidade = numQuantidade;
+        newItemState.margemLucro = numMargemLucro;
+        newItemState.precoUnitario = numPrecoUnitario;
+        newItemState.total = numPrecoUnitario * numQuantidade;
+        newItemState.precoVenda = newItemState.total * (1 + numMargemLucro / 100);
+
+        setEditingItem(newItemState);
+        setEditingQuantidadeStr(newQuantidadeStr);
+        setEditingMargemLucroStr(newMargemStr);
+        setEditingPrecoUnitarioStr(newPrecoUnitarioStr);
     };
     
     const handleSalvarEdicaoItem = (e: FormEvent) => {
@@ -63,26 +88,12 @@ export function EditItemModal({ isOpen, onOpenChange, item, onSave }: EditItemMo
         if (!editingItem) return;
     
         const numQuantidade = parseFloat(editingQuantidadeStr.replace(',', '.'));
-        const numMargemLucro = parseFloat(editingMargemLucroStr.replace(',', '.')) || 0;
         if (isNaN(numQuantidade) || numQuantidade <= 0) {
-            // Idealmente, usar um toast aqui se o hook estiver disponível
             alert('Quantidade inválida');
             return;
         }
-    
-        const custoFinal = editingItem.precoUnitario * numQuantidade;
-        const precoVendaCalculado = custoFinal * (1 + numMargemLucro / 100);
         
-        const itemAtualizado: OrcamentoItem = { 
-            ...editingItem,
-            materialNome: editingItem.materialNome,
-            quantidade: numQuantidade, 
-            margemLucro: numMargemLucro,
-            total: custoFinal, 
-            precoVenda: precoVendaCalculado 
-        };
-        
-        onSave(itemAtualizado);
+        onSave(editingItem);
     };
 
     if (!editingItem) return null;
@@ -96,12 +107,55 @@ export function EditItemModal({ isOpen, onOpenChange, item, onSave }: EditItemMo
             >
                 <DialogHeader>
                     <DialogTitle>Editar Item do Orçamento</DialogTitle>
-                    <DialogDescription>Modifique o nome, a quantidade e o acréscimo do item selecionado.</DialogDescription>
+                    <DialogDescription>Modifique os detalhes do item selecionado.</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSalvarEdicaoItem} className="space-y-4 py-4">
-                    <div><Label htmlFor="edit-nome">Nome do Item</Label><Input id="edit-nome" name="materialNome" value={editingItem.materialNome} onChange={handleEditItemFormChange}/></div>
-                    <div><Label htmlFor="edit-quantidade">Quantidade ({editingItem.unidade})</Label><Input id="edit-quantidade" name="quantidade" type="text" inputMode={isCurrentUnitInteger ? 'numeric' : 'decimal'} value={editingQuantidadeStr} onChange={handleEditItemFormChange}/></div>
-                    <div><Label htmlFor="edit-margemLucro">Acréscimo (%)</Label><Input id="edit-margemLucro" name="margemLucro" type="text" inputMode='decimal' value={editingMargemLucroStr} onChange={handleEditItemFormChange}/></div>
+                    <div>
+                        <Label htmlFor="edit-nome">Nome do Item</Label>
+                        <Input id="edit-nome" name="materialNome" value={editingItem.materialNome} onChange={handleEditItemFormChange}/>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="edit-quantidade">Quantidade ({editingItem.unidade})</Label>
+                            <Input id="edit-quantidade" name="quantidade" type="text" inputMode={isCurrentUnitInteger ? 'numeric' : 'decimal'} value={editingQuantidadeStr} onChange={handleEditItemFormChange}/>
+                        </div>
+                        <div>
+                             <Label htmlFor="edit-margemLucro">Acréscimo (%)</Label>
+                             <Input id="edit-margemLucro" name="margemLucro" type="text" inputMode='decimal' value={editingMargemLucroStr} onChange={handleEditItemFormChange}/>
+                        </div>
+                    </div>
+
+                     <div>
+                        <Label htmlFor="edit-precoUnitario">Preço de Custo Unitário (R$)</Label>
+                        <div className="relative">
+                            <Input 
+                                id="edit-precoUnitario" 
+                                name="precoUnitario" 
+                                type="text" 
+                                inputMode='decimal' 
+                                value={editingPrecoUnitarioStr} 
+                                onChange={handleEditItemFormChange}
+                                disabled={!isPriceUnlocked}
+                                className={cn(!isPriceUnlocked && "pr-10")}
+                            />
+                             {!isAvulso && (
+                                <Button 
+                                    type="button" 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground"
+                                    onClick={() => setIsPriceUnlocked(!isPriceUnlocked)}
+                                >
+                                    {isPriceUnlocked ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                                </Button>
+                            )}
+                        </div>
+                        {!isAvulso && !isPriceUnlocked && (
+                            <p className="text-xs text-muted-foreground mt-1">Preço do catálogo. Clique no cadeado para editar.</p>
+                        )}
+                    </div>
+                    
                     <DialogFooter>
                         <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
                         <Button type="submit">Salvar</Button>
@@ -111,6 +165,3 @@ export function EditItemModal({ isOpen, onOpenChange, item, onSave }: EditItemMo
         </Dialog>
     );
 }
-
-
-    
