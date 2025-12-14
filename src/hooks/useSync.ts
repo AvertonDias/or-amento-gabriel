@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { collection, doc, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, where, query } from 'firebase/firestore';
 
 import { db as dexieDB } from '@/lib/dexie';
 import { db as firestoreDB, auth } from '@/lib/firebase';
@@ -36,24 +36,21 @@ export function useSync() {
     const [isOnline, setIsOnline] = useState(true);
     const [isSyncing, setIsSyncing] = useState(false);
 
-    // Observa itens pendentes em todas as tabelas
     const pendingItems = useLiveQuery(async () => {
-        if (!isOnline || isSyncing) return { count: 0 };
+        if (!isOnline || !user) return { count: 0 };
         
         const [clientes, materiais, orcamentos, empresa, deletions] = await Promise.all([
-            dexieDB.clientes.where('syncStatus').equals('pending').count(),
-            dexieDB.materiais.where('syncStatus').equals('pending').count(),
-            dexieDB.orcamentos.where('syncStatus').equals('pending').count(),
-            dexieDB.empresa.where('syncStatus').equals('pending').count(),
+            dexieDB.clientes.where({ syncStatus: 'pending', userId: user.uid }).count(),
+            dexieDB.materiais.where({ syncStatus: 'pending', userId: user.uid }).count(),
+            dexieDB.orcamentos.where({ syncStatus: 'pending', userId: user.uid }).count(),
+            dexieDB.empresa.where({ syncStatus: 'pending', userId: user.uid }).count(),
             dexieDB.deletions.count(),
         ]);
         return { count: clientes + materiais + orcamentos + empresa + deletions };
-    }, [isOnline, isSyncing]);
+    }, [isOnline, user]);
 
     useEffect(() => {
-        const updateOnlineStatus = () => {
-            setIsOnline(navigator.onLine);
-        };
+        const updateOnlineStatus = () => setIsOnline(navigator.onLine);
         window.addEventListener('online', updateOnlineStatus);
         window.addEventListener('offline', updateOnlineStatus);
         updateOnlineStatus();
@@ -63,84 +60,38 @@ export function useSync() {
         };
     }, []);
 
-    const syncCollection = async (collectionName: SyncableCollection) => {
-        if (!user) return;
-        
-        const itemsToSync = await (dexieDB as any)[collectionName].where('syncStatus').equals('pending').toArray();
-        if (itemsToSync.length === 0) return;
-
-        console.log(`Syncing ${itemsToSync.length} item(s) from ${collectionName}...`);
-
-        const syncFn = syncFunctions[collectionName];
-        if (!syncFn) return;
-
-        for (const item of itemsToSync) {
-            try {
-                await syncFn(item.data);
-                await (dexieDB as any)[collectionName].update(item.id, { syncStatus: 'synced' });
-            } catch (error) {
-                console.error(`Failed to sync item ${item.id} from ${collectionName}:`, error);
-            }
-        }
-    };
-    
-    const syncDeletions = async () => {
-        const itemsToDelete = await dexieDB.deletions.toArray();
-        if (itemsToDelete.length === 0) return;
-
-        console.log(`Syncing ${itemsToDelete.length} deletion(s)...`);
-
-        for (const item of itemsToDelete) {
-             const deleteFn = deleteFunctions[item.collection];
-             if (deleteFn) {
-                 try {
-                    await deleteFn(item.id);
-                    await dexieDB.deletions.delete(item.id);
-                 } catch (error) {
-                    console.error(`Failed to delete item ${item.id} from ${item.collection}:`, error);
-                 }
-             }
-        }
-    };
-
-    // Puxa dados do Firestore para o Dexie (primeira carga ou reconciliação)
-    const pullFromFirestore = async () => {
-        if (!user || isSyncing) return;
-        setIsSyncing(true);
-        console.log("Starting pull from Firestore...");
-
-        try {
-            const collections: SyncableCollection[] = ['clientes', 'materiais', 'orcamentos', 'empresa'];
-            for (const coll of collections) {
-                const firestoreCollectionRef = collection(firestoreDB, coll);
-                const q = firestoreCollectionRef; // Poderia adicionar where('userId', '==', user.uid) se necessário
-                const snapshot = await getDocs(q);
-                
-                const batch = (dexieDB as any)[coll];
-                const itemsToPut = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    // Garante que o ID esteja nos dados, importante para referências
-                    if (!data.id) data.id = doc.id;
-                    return { id: doc.id, userId: data.userId, data, syncStatus: 'synced' };
-                });
-                
-                await batch.bulkPut(itemsToPut);
-            }
-            console.log("Pull from Firestore completed.");
-        } catch (error) {
-            console.error("Error pulling data from Firestore:", error);
-            toast({ title: 'Erro ao buscar dados da nuvem', variant: 'destructive' });
-        } finally {
-             // Após puxar os dados, podemos iniciar o push
-             await pushToFirestore();
-             setIsSyncing(false);
-        }
-    };
-    
-    const pushToFirestore = async () => {
-        if (!user || isSyncing) return;
+    const pushToFirestore = useCallback(async () => {
+        if (!user || !isOnline) return;
         
         console.log("Starting push to Firestore...");
+        
+        const syncCollection = async (collectionName: SyncableCollection) => {
+            const itemsToSync = await (dexieDB as any)[collectionName].where({ syncStatus: 'pending', userId: user.uid }).toArray();
+            if (itemsToSync.length === 0) return;
+            console.log(`Syncing ${itemsToSync.length} item(s) from ${collectionName}...`);
+            const syncFn = syncFunctions[collectionName];
+            if (!syncFn) return;
+            for (const item of itemsToSync) {
+                try {
+                    await syncFn(item.data);
+                    await (dexieDB as any)[collectionName].update(item.id, { syncStatus: 'synced' });
+                } catch (error) { console.error(`Failed to sync item ${item.id} from ${collectionName}:`, error); }
+            }
+        };
+
+        const syncDeletions = async () => {
+            const itemsToDelete = await dexieDB.deletions.toArray();
+            if (itemsToDelete.length === 0) return;
+            console.log(`Syncing ${itemsToDelete.length} deletion(s)...`);
+            for (const item of itemsToDelete) {
+                 const deleteFn = deleteFunctions[item.collection];
+                 if (deleteFn) {
+                     try { await deleteFn(item.id); await dexieDB.deletions.delete(item.id); } 
+                     catch (error) { console.error(`Failed to delete item ${item.id} from ${item.collection}:`, error); }
+                 }
+            }
+        };
+
         try {
             await syncCollection('empresa');
             await syncCollection('clientes');
@@ -148,33 +99,59 @@ export function useSync() {
             await syncCollection('orcamentos');
             await syncDeletions();
             console.log("Push to Firestore completed.");
-
-            const hasPending = (pendingItems?.count ?? 0) > 0;
-            if (!hasPending && isOnline) {
-               // toast({ title: "Sincronizado", description: "Seus dados estão atualizados com a nuvem."});
-            }
         } catch (error) {
              console.error("Error during push to Firestore:", error);
              toast({ title: 'Erro na sincronização', description: 'Não foi possível enviar todas as alterações.', variant: 'destructive' });
         }
-    };
+    }, [user, isOnline, toast]);
+    
+    const pullFromFirestore = useCallback(async () => {
+        if (!user || !isOnline) return;
+        setIsSyncing(true);
+        console.log("Starting pull from Firestore...");
 
+        try {
+            const collections: SyncableCollection[] = ['clientes', 'materiais', 'orcamentos', 'empresa'];
+            for (const coll of collections) {
+                const firestoreQuery = query(collection(firestoreDB, coll), where('userId', '==', user.uid));
+                const snapshot = await getDocs(firestoreQuery);
+                
+                if (!snapshot.empty) {
+                    const itemsToPut = snapshot.docs.map(doc => {
+                        const data = doc.data();
+                        return { id: doc.id, userId: data.userId, data, syncStatus: 'synced' };
+                    });
+                    await (dexieDB as any)[coll].bulkPut(itemsToPut);
+                }
+            }
+            console.log("Pull from Firestore completed.");
+        } catch (error) {
+            console.error("Error pulling data from Firestore:", error);
+            toast({ title: 'Erro ao buscar dados da nuvem', variant: 'destructive' });
+        } finally {
+             setIsSyncing(false);
+        }
+    }, [user, isOnline, toast]);
 
     useEffect(() => {
         if (isOnline && user && !isSyncing) {
-            const lastSync = localStorage.getItem(`lastSync_${user.uid}`);
-            const now = new Date().getTime();
-            // Sincroniza na primeira vez ou a cada 10 minutos
-            if (!lastSync || (now - Number(lastSync)) > 10 * 60 * 1000) {
-                pullFromFirestore();
-                localStorage.setItem(`lastSync_${user.uid}`, now.toString());
-            } else if (pendingItems && pendingItems.count > 0) {
-                pushToFirestore();
-            }
+            const syncData = async () => {
+                await pullFromFirestore();
+                await pushToFirestore();
+            };
+            syncData();
+            
+            const intervalId = setInterval(syncData, 5 * 60 * 1000); // Sincroniza a cada 5 minutos
+            return () => clearInterval(intervalId);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOnline, user, pendingItems]);
+    }, [isOnline, user, isSyncing, pullFromFirestore, pushToFirestore]);
 
-    // Hook para retornar status
+    useEffect(() => {
+        if (pendingItems && pendingItems.count > 0 && isOnline) {
+            pushToFirestore();
+        }
+    }, [pendingItems, isOnline, pushToFirestore]);
+
+
     return { isOnline, isSyncing, pendingCount: pendingItems?.count ?? 0 };
 }
