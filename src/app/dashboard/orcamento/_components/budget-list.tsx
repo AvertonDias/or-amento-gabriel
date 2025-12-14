@@ -53,7 +53,7 @@ export function BudgetList({ isLoading, budgets, empresa, onUpdateStatus, onDele
         switch (status) {
             case 'Aceito': return 'default';
             case 'Recusado': return 'destructive';
-            case 'Vencido': return 'destructive';
+            case 'Vencido': return 'warning';
             case 'Pendente': return 'secondary';
             default: return 'secondary';
         }
