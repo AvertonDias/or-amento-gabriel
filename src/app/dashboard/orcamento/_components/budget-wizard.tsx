@@ -377,7 +377,12 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                                         <CommandItem
                                                             key={c.id}
                                                             value={c.id}
-                                                            onSelect={() => handleSelectClient(c)}
+                                                            onSelect={(currentValue) => {
+                                                                const selectedClient = clientes.find(client => client.id === currentValue);
+                                                                if(selectedClient) {
+                                                                    handleSelectClient(selectedClient);
+                                                                }
+                                                            }}
                                                         >
                                                             <Check
                                                                 className={cn(
@@ -525,7 +530,12 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                                                 <CommandItem
                                                                     key={mat.id}
                                                                     value={mat.id}
-                                                                    onSelect={() => handleSelectMaterial(mat)}
+                                                                    onSelect={(currentValue) => {
+                                                                        const selectedMaterial = materiais.find(m => m.id === currentValue);
+                                                                        if (selectedMaterial) {
+                                                                            handleSelectMaterial(selectedMaterial);
+                                                                        }
+                                                                    }}
                                                                 >
                                                                     <Check
                                                                         className={cn(
@@ -649,3 +659,6 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
     
 
 
+
+
+    
