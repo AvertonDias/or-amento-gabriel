@@ -262,14 +262,12 @@ export function BudgetList({
                 </div>
             </CardHeader>
             <CardContent className="px-4 pb-4">
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {orcamento.itens.map(item => (
-                   <div key={item.id} className="flex justify-between items-center text-sm border-b pb-2 last:border-b-0">
-                     <div className="flex-1 mr-2">
-                       <p className="font-medium text-foreground line-clamp-2">{item.materialNome}</p>
-                       <p className="text-muted-foreground">{formatNumber(item.quantidade)} {item.unidade}</p>
-                     </div>
-                     <p className="font-semibold text-primary">{formatCurrency(item.precoVenda)}</p>
+                   <div key={item.id} className="text-sm border-b pb-3 last:border-b-0">
+                     <p className="font-medium text-foreground line-clamp-2">{item.materialNome}</p>
+                     <p className="text-muted-foreground">{formatNumber(item.quantidade)} {item.unidade}</p>
+                     <p className="font-semibold text-primary text-right mt-1">{formatCurrency(item.precoVenda)}</p>
                    </div>
                 ))}
               </div>
