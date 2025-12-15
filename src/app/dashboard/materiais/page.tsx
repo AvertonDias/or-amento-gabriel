@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, FormEvent, useEffect, useMemo } from 'react';
@@ -591,12 +590,3 @@ export default function MateriaisPage() {
     </div>
   );
 }
-    
-
-    
-
-
-
-
-    
-
