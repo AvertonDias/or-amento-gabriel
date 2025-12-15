@@ -16,7 +16,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Loader2, PlusCircle, Trash2, Pencil, ArrowLeft, ArrowRight, FileText, ArrowRightLeft, ChevronsUpDown, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone, maskCurrency, maskDecimal, maskInteger, maskDecimalWithAutoComma } from '@/lib/utils';
+import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone, maskCurrency, maskDecimal, maskInteger } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { Capacitor } from '@capacitor/core';
 import { EditItemModal } from './edit-item-modal';
@@ -68,6 +68,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
     const [clientToSave, setClientToSave] = useState<Omit<ClienteData, 'id' | 'userId'> & { id?: string } | null>(null);
     
     const [isClientPopoverOpen, setIsClientPopoverOpen] = useState(false);
+    const [isMaterialPopoverOpen, setIsMaterialPopoverOpen] = useState(false);
 
     const selectedMaterial = useMemo(() => {
         return materiais.find(m => m.id === novoItem.materialId);
@@ -171,7 +172,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
             setNovoItem(prev => ({ ...prev, [field]: value }));
             setTimeout(() => quantidadeInputRef.current?.focus(), 0);
         } else if (field === 'quantidade') {
-            const mask = isCurrentUnitInteger ? maskInteger : maskDecimalWithAutoComma;
+            const mask = isCurrentUnitInteger ? maskInteger : maskDecimal;
             const masked = mask(value);
             setQuantidadeStr(masked);
             setNovoItem(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
@@ -180,6 +181,11 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
             setMargemLucroStr(masked);
             setNovoItem(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
         }
+    };
+     const handleSelectMaterial = (materialId: string) => {
+        setNovoItem(prev => ({ ...prev, materialId }));
+        setIsMaterialPopoverOpen(false);
+        setTimeout(() => quantidadeInputRef.current?.focus(), 0);
     };
 
     const addLinha = () => {
@@ -368,7 +374,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                                     {clientes.map((c) => (
                                                         <CommandItem
                                                             key={c.id}
-                                                            value={c.nome}
+                                                            value={c.id}
                                                             onSelect={() => handleSelectClient(c)}
                                                         >
                                                             <Check
@@ -464,7 +470,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                             id="avulso-qtd" 
                                             value={itemAvulso.quantidade} 
                                             onChange={e => {
-                                                const mask = isCurrentUnitInteger ? maskInteger : maskDecimalWithAutoComma;
+                                                const mask = isCurrentUnitInteger ? maskInteger : maskDecimal;
                                                 setItemAvulso(p => ({...p, quantidade: mask(e.target.value)}));
                                             }} 
                                             placeholder="1" />
@@ -493,12 +499,46 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                                     <div className="sm:col-span-2">
                                         <Label htmlFor="material-select">Item / Serviço</Label>
-                                        <Select value={novoItem.materialId} onValueChange={(val) => handleNovoItemChange('materialId', val)}>
-                                        <SelectTrigger id="material-select"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                        <SelectContent>
-                                            {materiais.map(mat => (<SelectItem key={mat.id} value={mat.id}>{`${mat.descricao} (${formatCurrency(mat.precoUnitario)}/${mat.unidade})`}</SelectItem>))}
-                                        </SelectContent>
-                                        </Select>
+                                        <Popover open={isMaterialPopoverOpen} onOpenChange={setIsMaterialPopoverOpen}>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    role="combobox"
+                                                    aria-expanded={isMaterialPopoverOpen}
+                                                    className="w-full justify-between"
+                                                >
+                                                    {novoItem.materialId
+                                                        ? materiais.find((mat) => mat.id === novoItem.materialId)?.descricao
+                                                        : "Selecione..."}
+                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                <Command>
+                                                    <CommandInput placeholder="Buscar item/serviço..." />
+                                                    <CommandList>
+                                                        <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
+                                                        <CommandGroup>
+                                                            {materiais.map((mat) => (
+                                                                <CommandItem
+                                                                    key={mat.id}
+                                                                    value={mat.id}
+                                                                    onSelect={() => handleSelectMaterial(mat.id)}
+                                                                >
+                                                                    <Check
+                                                                        className={cn(
+                                                                            "mr-2 h-4 w-4",
+                                                                            novoItem.materialId === mat.id ? "opacity-100" : "opacity-0"
+                                                                        )}
+                                                                    />
+                                                                    {`${mat.descricao} (${formatCurrency(mat.precoUnitario)}/${mat.unidade})`}
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
                                     </div>
                                     {selectedMaterial && (
                                         <>
@@ -551,7 +591,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                             <div className="space-y-6">
                                 <div className="space-y-2">
                                   <Label htmlFor="observacoes">Observações para o Cliente</Label>
-                                  <Textarea id="observacoes" placeholder="Ex: Condições de pagamento, prazo de entrega, etc." value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={5} />
+                                  <Textarea id="observacoes" placeholder="Ex: Condições de pagamento, prazo de entrega, etc." value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={10} />
                                 </div>
                                 <div className="space-y-2">
                                   <Label htmlFor="observacoes-internas">Observações Internas (não aparecem para o cliente)</Label>
@@ -601,3 +641,5 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
         </>
     );
 }
+
+    
