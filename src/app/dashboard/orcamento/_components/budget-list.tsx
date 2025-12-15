@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -248,8 +249,8 @@ export function BudgetList({
       <div className="md:hidden grid grid-cols-1 gap-4">
         {budgets.map(orcamento => (
           <Card key={orcamento.id}>
-            <CardHeader className="flex flex-row items-start justify-between">
-              <div className='flex-1'>
+             <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div className="grid gap-1 flex-1">
                 <CardTitle className='text-lg'>{orcamento.cliente.nome}</CardTitle>
                 <CardDescription>{`#${orcamento.numeroOrcamento} — ${formatCurrency(orcamento.totalVenda)}`}</CardDescription>
               </div>
