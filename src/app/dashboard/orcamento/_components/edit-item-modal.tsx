@@ -22,7 +22,7 @@ interface EditItemModalProps {
 const integerUnits = ['un', 'h', 'serv'];
 
 export function EditItemModal({ isOpen, onOpenChange, item, onSave }: EditItemModalProps) {
-    const [editingItem, setEditingItem] = useState<OrcamentoItem | null>(null);
+    const [editingItem, setEditingItem] = useState<OrcamentoItem>(item);
     const [editingQuantidadeStr, setEditingQuantidadeStr] = useState('');
     const [editingMargemLucroStr, setEditingMargemLucroStr] = useState('');
     const [editingPrecoUnitarioStr, setEditingPrecoUnitarioStr] = useState('');
@@ -44,7 +44,7 @@ export function EditItemModal({ isOpen, onOpenChange, item, onSave }: EditItemMo
             setEditingMargemLucroStr(margem > 0 ? String(margem).replace('.', ',') : '');
 
             const priceAsNumber = Number(item.precoUnitario) || 0;
-            const priceString = String(priceAsNumber.toFixed(2)).replace('.', ',');
+            const priceString = String(priceAsNumber.toFixed(2));
             setEditingPrecoUnitarioStr(maskCurrency(priceString));
             
             setIsPriceUnlocked(!!item.materialId && item.materialId.startsWith('avulso-'));

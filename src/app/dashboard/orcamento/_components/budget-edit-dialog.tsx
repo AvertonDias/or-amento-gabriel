@@ -118,9 +118,8 @@ export function BudgetEditDialog({
   });
   const [itemAvulsoPrecoStr, setItemAvulsoPrecoStr] = useState('');
 
-  const [editingItem, setEditingItem] = useState<OrcamentoItem | null>(null);
-  const [isEditItemModalOpen, setIsEditItemModalOpen] = useState(false);
-  
+  const [itemToEdit, setItemToEdit] = useState<OrcamentoItem | null>(null);
+
   const [isTotalLocked, setIsTotalLocked] = useState(true);
   const [manualTotal, setManualTotal] = useState<number | null>(null);
   const [manualTotalStr, setManualTotalStr] = useState('');
@@ -303,14 +302,12 @@ export function BudgetEditDialog({
   };
   
   const handleEditItemClick = (item: OrcamentoItem) => {
-    setEditingItem({ ...item });
-    setIsEditItemModalOpen(true);
+    setItemToEdit(item);
   };
 
   const handleSaveItemEdit = (itemAtualizado: OrcamentoItem) => {
     setEditingBudgetItens(prev => prev.map(item => item.id === itemAtualizado.id ? itemAtualizado : item));
-    setIsEditItemModalOpen(false);
-    setEditingItem(null);
+    setItemToEdit(null); // Fecha o modal
     toast({ title: 'Item atualizado.' });
   };
   
@@ -577,11 +574,13 @@ export function BudgetEditDialog({
             </DialogFooter>
         </DialogContent>
       </Dialog>
-      {editingItem && (
+      {itemToEdit && (
         <EditItemModal
-            isOpen={isEditItemModalOpen}
-            onOpenChange={setIsEditItemModalOpen}
-            item={editingItem}
+            isOpen={!!itemToEdit}
+            onOpenChange={(open) => {
+                if (!open) setItemToEdit(null);
+            }}
+            item={itemToEdit}
             onSave={handleSaveItemEdit}
         />
       )}
