@@ -72,7 +72,7 @@ export function ClientList({ clientes, budgetCounts, onEdit, onDelete, onViewBud
                                         <MoreVertical className="h-5 w-5" />
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenuContent align="end">
                                     <DropdownMenuItem onClick={() => onEdit(item)}>
                                         <Pencil className="mr-2 h-4 w-4" />
                                         Editar Cliente
