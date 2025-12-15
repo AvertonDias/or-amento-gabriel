@@ -25,10 +25,16 @@ import {
   DropdownMenuSubContent, DropdownMenuSubTrigger,
   DropdownMenuPortal, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   FileText, Pencil, MessageCircle,
-  CheckCircle2, XCircle, Trash2, MoreVertical
+  CheckCircle2, XCircle, Trash2, MoreVertical, FileSignature
 } from 'lucide-react';
 import { addDays, format, parseISO } from 'date-fns';
 import { formatCurrency, formatNumber } from '@/lib/utils';
@@ -305,12 +311,29 @@ export function BudgetList({
               <div className="space-y-4">
                 {orcamento.itens.map(item => (
                    <div key={item.id} className="text-sm border-b pb-3 last:border-b-0">
-                     <p className="font-medium text-foreground line-clamp-2">{item.materialNome}</p>
-                     <p className="text-muted-foreground">{formatNumber(item.quantidade, 2)} {item.unidade}</p>
+                     <div className="flex justify-between items-start">
+                         <p className="font-medium text-foreground pr-2 line-clamp-2">{item.materialNome}</p>
+                         <p className="text-muted-foreground">{formatNumber(item.quantidade, 2)} {item.unidade}</p>
+                     </div>
                      <p className="font-semibold text-primary text-right mt-1">{formatCurrency(item.precoVenda)}</p>
                    </div>
                 ))}
               </div>
+               {orcamento.observacoes && (
+                <Accordion type="single" collapsible className="w-full mt-4">
+                  <AccordionItem value="item-1" className="border-b-0">
+                    <AccordionTrigger className="text-sm text-muted-foreground py-2 hover:no-underline">
+                        <div className="flex items-center gap-2">
+                            <FileSignature className="h-4 w-4" />
+                            Ver Observações
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-2 text-sm text-muted-foreground whitespace-pre-wrap">
+                      {orcamento.observacoes}
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              )}
             </CardContent>
             <CardFooter className="p-4 mt-2 bg-muted/50 flex justify-between items-center">
                 <p className="font-bold">TOTAL</p>
