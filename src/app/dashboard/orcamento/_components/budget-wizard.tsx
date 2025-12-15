@@ -16,7 +16,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Loader2, PlusCircle, Trash2, Pencil, ArrowLeft, ArrowRight, FileText, ArrowRightLeft, ChevronsUpDown, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone, maskCurrency, maskDecimal, maskInteger } from '@/lib/utils';
+import { formatCurrency, formatNumber, maskCpfCnpj, maskTelefone, maskCurrency, maskDecimal, maskInteger, maskDecimalWithAutoComma } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { Capacitor } from '@capacitor/core';
 import { EditItemModal } from './edit-item-modal';
@@ -172,7 +172,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
             setNovoItem(prev => ({ ...prev, [field]: value }));
             setTimeout(() => quantidadeInputRef.current?.focus(), 0);
         } else if (field === 'quantidade') {
-            const mask = isCurrentUnitInteger ? maskInteger : maskDecimal;
+            const mask = isCurrentUnitInteger ? maskInteger : maskDecimalWithAutoComma;
             const masked = mask(value);
             setQuantidadeStr(masked);
             setNovoItem(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
@@ -361,7 +361,9 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                             aria-expanded={isClientPopoverOpen}
                                             className="w-full justify-between"
                                         >
-                                            {clienteData.nome || "Selecionar cliente..."}
+                                            {clienteData.id
+                                                ? clientes.find((c) => c.id === clienteData.id)?.nome
+                                                : "Selecionar cliente..."}
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
                                     </PopoverTrigger>
@@ -375,7 +377,12 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                                         <CommandItem
                                                             key={c.id}
                                                             value={c.id}
-                                                            onSelect={() => handleSelectClient(c)}
+                                                            onSelect={(currentValue) => {
+                                                                const selectedClient = clientes.find(client => client.id === currentValue)
+                                                                if(selectedClient) {
+                                                                    handleSelectClient(selectedClient)
+                                                                }
+                                                            }}
                                                         >
                                                             <Check
                                                                 className={cn(
@@ -645,3 +652,4 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
     
 
     
+
