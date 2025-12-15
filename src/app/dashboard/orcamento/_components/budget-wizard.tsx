@@ -105,15 +105,18 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
         onOpenChange(open);
     };
 
-    const handleSelectClient = (client: ClienteData) => {
-        setClienteData({
-          id: client.id,
-          nome: client.nome,
-          endereco: client.endereco || '',
-          telefones: client.telefones && client.telefones.length > 0 ? client.telefones : [{ nome: 'Principal', numero: '', principal: true }],
-          email: client.email || '',
-          cpfCnpj: client.cpfCnpj || ''
-        });
+    const handleSelectClient = (clientId: string) => {
+        const client = clientes.find(c => c.id === clientId);
+        if (client) {
+            setClienteData({
+              id: client.id,
+              nome: client.nome,
+              endereco: client.endereco || '',
+              telefones: client.telefones && client.telefones.length > 0 ? client.telefones : [{ nome: 'Principal', numero: '', principal: true }],
+              email: client.email || '',
+              cpfCnpj: client.cpfCnpj || ''
+            });
+        }
         setIsClientPopoverOpen(false);
     };
     
@@ -182,8 +185,8 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
             setNovoItem(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
         }
     };
-     const handleSelectMaterial = (material: MaterialItem) => {
-        setNovoItem(prev => ({ ...prev, materialId: material.id }));
+     const handleSelectMaterial = (materialId: string) => {
+        setNovoItem(prev => ({ ...prev, materialId: materialId }));
         setIsMaterialPopoverOpen(false);
         setTimeout(() => quantidadeInputRef.current?.focus(), 0);
     };
@@ -378,10 +381,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                                             key={c.id}
                                                             value={c.id}
                                                             onSelect={(currentValue) => {
-                                                                const selectedClient = clientes.find(client => client.id === currentValue);
-                                                                if(selectedClient) {
-                                                                    handleSelectClient(selectedClient);
-                                                                }
+                                                                handleSelectClient(currentValue);
                                                             }}
                                                         >
                                                             <Check
@@ -531,10 +531,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                                                     key={mat.id}
                                                                     value={mat.id}
                                                                     onSelect={(currentValue) => {
-                                                                        const selectedMaterial = materiais.find(m => m.id === currentValue);
-                                                                        if (selectedMaterial) {
-                                                                            handleSelectMaterial(selectedMaterial);
-                                                                        }
+                                                                        handleSelectMaterial(currentValue);
                                                                     }}
                                                                 >
                                                                     <Check
@@ -660,5 +657,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
 
 
 
+
+    
 
     
