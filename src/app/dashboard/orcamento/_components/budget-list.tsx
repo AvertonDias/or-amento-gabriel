@@ -249,19 +249,21 @@ export function BudgetList({
       <div className="md:hidden grid grid-cols-1 gap-4">
         {budgets.map(orcamento => (
           <Card key={orcamento.id}>
-             <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div className="grid gap-1 flex-1">
-                <CardTitle className='text-lg'>{orcamento.cliente.nome}</CardTitle>
-                <CardDescription>{`#${orcamento.numeroOrcamento} — ${formatCurrency(orcamento.totalVenda)}`}</CardDescription>
-              </div>
-               <div className="flex items-center gap-1">
-                <Badge variant={getStatusBadgeVariant(orcamento.status)} className="text-xs">
-                  {orcamento.status}
-                </Badge>
-                <BudgetActionsMenu orcamento={orcamento} />
-              </div>
+             <CardHeader className="p-4">
+                <div className="flex justify-between items-start w-full gap-2">
+                    <div className="flex-1">
+                        <CardTitle className='text-lg'>{orcamento.cliente.nome}</CardTitle>
+                        <CardDescription>{`#${orcamento.numeroOrcamento} — ${formatCurrency(orcamento.totalVenda)}`}</CardDescription>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                         <Badge variant={getStatusBadgeVariant(orcamento.status)} className="text-xs">
+                           {orcamento.status}
+                         </Badge>
+                         <BudgetActionsMenu orcamento={orcamento} />
+                    </div>
+                </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 pb-4">
               <div className="space-y-2">
                 {orcamento.itens.map(item => (
                    <div key={item.id} className="flex justify-between items-center text-sm border-b pb-2 last:border-b-0">
@@ -280,32 +282,34 @@ export function BudgetList({
 
       {/* Desktop view */}
       <div className="hidden md:block">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nº</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Data</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Valor</TableHead>
-              <TableHead className="text-center">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {budgets.map(orcamento => (
-              <TableRow key={orcamento.id}>
-                <TableCell>{orcamento.numeroOrcamento}</TableCell>
-                <TableCell className='font-medium'>{orcamento.cliente.nome}</TableCell>
-                <TableCell>{format(parseISO(orcamento.dataCriacao), 'dd/MM/yyyy')}</TableCell>
-                <TableCell><Badge variant={getStatusBadgeVariant(orcamento.status)}>{orcamento.status}</Badge></TableCell>
-                <TableCell className="text-right font-semibold text-primary">{formatCurrency(orcamento.totalVenda)}</TableCell>
-                <TableCell className="text-center">
-                   <BudgetActionsMenu orcamento={orcamento} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <div className="border rounded-md">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Nº</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead className="text-center">Ações</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {budgets.map(orcamento => (
+                    <TableRow key={orcamento.id}>
+                        <TableCell>{orcamento.numeroOrcamento}</TableCell>
+                        <TableCell className='font-medium'>{orcamento.cliente.nome}</TableCell>
+                        <TableCell>{format(parseISO(orcamento.dataCriacao), 'dd/MM/yyyy')}</TableCell>
+                        <TableCell><Badge variant={getStatusBadgeVariant(orcamento.status)}>{orcamento.status}</Badge></TableCell>
+                        <TableCell className="text-right font-semibold text-primary">{formatCurrency(orcamento.totalVenda)}</TableCell>
+                        <TableCell className="text-center">
+                        <BudgetActionsMenu orcamento={orcamento} />
+                        </TableCell>
+                    </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
       </div>
     </>
   );
