@@ -128,7 +128,7 @@ export default function ClientesPage() {
             message = `O CPF/CNPJ "${clientData.cpfCnpj}" já está sendo usado pelo cliente "${cliente.nome}".`;
         } else if (clientData.email && cliente.email && cliente.email.toLowerCase() === clientData.email.toLowerCase()) {
             message = `O e-mail "${clientData.email}" já está sendo usado pelo cliente "${cliente.nome}".`;
-        } else if (clientNumbers.length > 0) {
+        } else if (clientNumbers.length > 0 && Array.isArray(cliente.telefones)) {
             const clientNumbersInDb = cliente.telefones.map(t => t.numero);
             const duplicateNumber = clientNumbers.find(num => clientNumbersInDb.includes(num));
             if (duplicateNumber) {
