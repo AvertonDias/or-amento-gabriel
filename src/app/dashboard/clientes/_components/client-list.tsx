@@ -68,11 +68,11 @@ export function ClientList({ clientes, budgetCounts, onEdit, onDelete, onViewBud
                         <div className="flex items-center gap-2 pr-2">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
                                         <MoreVertical className="h-5 w-5" />
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
+                                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                                     <DropdownMenuItem onClick={() => onEdit(item)}>
                                         <Pencil className="mr-2 h-4 w-4" />
                                         Editar Cliente
