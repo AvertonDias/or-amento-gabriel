@@ -56,6 +56,26 @@ interface BudgetListProps {
   onGeneratePDF: (budget: Orcamento, type: 'client' | 'internal') => void;
 }
 
+const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
+    const calculatedTotal = orcamento.itens.reduce((sum, item) => sum + item.precoVenda, 0);
+    const finalTotal = orcamento.totalVenda;
+    
+    if (calculatedTotal.toFixed(2) === finalTotal.toFixed(2)) {
+        return null;
+    }
+
+    const difference = finalTotal - calculatedTotal;
+    const percentage = calculatedTotal > 0 ? (difference / calculatedTotal) * 100 : 0;
+    const isDiscount = difference < 0;
+
+    return (
+        <Badge variant={isDiscount ? "destructive" : "default"} className="text-xs ml-2">
+            {isDiscount ? "" : "+"}
+            {formatNumber(percentage, 1)}%
+        </Badge>
+    );
+};
+
 export function BudgetList({
   isLoading,
   budgets,
@@ -276,7 +296,10 @@ export function BudgetList({
             </CardContent>
             <CardFooter className="p-4 mt-2 bg-muted/50 flex justify-between items-center">
                 <p className="font-bold">TOTAL</p>
-                <p className="font-bold text-primary text-lg">{formatCurrency(orcamento.totalVenda)}</p>
+                <div className="flex items-center">
+                    <p className="font-bold text-primary text-lg">{formatCurrency(orcamento.totalVenda)}</p>
+                    <AdjustmentBadge orcamento={orcamento} />
+                </div>
             </CardFooter>
           </Card>
         ))}
@@ -303,7 +326,12 @@ export function BudgetList({
                         <TableCell className='font-medium'>{orcamento.cliente.nome}</TableCell>
                         <TableCell>{format(parseISO(orcamento.dataCriacao), 'dd/MM/yyyy')}</TableCell>
                         <TableCell><Badge variant={getStatusBadgeVariant(orcamento.status)}>{orcamento.status}</Badge></TableCell>
-                        <TableCell className="text-right font-semibold text-primary">{formatCurrency(orcamento.totalVenda)}</TableCell>
+                        <TableCell className="text-right font-semibold text-primary">
+                          <div className="flex items-center justify-end">
+                            <span>{formatCurrency(orcamento.totalVenda)}</span>
+                            <AdjustmentBadge orcamento={orcamento} />
+                          </div>
+                        </TableCell>
                         <TableCell className="text-center">
                         <BudgetActionsMenu orcamento={orcamento} />
                         </TableCell>

@@ -12,6 +12,7 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -159,6 +160,11 @@ export function BudgetEditDialog({
   const calculatedTotal = useMemo(() => editingBudgetItens.reduce((sum, item) => sum + item.precoVenda, 0), [editingBudgetItens]);
   const finalTotal = useMemo(() => manualTotal ?? calculatedTotal, [manualTotal, calculatedTotal]);
   const isTotalEdited = useMemo(() => manualTotal !== null, [manualTotal]);
+
+  const adjustmentPercentage = useMemo(() => {
+    if (!isTotalEdited || calculatedTotal === 0) return 0;
+    return ((finalTotal - calculatedTotal) / calculatedTotal) * 100;
+  }, [isTotalEdited, finalTotal, calculatedTotal]);
 
 
   /* ===========================
@@ -489,9 +495,17 @@ export function BudgetEditDialog({
                                     )}
 
                                     {isTotalLocked ? (
-                                        <span className={cn("text-lg font-bold", isTotalEdited && "text-amber-600 dark:text-amber-400")}>
-                                            {formatCurrency(finalTotal)}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className={cn("text-lg font-bold", isTotalEdited && "text-amber-600 dark:text-amber-400")}>
+                                                {formatCurrency(finalTotal)}
+                                            </span>
+                                             {isTotalEdited && (
+                                                <Badge variant={adjustmentPercentage < 0 ? "destructive" : "default"}>
+                                                    {adjustmentPercentage > 0 ? "+" : ""}
+                                                    {formatNumber(adjustmentPercentage, 1)}%
+                                                </Badge>
+                                            )}
+                                        </div>
                                     ) : (
                                         <>
                                         <span>R$</span>

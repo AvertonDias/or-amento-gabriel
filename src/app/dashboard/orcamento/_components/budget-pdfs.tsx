@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useRef, useImperativeHandle, forwardRef } from 'react';
@@ -26,6 +27,10 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
       const telefonePrincipalEmpresa = empresa?.telefones?.find(t => t.principal) || empresa?.telefones?.[0];
       const telefonePrincipalCliente = orcamento.cliente.telefones?.find(t => t.principal) || orcamento.cliente.telefones?.[0];
   
+      const calculatedTotal = orcamento.itens.reduce((sum, item) => sum + item.precoVenda, 0);
+      const isTotalEdited = calculatedTotal.toFixed(2) !== orcamento.totalVenda.toFixed(2);
+      const adjustment = orcamento.totalVenda - calculatedTotal;
+
       return (
         <div className="p-8 font-sans bg-white text-black text-xs">
           <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200 mb-4">
@@ -90,6 +95,18 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
               ))}
             </tbody>
             <tfoot>
+              {isTotalEdited && (
+                <>
+                  <tr className="font-medium">
+                    <td colSpan={3} className="p-2 text-right text-black">Subtotal dos Itens</td>
+                    <td className="p-2 text-right text-black">{formatCurrency(calculatedTotal)}</td>
+                  </tr>
+                  <tr className="font-medium">
+                    <td colSpan={3} className="p-2 text-right text-black">{adjustment < 0 ? 'Desconto' : 'Acréscimo'}</td>
+                    <td className="p-2 text-right text-black">{formatCurrency(adjustment)}</td>
+                  </tr>
+                </>
+              )}
               <tr className="bg-gray-200 font-bold text-base">
                 <td colSpan={3} className="p-2 text-right text-black">TOTAL</td>
                 <td className="p-2 text-right text-black">{formatCurrency(orcamento.totalVenda)}</td>
