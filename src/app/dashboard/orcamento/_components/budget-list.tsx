@@ -319,7 +319,7 @@ export function BudgetList({
                    </div>
                 ))}
               </div>
-               {orcamento.observacoes && (
+               {(orcamento.observacoes || orcamento.observacoesInternas) && (
                 <Accordion type="single" collapsible className="w-full mt-4">
                   <AccordionItem value="item-1" className="border-b-0">
                     <AccordionTrigger className="text-sm text-muted-foreground py-2 hover:no-underline">
@@ -328,8 +328,19 @@ export function BudgetList({
                             Ver Observações
                         </div>
                     </AccordionTrigger>
-                    <AccordionContent className="pt-2 text-sm text-muted-foreground whitespace-pre-wrap">
-                      {orcamento.observacoes}
+                    <AccordionContent className="pt-2 text-sm text-muted-foreground space-y-3">
+                      {orcamento.observacoes && (
+                        <div className="whitespace-pre-wrap">
+                          <p className="font-semibold text-foreground mb-1">Observações para o Cliente:</p>
+                          {orcamento.observacoes}
+                        </div>
+                      )}
+                      {orcamento.observacoesInternas && (
+                         <div className="whitespace-pre-wrap">
+                          <p className="font-semibold text-foreground mb-1">Observações Internas:</p>
+                          {orcamento.observacoesInternas}
+                        </div>
+                      )}
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
