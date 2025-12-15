@@ -354,9 +354,9 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                                     {clientes.map((c) => (
                                                         <CommandItem
                                                             key={c.id}
-                                                            value={c.nome}
-                                                            onSelect={() => {
-                                                                const client = clientes.find(cli => cli.id === c.id);
+                                                            value={c.id}
+                                                            onSelect={(currentValue) => {
+                                                                const client = clientes.find(cli => cli.id === currentValue);
                                                                 if (client) {
                                                                     setClienteData({
                                                                         id: client.id,
