@@ -377,12 +377,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                                         <CommandItem
                                                             key={c.id}
                                                             value={c.id}
-                                                            onSelect={(currentValue) => {
-                                                                const selectedClient = clientes.find(client => client.id === currentValue)
-                                                                if(selectedClient) {
-                                                                    handleSelectClient(selectedClient)
-                                                                }
-                                                            }}
+                                                            onSelect={() => handleSelectClient(c)}
                                                         >
                                                             <Check
                                                                 className={cn(
@@ -652,4 +647,5 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
     
 
     
+
 
