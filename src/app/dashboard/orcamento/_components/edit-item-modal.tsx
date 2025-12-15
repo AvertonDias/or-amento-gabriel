@@ -40,7 +40,6 @@ export function EditItemModal({ isOpen, onOpenChange, item, onSave }: EditItemMo
             const isInteger = integerUnits.includes(item.unidade);
             setEditingQuantidadeStr(isInteger ? String(item.quantidade) : String(item.quantidade).replace('.', ','));
             
-            // Corrige a exibição do acréscimo para não mostrar 0
             const margem = item.margemLucro;
             setEditingMargemLucroStr(margem > 0 ? String(margem).replace('.', ',') : '');
 
