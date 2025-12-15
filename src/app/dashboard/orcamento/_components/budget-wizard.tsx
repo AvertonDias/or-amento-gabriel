@@ -182,8 +182,8 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
             setNovoItem(prev => ({ ...prev, [field]: masked.replace(',', '.') }));
         }
     };
-     const handleSelectMaterial = (materialId: string) => {
-        setNovoItem(prev => ({ ...prev, materialId }));
+     const handleSelectMaterial = (material: MaterialItem) => {
+        setNovoItem(prev => ({ ...prev, materialId: material.id }));
         setIsMaterialPopoverOpen(false);
         setTimeout(() => quantidadeInputRef.current?.focus(), 0);
     };
@@ -522,8 +522,8 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                                             {materiais.map((mat) => (
                                                                 <CommandItem
                                                                     key={mat.id}
-                                                                    value={mat.id}
-                                                                    onSelect={() => handleSelectMaterial(mat.id)}
+                                                                    value={mat.descricao}
+                                                                    onSelect={() => handleSelectMaterial(mat)}
                                                                 >
                                                                     <Check
                                                                         className={cn(
@@ -641,5 +641,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
         </>
     );
 }
+
+    
 
     
