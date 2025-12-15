@@ -317,9 +317,11 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                     }}
                 >
                     <DialogHeader>
-                        <DialogTitle>Novo Orçamento - Etapa {wizardStep} de 2</DialogTitle>
+                        <DialogTitle>Novo Orçamento - Etapa {wizardStep} de 3</DialogTitle>
                         <DialogDescription>
-                        {wizardStep === 1 ? "Preencha ou selecione os dados do cliente e outras informações do orçamento." : "Adicione os itens ou serviços que farão parte do orçamento."}
+                        {wizardStep === 1 && "Primeiro, preencha ou selecione os dados do cliente."}
+                        {wizardStep === 2 && "Agora, adicione os itens ou serviços que farão parte do orçamento."}
+                        {wizardStep === 3 && "Por fim, adicione observações, se necessário, e salve o orçamento."}
                         </DialogDescription>
                     </DialogHeader>
                     
@@ -434,10 +436,6 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                 <div className="space-y-2"><Label htmlFor="cliente-cpfCnpj">CPF/CNPJ</Label><Input id="cliente-cpfCnpj" name="cpfCnpj" value={clienteData.cpfCnpj || ''} onChange={handleClienteDataChange} placeholder="XXX.XXX.XXX-XX ou XX.XXX.XXX/XXXX-XX" /></div>
                                 <div className="space-y-2"><Label htmlFor="cliente-email">Email</Label><Input id="cliente-email" name="email" type="email" value={clienteData.email || ''} onChange={handleClienteDataChange} /></div>
                                 <div className="space-y-2"><Label htmlFor="validade-dias">Validade da Proposta (dias)</Label><Input id="validade-dias" type="number" value={validadeDias} onChange={(e) => setValidadeDias(e.target.value)} placeholder="Ex: 7" /></div>
-                                <div className="space-y-2 md:col-span-2">
-                                  <Label htmlFor="observacoes">Observações</Label>
-                                  <Textarea id="observacoes" placeholder="Ex: Condições de pagamento, prazo de entrega, etc." value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />
-                                </div>
                                 </div>
                             </div>
                         </div>
@@ -547,13 +545,25 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                         </div>
                     )}
 
+                    {wizardStep === 3 && (
+                       <div className="flex-grow overflow-y-auto p-1 pr-4">
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor="observacoes">Observações</Label>
+                                  <Textarea id="observacoes" placeholder="Ex: Condições de pagamento, prazo de entrega, etc." value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={10} />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+
                     <DialogFooter className="pt-4 border-t">
-                        {wizardStep > 1 && <Button variant="outline" onClick={() => setWizardStep(wizardStep - 1)}><ArrowLeft className="mr-2" /> Voltar</Button>}
+                        {wizardStep > 1 && <Button variant="outline" onClick={() => setWizardStep(wizardStep - 1)}><ArrowLeft className="mr-2 h-4 w-4" /> Voltar</Button>}
                         <div className="flex-grow"></div>
-                        {wizardStep === 1 && <Button onClick={() => setWizardStep(2)} disabled={!clienteData.nome}><ArrowRight className="mr-2" /> Próximo</Button>}
-                        {wizardStep === 2 && (
-                            <Button onClick={handleConfirmSave} disabled={isSubmitting || orcamentoItens.length === 0}>
-                                {isSubmitting ? <Loader2 className="mr-2 animate-spin" /> : <FileText className="mr-2"/>} Salvar Orçamento
+                        {wizardStep < 3 && <Button onClick={() => setWizardStep(wizardStep + 1)} disabled={(wizardStep === 1 && !clienteData.nome) || (wizardStep === 2 && orcamentoItens.length === 0)}><ArrowRight className="mr-2 h-4 w-4" /> Próximo</Button>}
+                        {wizardStep === 3 && (
+                            <Button onClick={handleConfirmSave} disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="mr-2 animate-spin" /> : <FileText className="mr-2 h-4 w-4"/>} Salvar Orçamento
                             </Button>
                         )}
                     </DialogFooter>
@@ -586,5 +596,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
         </>
     );
 }
+
+    
 
     
