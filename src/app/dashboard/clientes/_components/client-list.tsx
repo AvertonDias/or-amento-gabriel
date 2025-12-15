@@ -59,20 +59,20 @@ export function ClientList({ clientes, budgetCounts, onEdit, onDelete, onViewBud
         <Accordion type="multiple" className="w-full">
             {clientes.map(item => (
                 <AccordionItem value={item.id!} key={item.id} className="border-b">
-                    <div className="flex items-center w-full group">
-                        <AccordionTrigger className="flex-1 hover:no-underline py-3 px-2 rounded-t-lg data-[state=open]:bg-muted/50">
+                     <div className="flex items-center w-full group">
+                        <AccordionTrigger className="flex-1 py-3 px-2 rounded-t-lg data-[state=open]:bg-muted/50">
                             <div className="flex items-center gap-3">
-                                <span className="font-medium text-lg text-primary">{item.nome}</span>
+                                <span className="font-medium text-lg text-primary text-left">{item.nome}</span>
                             </div>
                         </AccordionTrigger>
                         <div className="flex items-center gap-2 pr-2">
-                            <DropdownMenu>
+                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">
                                         <MoreVertical className="h-5 w-5" />
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenuContent align="end">
                                     <DropdownMenuItem onClick={() => onEdit(item)}>
                                         <Pencil className="mr-2 h-4 w-4" />
                                         Editar Cliente
@@ -84,7 +84,7 @@ export function ClientList({ clientes, budgetCounts, onEdit, onDelete, onViewBud
                                     <DropdownMenuSeparator />
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                            <div className={cn("relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:bg-destructive/10 focus:text-destructive")} onSelect={(e) => e.preventDefault()}>
+                                             <div className={cn("relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:bg-destructive/10 focus:text-destructive")} onSelect={(e) => e.preventDefault()}>
                                                 <Trash2 className="mr-2 h-4 w-4" />
                                                 Excluir Cliente
                                             </div>
