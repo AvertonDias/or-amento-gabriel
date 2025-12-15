@@ -155,7 +155,9 @@ export function BudgetList({
         totalText = `\n\n*Total:* *${formatCurrency(orcamento.totalVenda)}*`;
     }
 
-    const text = `Olá, ${orcamento.cliente.nome}! Segue o orçamento Nº ${orcamento.numeroOrcamento} da empresa ${empresa?.nome || 'Nossa Empresa'}:\n\n*Itens:*${itemsText}${totalText}\n\nEste orçamento é válido até ${format(addDays(parseISO(orcamento.dataCriacao), parseInt(orcamento.validadeDias, 10)), 'dd/MM/yyyy')}.`;
+    const observacoesText = orcamento.observacoes ? `\n\n*Observações:*\n${orcamento.observacoes}` : '';
+
+    const text = `Olá, ${orcamento.cliente.nome}! Segue o orçamento Nº ${orcamento.numeroOrcamento} da empresa ${empresa?.nome || 'Nossa Empresa'}:\n\n*Itens:*${itemsText}${totalText}${observacoesText}\n\nEste orçamento é válido até ${format(addDays(parseISO(orcamento.dataCriacao), parseInt(orcamento.validadeDias, 10)), 'dd/MM/yyyy')}.`;
     const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
@@ -285,19 +287,19 @@ export function BudgetList({
       <div className="md:hidden grid grid-cols-1 gap-4">
         {budgets.map(orcamento => (
           <Card key={orcamento.id} className="flex flex-col">
-             <CardHeader className="p-4">
-                <div className="flex justify-between items-start gap-4">
-                    <div>
-                        <CardTitle className='text-lg'>{orcamento.cliente.nome}</CardTitle>
-                        <CardDescription>{`#${orcamento.numeroOrcamento}`}</CardDescription>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                         <Badge variant={getStatusBadgeVariant(orcamento.status)} className="text-xs">
-                           {orcamento.status}
-                         </Badge>
-                         <BudgetActionsMenu orcamento={orcamento} />
-                    </div>
-                </div>
+            <CardHeader className="p-4">
+              <div className="flex justify-between items-start gap-4">
+                  <div>
+                      <CardTitle className='text-lg'>{orcamento.cliente.nome}</CardTitle>
+                      <CardDescription>{`#${orcamento.numeroOrcamento}`}</CardDescription>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                       <Badge variant={getStatusBadgeVariant(orcamento.status)} className="text-xs">
+                         {orcamento.status}
+                       </Badge>
+                       <BudgetActionsMenu orcamento={orcamento} />
+                  </div>
+              </div>
             </CardHeader>
             <CardContent className="px-4 pb-4 flex-grow">
               <div className="space-y-4">

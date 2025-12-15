@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -171,18 +172,22 @@ export function BudgetEditDialog({
      Handlers
   =========================== */
 
-  const handleClienteDataChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDataChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (!editingBudget) return;
     const { name, value } = e.target;
+
     setEditingBudget(prev => {
         if (!prev) return null;
-        return {
-            ...prev,
-            cliente: {
-                ...prev.cliente,
-                [name]: value
+        if (name in prev.cliente) {
+             return {
+                ...prev,
+                cliente: {
+                    ...prev.cliente,
+                    [name]: value
+                }
             }
         }
+        return { ...prev, [name]: value };
     });
   };
 
@@ -377,7 +382,7 @@ export function BudgetEditDialog({
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div><Label>Nome do Cliente</Label><Input value={editingBudget.cliente.nome} disabled/></div>
                         <div><Label htmlFor="cliente-telefone">Telefone</Label><Input id="cliente-telefone" name="telefone" value={editingBudget.cliente.telefones?.[0]?.numero || ''} onChange={handleClienteTelefoneChange} /></div>
-                        <div className="md:col-span-2"><Label htmlFor="cliente-endereco">Endereço</Label><Input id="cliente-endereco" name="endereco" value={editingBudget.cliente.endereco} onChange={handleClienteDataChange} /></div>
+                        <div className="md:col-span-2"><Label htmlFor="cliente-endereco">Endereço</Label><Input id="cliente-endereco" name="endereco" value={editingBudget.cliente.endereco} onChange={handleDataChange} /></div>
                      </div>
                 </div>
 
@@ -442,22 +447,24 @@ export function BudgetEditDialog({
 
                 {/* TABELA DE ITENS - DESKTOP */}
                 <div className="hidden md:block">
-                    <Table>
-                        <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Qtd.</TableHead><TableHead className="text-right">Venda</TableHead><TableHead className="text-center">Ações</TableHead></TableRow></TableHeader>
-                        <TableBody>
-                        {editingBudgetItens.map(item => (
-                            <TableRow key={item.id}>
-                                <TableCell>{item.materialNome}</TableCell>
-                                <TableCell className="text-right">{formatNumber(item.quantidade, 2)}</TableCell>
-                                <TableCell className="text-right font-bold text-primary">{formatCurrency(item.precoVenda)}</TableCell>
-                                <TableCell className="flex justify-center gap-1">
-                                    <Button variant="ghost" size="icon" onClick={() => handleEditItemClick(item)}><Pencil className="h-4 w-4 text-primary" /></Button>
-                                    <Button variant="ghost" size="icon" onClick={() => removeLinha(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                        </TableBody>
-                    </Table>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Qtd.</TableHead><TableHead className="text-right">Venda</TableHead><TableHead className="text-center">Ações</TableHead></TableRow></TableHeader>
+                            <TableBody>
+                            {editingBudgetItens.map(item => (
+                                <TableRow key={item.id}>
+                                    <TableCell>{item.materialNome}</TableCell>
+                                    <TableCell className="text-right">{formatNumber(item.quantidade, 2)}</TableCell>
+                                    <TableCell className="text-right font-bold text-primary">{formatCurrency(item.precoVenda)}</TableCell>
+                                    <TableCell className="flex justify-center gap-1">
+                                        <Button variant="ghost" size="icon" onClick={() => handleEditItemClick(item)}><Pencil className="h-4 w-4 text-primary" /></Button>
+                                        <Button variant="ghost" size="icon" onClick={() => removeLinha(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
                  {/* LISTA DE ITENS - MOBILE */}
                 <div className="md:hidden grid grid-cols-1 gap-4">
@@ -547,6 +554,10 @@ export function BudgetEditDialog({
                             </TableRow>
                         </TableTotalFooter>
                     </Table>
+                </div>
+                 <div className="space-y-2">
+                  <Label htmlFor="observacoes">Observações</Label>
+                  <Textarea id="observacoes" name="observacoes" placeholder="Ex: Condições de pagamento, prazo de entrega, etc." value={editingBudget.observacoes || ''} onChange={handleDataChange} />
                 </div>
             </div>
 

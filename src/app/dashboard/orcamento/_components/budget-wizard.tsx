@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useRef } from 'react';
@@ -6,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableTotalFooter } from '@/components/ui/table';
@@ -44,6 +46,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
     const [orcamentoItens, setOrcamentoItens] = useState<OrcamentoItem[]>([]);
     const [clienteData, setClienteData] = useState<Omit<ClienteData, 'userId' | 'id'> & {id?: string; telefones: {nome: string, numero: string, principal?: boolean}[]}>({ id: undefined, nome: '', endereco: '', telefones: [{nome: 'Principal', numero: '', principal: true}], email: '', cpfCnpj: ''});
     const [validadeDias, setValidadeDias] = useState('7');
+    const [observacoes, setObservacoes] = useState('');
     
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
@@ -83,6 +86,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
         setOrcamentoItens([]);
         setClienteData({ id: undefined, nome: '', endereco: '', telefones: [{nome: 'Principal', numero: '', principal: true}], email: '', cpfCnpj: ''});
         setValidadeDias('7');
+        setObservacoes('');
         setIsAddingAvulso(false);
         setNovoItem({ materialId: '', quantidade: '', margemLucro: '' });
         setQuantidadeStr('');
@@ -98,7 +102,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
         onOpenChange(open);
     };
     
-    const handleClienteDataChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleClienteDataChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         let finalValue = value;
         if (name === 'cpfCnpj') finalValue = maskCpfCnpj(value);
@@ -255,7 +259,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
         const existingClient = clientes.find(c => c.nome.trim().toLowerCase() === normalizedNewClientName);
     
         if (existingClient) {
-            const budgetData = {
+            const budgetData: Omit<Orcamento, 'id'> = {
                 userId: '', // será preenchido na função pai
                 numeroOrcamento: '', // será gerado na função pai
                 cliente: existingClient,
@@ -264,6 +268,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                 dataCriacao: new Date().toISOString(),
                 status: "Pendente" as const,
                 validadeDias,
+                observacoes,
                 dataAceite: null,
                 dataRecusa: null,
             };
@@ -284,7 +289,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
             finalClientData.id = `temp_${crypto.randomUUID()}`;
         }
         
-        const budgetData = {
+        const budgetData: Omit<Orcamento, 'id'> = {
             userId: '', 
             numeroOrcamento: '',
             cliente: finalClientData,
@@ -293,6 +298,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
             dataCriacao: new Date().toISOString(),
             status: "Pendente" as const,
             validadeDias,
+            observacoes,
             dataAceite: null,
             dataRecusa: null,
         };
@@ -313,7 +319,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                     <DialogHeader>
                         <DialogTitle>Novo Orçamento - Etapa {wizardStep} de 2</DialogTitle>
                         <DialogDescription>
-                        {wizardStep === 1 ? "Preencha ou selecione os dados do cliente para o orçamento." : "Adicione os itens ou serviços que farão parte do orçamento."}
+                        {wizardStep === 1 ? "Preencha ou selecione os dados do cliente e outras informações do orçamento." : "Adicione os itens ou serviços que farão parte do orçamento."}
                         </DialogDescription>
                     </DialogHeader>
                     
@@ -428,6 +434,10 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                 <div className="space-y-2"><Label htmlFor="cliente-cpfCnpj">CPF/CNPJ</Label><Input id="cliente-cpfCnpj" name="cpfCnpj" value={clienteData.cpfCnpj || ''} onChange={handleClienteDataChange} placeholder="XXX.XXX.XXX-XX ou XX.XXX.XXX/XXXX-XX" /></div>
                                 <div className="space-y-2"><Label htmlFor="cliente-email">Email</Label><Input id="cliente-email" name="email" type="email" value={clienteData.email || ''} onChange={handleClienteDataChange} /></div>
                                 <div className="space-y-2"><Label htmlFor="validade-dias">Validade da Proposta (dias)</Label><Input id="validade-dias" type="number" value={validadeDias} onChange={(e) => setValidadeDias(e.target.value)} placeholder="Ex: 7" /></div>
+                                <div className="space-y-2 md:col-span-2">
+                                  <Label htmlFor="observacoes">Observações</Label>
+                                  <Textarea id="observacoes" placeholder="Ex: Condições de pagamento, prazo de entrega, etc." value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />
+                                </div>
                                 </div>
                             </div>
                         </div>

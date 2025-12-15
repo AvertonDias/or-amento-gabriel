@@ -113,6 +113,13 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
               </tr>
             </tfoot>
           </table>
+
+          {orcamento.observacoes && (
+              <section className="mt-4 pt-4 border-t">
+                  <h3 className="font-semibold text-base mb-2">Observações:</h3>
+                  <p className="whitespace-pre-wrap">{orcamento.observacoes}</p>
+              </section>
+          )}
         </div>
       )
   };
@@ -215,6 +222,13 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
               </tr>
             </tfoot>
           </table>
+
+            {orcamento.observacoes && (
+              <section className="mt-4 pt-4 border-t">
+                  <h3 className="font-semibold text-base mb-2">Observações:</h3>
+                  <p className="whitespace-pre-wrap">{orcamento.observacoes}</p>
+              </section>
+          )}
         </div>
       )
   };
