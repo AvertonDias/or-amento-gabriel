@@ -39,6 +39,7 @@ import {
   DialogFooter, DialogHeader, DialogTitle
 } from '@/components/ui/dialog';
 import { type VariantProps } from 'class-variance-authority';
+import { cn } from '@/lib/utils';
 
 interface BudgetListProps {
   isLoading: boolean;
@@ -150,6 +151,78 @@ export function BudgetList({
     );
   }
 
+  const BudgetActionsMenu = ({ orcamento }: { orcamento: Orcamento }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <MoreVertical className="h-5 w-5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {orcamento.status === 'Pendente' && (
+          <>
+            <DropdownMenuItem onClick={() => onUpdateStatus(orcamento.id, 'Aceito')}>
+              <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
+              Marcar como Aceito
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onUpdateStatus(orcamento.id, 'Recusado')}>
+              <XCircle className="mr-2 h-4 w-4 text-red-500" />
+              Marcar como Recusado
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        <DropdownMenuItem
+          onClick={() => onEdit(orcamento)}
+          disabled={orcamento.status === 'Aceito' || orcamento.status === 'Vencido'}
+        >
+          <Pencil className="mr-2 h-4 w-4" />
+          Editar
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <FileText className="mr-2 h-4 w-4" />
+            Gerar PDF
+          </DropdownMenuSubTrigger>
+          <DropdownMenuPortal>
+            <DropdownMenuSubContent>
+              <DropdownMenuItem onClick={() => onGeneratePDF(orcamento, 'client')}>
+                Para Cliente
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onGeneratePDF(orcamento, 'internal')}>
+                Para Controle Interno
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuPortal>
+        </DropdownMenuSub>
+        <DropdownMenuItem onClick={() => handleSendWhatsApp(orcamento)}>
+          <MessageCircle className="mr-2 h-4 w-4" />
+          Enviar por WhatsApp
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <div className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive focus:bg-destructive/10">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Excluir Orçamento
+            </div>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+              <AlertDialogDescription>Esta ação não pode ser desfeita. Isso excluirá permanentemente o orçamento.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => onDelete(orcamento.id)}>Sim, Excluir</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
     <>
       {/* DIALOG DE SELEÇÃO DE TELEFONE */}
@@ -157,155 +230,81 @@ export function BudgetList({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{phoneSelectionConfig.title}</DialogTitle>
-            <DialogDescription>
-              {phoneSelectionConfig.description}
-            </DialogDescription>
+            <DialogDescription>{phoneSelectionConfig.description}</DialogDescription>
           </DialogHeader>
-
-          <RadioGroup
-            value={selectedPhone}
-            onValueChange={setSelectedPhone}
-            className="space-y-3"
-          >
+          <RadioGroup value={selectedPhone} onValueChange={setSelectedPhone} className="space-y-3">
             {phoneSelectionConfig.phones.map((phone, index) => (
-              <div
-                key={`${phone.numero}-${index}`}
-                className="flex items-center space-x-2"
-              >
-                <RadioGroupItem
-                  value={phone.numero}
-                  id={`phone-${index}`}
-                />
-                <Label htmlFor={`phone-${index}`}>
-                  {phone.nome} — {phone.numero}
-                  {phone.principal && ' (Principal)'}
-                </Label>
+              <div key={`${phone.numero}-${index}`} className="flex items-center space-x-2">
+                <RadioGroupItem value={phone.numero} id={`phone-${index}`} />
+                <Label htmlFor={`phone-${index}`}>{phone.nome} — {phone.numero}{phone.principal && ' (Principal)'}</Label>
               </div>
             ))}
           </RadioGroup>
-
-          <DialogFooter>
-            <Button onClick={confirmPhoneSelection}>
-              Confirmar
-            </Button>
-          </DialogFooter>
+          <DialogFooter><Button onClick={confirmPhoneSelection}>Confirmar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* LISTA DE ORÇAMENTOS */}
-      <div className="space-y-4">
-        {budgets.map((orcamento) => (
-            <Card key={orcamento.id} className="overflow-hidden">
-                <CardHeader className="flex flex-row items-start justify-between">
-                    <div className="flex-1">
-                        <CardTitle className="text-xl">{orcamento.cliente.nome}</CardTitle>
-                        <CardDescription>
-                            {`#${orcamento.numeroOrcamento} — ${formatCurrency(orcamento.totalVenda)}`}
-                        </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2 ml-2">
-                        <Badge variant={getStatusBadgeVariant(orcamento.status)}>
-                        {orcamento.status}
-                        </Badge>
-                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <MoreVertical className="h-5 w-5" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                {orcamento.status === 'Pendente' && (
-                                    <>
-                                        <DropdownMenuItem onClick={() => onUpdateStatus(orcamento.id, 'Aceito')}>
-                                            <CheckCircle2 className="mr-2 h-4 w-4 text-green-500"/>
-                                            Marcar como Aceito
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => onUpdateStatus(orcamento.id, 'Recusado')}>
-                                            <XCircle className="mr-2 h-4 w-4 text-red-500"/>
-                                            Marcar como Recusado
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator/>
-                                    </>
-                                )}
-                                <DropdownMenuItem 
-                                  onClick={() => onEdit(orcamento)}
-                                  disabled={orcamento.status === 'Aceito' || orcamento.status === 'Vencido'}
-                                >
-                                    <Pencil className="mr-2 h-4 w-4"/>
-                                    Editar
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator/>
-                                <DropdownMenuSub>
-                                  <DropdownMenuSubTrigger>
-                                      <FileText className="mr-2 h-4 w-4"/>
-                                      Gerar PDF
-                                  </DropdownMenuSubTrigger>
-                                  <DropdownMenuPortal>
-                                      <DropdownMenuSubContent>
-                                          <DropdownMenuItem onClick={() => onGeneratePDF(orcamento, 'client')}>
-                                              Para Cliente
-                                          </DropdownMenuItem>
-                                           <DropdownMenuItem onClick={() => onGeneratePDF(orcamento, 'internal')}>
-                                              Para Controle Interno
-                                          </DropdownMenuItem>
-                                      </DropdownMenuSubContent>
-                                  </DropdownMenuPortal>
-                                </DropdownMenuSub>
-                                <DropdownMenuItem onClick={() => handleSendWhatsApp(orcamento)}>
-                                    <MessageCircle className="mr-2 h-4 w-4"/>
-                                    Enviar por WhatsApp
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator/>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                         <div className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive focus:bg-destructive/10">
-                                            <Trash2 className="mr-2 h-4 w-4"/>
-                                            Excluir Orçamento
-                                        </div>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                        <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                        <AlertDialogDescription>Esta ação não pode ser desfeita. Isso excluirá permanentemente o orçamento.</AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => onDelete(orcamento.id)}>Sim, Excluir</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="w-full overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                <TableHead>Item</TableHead>
-                                <TableHead className="text-right">Qtd</TableHead>
-                                <TableHead className="text-right">Valor</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {orcamento.itens.map(item => (
-                                <TableRow key={item.id}>
-                                    <TableCell>{item.materialNome}</TableCell>
-                                    <TableCell className="text-right">
-                                    {formatNumber(item.quantidade)} {item.unidade}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                    {formatCurrency(item.precoVenda)}
-                                    </TableCell>
-                                </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </CardContent>
-            </Card>
+      {/* Mobile view */}
+      <div className="md:hidden grid grid-cols-1 gap-4">
+        {budgets.map(orcamento => (
+          <Card key={orcamento.id}>
+            <CardHeader className="flex flex-row items-start justify-between">
+              <div className='flex-1'>
+                <CardTitle className='text-lg'>{orcamento.cliente.nome}</CardTitle>
+                <CardDescription>{`#${orcamento.numeroOrcamento} — ${formatCurrency(orcamento.totalVenda)}`}</CardDescription>
+              </div>
+               <div className="flex items-center gap-1">
+                <Badge variant={getStatusBadgeVariant(orcamento.status)} className="text-xs">
+                  {orcamento.status}
+                </Badge>
+                <BudgetActionsMenu orcamento={orcamento} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {orcamento.itens.map(item => (
+                   <div key={item.id} className="flex justify-between items-center text-sm border-b pb-2 last:border-b-0">
+                     <div className="flex-1 mr-2">
+                       <p className="font-medium text-foreground line-clamp-2">{item.materialNome}</p>
+                       <p className="text-muted-foreground">{formatNumber(item.quantidade)} {item.unidade}</p>
+                     </div>
+                     <p className="font-semibold text-primary">{formatCurrency(item.precoVenda)}</p>
+                   </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         ))}
+      </div>
+
+      {/* Desktop view */}
+      <div className="hidden md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nº</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Data</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Valor</TableHead>
+              <TableHead className="text-center">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {budgets.map(orcamento => (
+              <TableRow key={orcamento.id}>
+                <TableCell>{orcamento.numeroOrcamento}</TableCell>
+                <TableCell className='font-medium'>{orcamento.cliente.nome}</TableCell>
+                <TableCell>{format(parseISO(orcamento.dataCriacao), 'dd/MM/yyyy')}</TableCell>
+                <TableCell><Badge variant={getStatusBadgeVariant(orcamento.status)}>{orcamento.status}</Badge></TableCell>
+                <TableCell className="text-right font-semibold text-primary">{formatCurrency(orcamento.totalVenda)}</TableCell>
+                <TableCell className="text-center">
+                   <BudgetActionsMenu orcamento={orcamento} />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
     </>
   );
