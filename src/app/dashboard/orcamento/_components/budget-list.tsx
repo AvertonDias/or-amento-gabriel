@@ -139,7 +139,23 @@ export function BudgetList({
       return;
     }
     const cleanPhone = `55${phone.replace(/\D/g, '')}`;
-    const text = `Olá, ${orcamento.cliente.nome}! Segue o orçamento Nº ${orcamento.numeroOrcamento} da empresa ${empresa?.nome || 'Nossa Empresa'}:\n\n*Itens:*${orcamento.itens.map(item => `\n- ${item.materialNome} (${formatNumber(item.quantidade, 2)} ${item.unidade}): ${formatCurrency(item.precoVenda)}`).join('')}\n\n*Total:* *${formatCurrency(orcamento.totalVenda)}*\n\nEste orçamento é válido até ${format(addDays(parseISO(orcamento.dataCriacao), parseInt(orcamento.validadeDias, 10)), 'dd/MM/yyyy')}.`;
+    
+    const calculatedTotal = orcamento.itens.reduce((sum, item) => sum + item.precoVenda, 0);
+    const isTotalEdited = calculatedTotal.toFixed(2) !== orcamento.totalVenda.toFixed(2);
+    const adjustment = orcamento.totalVenda - calculatedTotal;
+
+    const itemsText = orcamento.itens.map(item => `\n- ${item.materialNome} (${formatNumber(item.quantidade, 2)} ${item.unidade}): ${formatCurrency(item.precoVenda)}`).join('');
+    
+    let totalText = '';
+    if (isTotalEdited) {
+        totalText = `\n\n*Subtotal:* ${formatCurrency(calculatedTotal)}`;
+        totalText += `\n*${adjustment < 0 ? 'Desconto' : 'Acréscimo'}:* ${formatCurrency(adjustment)}`;
+        totalText += `\n*Total Final:* *${formatCurrency(orcamento.totalVenda)}*`;
+    } else {
+        totalText = `\n\n*Total:* *${formatCurrency(orcamento.totalVenda)}*`;
+    }
+
+    const text = `Olá, ${orcamento.cliente.nome}! Segue o orçamento Nº ${orcamento.numeroOrcamento} da empresa ${empresa?.nome || 'Nossa Empresa'}:\n\n*Itens:*${itemsText}${totalText}\n\nEste orçamento é válido até ${format(addDays(parseISO(orcamento.dataCriacao), parseInt(orcamento.validadeDias, 10)), 'dd/MM/yyyy')}.`;
     const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
