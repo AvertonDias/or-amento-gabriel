@@ -522,7 +522,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                                             {materiais.map((mat) => (
                                                                 <CommandItem
                                                                     key={mat.id}
-                                                                    value={mat.descricao}
+                                                                    value={mat.id}
                                                                     onSelect={() => handleSelectMaterial(mat)}
                                                                 >
                                                                     <Check
