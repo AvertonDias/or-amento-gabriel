@@ -248,30 +248,36 @@ export function BudgetList({
       {/* Mobile view */}
       <div className="md:hidden grid grid-cols-1 gap-4">
         {budgets.map(orcamento => (
-          <Card key={orcamento.id}>
-             <CardHeader className="p-4 flex flex-row items-start justify-between gap-4">
-                <div className="flex-1">
-                    <CardTitle className='text-lg'>{orcamento.cliente.nome}</CardTitle>
-                    <CardDescription>{`#${orcamento.numeroOrcamento} — ${formatCurrency(orcamento.totalVenda)}`}</CardDescription>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                     <Badge variant={getStatusBadgeVariant(orcamento.status)} className="text-xs">
-                       {orcamento.status}
-                     </Badge>
-                     <BudgetActionsMenu orcamento={orcamento} />
+          <Card key={orcamento.id} className="flex flex-col">
+             <CardHeader className="p-4">
+                <div className="flex justify-between items-start gap-4">
+                    <div>
+                        <CardTitle className='text-lg'>{orcamento.cliente.nome}</CardTitle>
+                        <CardDescription>{`#${orcamento.numeroOrcamento}`}</CardDescription>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                         <Badge variant={getStatusBadgeVariant(orcamento.status)} className="text-xs">
+                           {orcamento.status}
+                         </Badge>
+                         <BudgetActionsMenu orcamento={orcamento} />
+                    </div>
                 </div>
             </CardHeader>
-            <CardContent className="px-4 pb-4">
+            <CardContent className="px-4 pb-4 flex-grow">
               <div className="space-y-4">
                 {orcamento.itens.map(item => (
                    <div key={item.id} className="text-sm border-b pb-3 last:border-b-0">
                      <p className="font-medium text-foreground line-clamp-2">{item.materialNome}</p>
-                     <p className="text-muted-foreground">{formatNumber(item.quantidade)} {item.unidade}</p>
+                     <p className="text-muted-foreground">{formatNumber(item.quantidade, 2)} {item.unidade}</p>
                      <p className="font-semibold text-primary text-right mt-1">{formatCurrency(item.precoVenda)}</p>
                    </div>
                 ))}
               </div>
             </CardContent>
+            <CardFooter className="p-4 mt-2 bg-muted/50 flex justify-between items-center">
+                <p className="font-bold">TOTAL</p>
+                <p className="font-bold text-primary text-lg">{formatCurrency(orcamento.totalVenda)}</p>
+            </CardFooter>
           </Card>
         ))}
       </div>
