@@ -103,6 +103,18 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
         }
         onOpenChange(open);
     };
+
+    const handleSelectClient = (client: ClienteData) => {
+        setClienteData({
+          id: client.id,
+          nome: client.nome,
+          endereco: client.endereco || '',
+          telefones: client.telefones && client.telefones.length > 0 ? client.telefones : [{ nome: 'Principal', numero: '', principal: true }],
+          email: client.email || '',
+          cpfCnpj: client.cpfCnpj || ''
+        });
+        setIsClientPopoverOpen(false);
+    };
     
     const handleClienteDataChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -343,9 +355,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                             aria-expanded={isClientPopoverOpen}
                                             className="w-full justify-between"
                                         >
-                                            {clienteData.id
-                                                ? clientes.find((c) => c.id === clienteData.id)?.nome
-                                                : "Selecionar cliente..."}
+                                            {clienteData.nome || "Selecionar cliente..."}
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
                                     </PopoverTrigger>
@@ -358,21 +368,8 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                                     {clientes.map((c) => (
                                                         <CommandItem
                                                             key={c.id}
-                                                            value={c.id}
-                                                            onSelect={(currentValue) => {
-                                                                const client = clientes.find(cli => cli.id === currentValue);
-                                                                if (client) {
-                                                                    setClienteData({
-                                                                        id: client.id,
-                                                                        nome: client.nome,
-                                                                        endereco: client.endereco || '',
-                                                                        telefones: client.telefones && client.telefones.length > 0 ? client.telefones : [{ nome: 'Principal', numero: '', principal: true }],
-                                                                        email: client.email || '',
-                                                                        cpfCnpj: client.cpfCnpj || ''
-                                                                    });
-                                                                }
-                                                                setIsClientPopoverOpen(false);
-                                                            }}
+                                                            value={c.nome}
+                                                            onSelect={() => handleSelectClient(c)}
                                                         >
                                                             <Check
                                                                 className={cn(
@@ -392,7 +389,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
 
                                 <div className="relative py-2">
                                     <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Ou preencha manualmente</span></div>
+                                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Ou preencha manually</span></div>
                                 </div>
 
                                 <div className="space-y-2">
@@ -557,7 +554,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                   <Textarea id="observacoes" placeholder="Ex: Condições de pagamento, prazo de entrega, etc." value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={5} />
                                 </div>
                                 <div className="space-y-2">
-                                  <Label htmlFor="observacoes-internas">Observações Internas</Label>
+                                  <Label htmlFor="observacoes-internas">Observações Internas (não aparecem para o cliente)</Label>
                                   <Textarea id="observacoes-internas" placeholder="Anotações que não aparecerão para o cliente." value={observacoesInternas} onChange={(e) => setObservacoesInternas(e.target.value)} rows={5} />
                                 </div>
                             </div>
