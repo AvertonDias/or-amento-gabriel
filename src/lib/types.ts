@@ -56,7 +56,8 @@ export interface Orcamento {
   dataCriacao: string; // ISO Date String
   status: 'Pendente' | 'Aceito' | 'Recusado' | 'Vencido';
   validadeDias: string;
-  observacoes?: string; // Novo campo de observações
+  observacoes?: string;
+  observacoesInternas?: string; // Novo campo para anotações internas
   dataAceite: string | null; // ISO Date String
   dataRecusa: string | null; // ISO Date String
 }

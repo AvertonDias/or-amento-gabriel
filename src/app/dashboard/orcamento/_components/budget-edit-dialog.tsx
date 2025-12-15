@@ -178,6 +178,9 @@ export function BudgetEditDialog({
 
     setEditingBudget(prev => {
         if (!prev) return null;
+        if (name === 'observacoes' || name === 'observacoesInternas') {
+            return { ...prev, [name]: value };
+        }
         if (name in prev.cliente) {
              return {
                 ...prev,
@@ -556,8 +559,12 @@ export function BudgetEditDialog({
                     </Table>
                 </div>
                  <div className="space-y-2">
-                  <Label htmlFor="observacoes">Observações</Label>
+                  <Label htmlFor="observacoes">Observações para o Cliente</Label>
                   <Textarea id="observacoes" name="observacoes" placeholder="Ex: Condições de pagamento, prazo de entrega, etc." value={editingBudget.observacoes || ''} onChange={handleDataChange} />
+                </div>
+                 <div className="space-y-2">
+                  <Label htmlFor="observacoesInternas">Observações Internas</Label>
+                  <Textarea id="observacoesInternas" name="observacoesInternas" placeholder="Anotações que não aparecerão para o cliente." value={editingBudget.observacoesInternas || ''} onChange={handleDataChange} />
                 </div>
             </div>
 

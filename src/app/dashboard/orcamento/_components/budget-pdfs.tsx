@@ -225,10 +225,17 @@ const BudgetPDFLayout = ({ orcamento, empresa }: {
 
             {orcamento.observacoes && (
               <section className="mt-4 pt-4 border-t">
-                  <h3 className="font-semibold text-base mb-2">Observações:</h3>
+                  <h3 className="font-semibold text-base mb-2">Observações (Cliente):</h3>
                   <p className="whitespace-pre-wrap">{orcamento.observacoes}</p>
               </section>
-          )}
+            )}
+
+            {orcamento.observacoesInternas && (
+              <section className="mt-4 pt-4 border-t">
+                  <h3 className="font-semibold text-base mb-2">Observações Internas:</h3>
+                  <p className="whitespace-pre-wrap">{orcamento.observacoesInternas}</p>
+              </section>
+            )}
         </div>
       )
   };

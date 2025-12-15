@@ -52,6 +52,8 @@ export const addOrcamento = async (orcamento: Omit<Orcamento, 'id'>): Promise<st
       email: orcamento.cliente.email || '',
       endereco: orcamento.cliente.endereco || ''
     },
+    observacoes: orcamento.observacoes || '',
+    observacoesInternas: orcamento.observacoesInternas || '',
   };
 
   await dexieDB.orcamentos.put({
@@ -78,6 +80,8 @@ export const updateOrcamento = async (orcamentoId: string, orcamento: Partial<Or
     updatedData.cliente.email = updatedData.cliente.email || '';
     updatedData.cliente.endereco = updatedData.cliente.endereco || '';
   }
+  updatedData.observacoes = updatedData.observacoes || '';
+  updatedData.observacoesInternas = updatedData.observacoesInternas || '';
 
 
   await dexieDB.orcamentos.put({

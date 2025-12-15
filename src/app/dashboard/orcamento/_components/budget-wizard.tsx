@@ -47,6 +47,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
     const [clienteData, setClienteData] = useState<Omit<ClienteData, 'userId' | 'id'> & {id?: string; telefones: {nome: string, numero: string, principal?: boolean}[]}>({ id: undefined, nome: '', endereco: '', telefones: [{nome: 'Principal', numero: '', principal: true}], email: '', cpfCnpj: ''});
     const [validadeDias, setValidadeDias] = useState('7');
     const [observacoes, setObservacoes] = useState('');
+    const [observacoesInternas, setObservacoesInternas] = useState('');
     
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
@@ -87,6 +88,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
         setClienteData({ id: undefined, nome: '', endereco: '', telefones: [{nome: 'Principal', numero: '', principal: true}], email: '', cpfCnpj: ''});
         setValidadeDias('7');
         setObservacoes('');
+        setObservacoesInternas('');
         setIsAddingAvulso(false);
         setNovoItem({ materialId: '', quantidade: '', margemLucro: '' });
         setQuantidadeStr('');
@@ -269,6 +271,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                 status: "Pendente" as const,
                 validadeDias,
                 observacoes,
+                observacoesInternas,
                 dataAceite: null,
                 dataRecusa: null,
             };
@@ -299,6 +302,7 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
             status: "Pendente" as const,
             validadeDias,
             observacoes,
+            observacoesInternas,
             dataAceite: null,
             dataRecusa: null,
         };
@@ -547,10 +551,14 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
 
                     {wizardStep === 3 && (
                        <div className="flex-grow overflow-y-auto p-1 pr-4">
-                            <div className="space-y-4">
+                            <div className="space-y-6">
                                 <div className="space-y-2">
-                                  <Label htmlFor="observacoes">Observações</Label>
-                                  <Textarea id="observacoes" placeholder="Ex: Condições de pagamento, prazo de entrega, etc." value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={10} />
+                                  <Label htmlFor="observacoes">Observações para o Cliente</Label>
+                                  <Textarea id="observacoes" placeholder="Ex: Condições de pagamento, prazo de entrega, etc." value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={5} />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="observacoes-internas">Observações Internas</Label>
+                                  <Textarea id="observacoes-internas" placeholder="Anotações que não aparecerão para o cliente." value={observacoesInternas} onChange={(e) => setObservacoesInternas(e.target.value)} rows={5} />
                                 </div>
                             </div>
                         </div>
@@ -596,7 +604,3 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
         </>
     );
 }
-
-    
-
-    
