@@ -43,9 +43,9 @@ export function EditItemModal({ isOpen, onOpenChange, item, onSave }: EditItemMo
             const margem = item.margemLucro;
             setEditingMargemLucroStr(margem > 0 ? String(margem).replace('.', ',') : '');
 
-            setEditingPrecoUnitarioStr(maskCurrency(String(item.precoUnitario)));
+            const priceAsNumber = Number(item.precoUnitario) || 0;
+            setEditingPrecoUnitarioStr(maskCurrency(String(priceAsNumber.toFixed(2))));
             
-            // Itens avulsos sempre têm o preço desbloqueado para edição
             setIsPriceUnlocked(!!item.materialId && item.materialId.startsWith('avulso-'));
         }
     }, [item]);
