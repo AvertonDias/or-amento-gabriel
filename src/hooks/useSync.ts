@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
@@ -139,30 +140,34 @@ export function useSync() {
       const collections: SyncableCollection[] = ['clientes', 'materiais', 'orcamentos', 'empresa'];
 
       for (const coll of collections) {
-        const q = query(collection(firestoreDB, coll), where('userId', '==', user.uid));
-        const snapshot = await getDocs(q);
+          const q = query(collection(firestoreDB, coll), where('userId', '==', user.uid));
+          const snapshot = await getDocs(q);
 
-        if (!snapshot.empty) {
-          const items = snapshot.docs.map(doc => ({
-            id: doc.id,
-            userId: user.uid,
-            data: doc.data(),
-            syncStatus: 'synced',
-            syncError: null,
-          }));
+          // Limpa a tabela local antes de popular com dados frescos
+          await (dexieDB as any)[coll].where('userId').equals(user.uid).delete();
 
-          await (dexieDB as any)[coll].bulkPut(items);
-        }
+          if (!snapshot.empty) {
+              const items = snapshot.docs.map(doc => ({
+                  id: doc.id,
+                  userId: user.uid,
+                  data: doc.data(),
+                  syncStatus: 'synced',
+                  syncError: null,
+              }));
+              
+              await (dexieDB as any)[coll].bulkPut(items);
+          }
       }
     } catch (error) {
-      console.error(error);
-      toast({
-        title: 'Erro ao buscar dados da nuvem',
-        variant: 'destructive',
-      });
+        console.error("Erro ao puxar dados do Firestore:", error);
+        toast({
+            title: 'Erro ao buscar dados da nuvem',
+            description: 'Não foi possível sincronizar os dados. Tente novamente mais tarde.',
+            variant: 'destructive',
+        });
     } finally {
-      syncLock.current = false;
-      setIsSyncing(false);
+        syncLock.current = false;
+        setIsSyncing(false);
     }
   }, [user, isOnline, toast]);
 
