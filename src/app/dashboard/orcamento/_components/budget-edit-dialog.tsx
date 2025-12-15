@@ -54,6 +54,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Capacitor } from '@capacitor/core';
 import { EditItemModal } from './edit-item-modal';
 import { cn } from '@/lib/utils';
+import { Card, CardContent } from '@/components/ui/card';
 
 
 /* ===========================
@@ -433,8 +434,8 @@ export function BudgetEditDialog({
                     )}
                 </div>
 
-                {/* TABELA DE ITENS */}
-                <div className="overflow-x-auto">
+                {/* TABELA DE ITENS - DESKTOP */}
+                <div className="hidden md:block">
                     <Table>
                         <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Qtd.</TableHead><TableHead className="text-right">Venda</TableHead><TableHead className="text-center">Ações</TableHead></TableRow></TableHeader>
                         <TableBody>
@@ -450,9 +451,35 @@ export function BudgetEditDialog({
                             </TableRow>
                         ))}
                         </TableBody>
+                    </Table>
+                </div>
+                 {/* LISTA DE ITENS - MOBILE */}
+                <div className="md:hidden grid grid-cols-1 gap-4">
+                  {editingBudgetItens.map(item => (
+                    <Card key={item.id}>
+                      <CardContent className="p-4 space-y-2">
+                        <div className="flex justify-between items-start">
+                          <p className="font-medium text-foreground pr-2">{item.materialNome}</p>
+                           <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditItemClick(item)}><Pencil className="h-4 w-4 text-primary" /></Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeLinha(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center text-sm text-muted-foreground">
+                           <span>{formatNumber(item.quantidade, 2)} {item.unidade}</span>
+                           <span className="font-bold text-primary">{formatCurrency(item.precoVenda)}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+
+                <div>
+                    <Table>
                         <TableTotalFooter>
                             <TableRow className="bg-muted/50 font-bold text-lg">
-                                <TableCell colSpan={2}>TOTAL</TableCell>
+                                <TableCell colSpan={3} className="md:col-span-2">TOTAL</TableCell>
                                 <TableCell className="text-right text-primary">
                                 <div className="flex items-center justify-end gap-2">
                                     {isTotalEdited && (
@@ -502,7 +529,7 @@ export function BudgetEditDialog({
                                     )}
                                 </div>
                                 </TableCell>
-                                <TableCell></TableCell>
+                                <TableCell className="hidden md:table-cell"></TableCell>
                             </TableRow>
                         </TableTotalFooter>
                     </Table>
