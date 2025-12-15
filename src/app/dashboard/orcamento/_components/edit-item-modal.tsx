@@ -39,7 +39,11 @@ export function EditItemModal({ isOpen, onOpenChange, item, onSave }: EditItemMo
             setEditingItem({ ...item });
             const isInteger = integerUnits.includes(item.unidade);
             setEditingQuantidadeStr(isInteger ? String(item.quantidade) : String(item.quantidade).replace('.', ','));
-            setEditingMargemLucroStr(String(item.margemLucro).replace('.', ','));
+            
+            // Corrige a exibição do acréscimo para não mostrar 0
+            const margem = item.margemLucro;
+            setEditingMargemLucroStr(margem > 0 ? String(margem).replace('.', ',') : '');
+
             setEditingPrecoUnitarioStr(maskCurrency(String(item.precoUnitario)));
             
             // Itens avulsos sempre têm o preço desbloqueado para edição
