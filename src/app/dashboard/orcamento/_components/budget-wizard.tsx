@@ -530,8 +530,8 @@ export function BudgetWizard({ isOpen, onOpenChange, clientes, materiais, onSave
                                                                 <CommandItem
                                                                     key={mat.id}
                                                                     value={mat.id}
-                                                                    onSelect={(currentValue) => {
-                                                                        handleSelectMaterial(currentValue);
+                                                                    onSelect={() => {
+                                                                        handleSelectMaterial(mat.id);
                                                                     }}
                                                                 >
                                                                     <Check
