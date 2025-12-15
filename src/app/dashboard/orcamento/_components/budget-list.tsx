@@ -197,14 +197,13 @@ export function BudgetList({
         {budgets.map((orcamento) => (
             <Card key={orcamento.id} className="overflow-hidden">
                 <CardHeader className="flex flex-row items-start justify-between">
-                    <div>
+                    <div className="flex-1">
                         <CardTitle className="text-xl">{orcamento.cliente.nome}</CardTitle>
                         <CardDescription>
-                            #{orcamento.numeroOrcamento} —{' '}
-                            {formatCurrency(orcamento.totalVenda)}
+                            {`#${orcamento.numeroOrcamento} — ${formatCurrency(orcamento.totalVenda)}`}
                         </CardDescription>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 ml-2">
                         <Badge variant={getStatusBadgeVariant(orcamento.status)}>
                         {orcamento.status}
                         </Badge>
@@ -280,28 +279,30 @@ export function BudgetList({
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                            <TableHead>Item</TableHead>
-                            <TableHead className="text-right">Qtd</TableHead>
-                            <TableHead className="text-right">Valor</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {orcamento.itens.map(item => (
-                            <TableRow key={item.id}>
-                                <TableCell>{item.materialNome}</TableCell>
-                                <TableCell className="text-right">
-                                {formatNumber(item.quantidade)} {item.unidade}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                {formatCurrency(item.precoVenda)}
-                                </TableCell>
-                            </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                    <div className="w-full overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                <TableHead>Item</TableHead>
+                                <TableHead className="text-right">Qtd</TableHead>
+                                <TableHead className="text-right">Valor</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {orcamento.itens.map(item => (
+                                <TableRow key={item.id}>
+                                    <TableCell>{item.materialNome}</TableCell>
+                                    <TableCell className="text-right">
+                                    {formatNumber(item.quantidade)} {item.unidade}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                    {formatCurrency(item.precoVenda)}
+                                    </TableCell>
+                                </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </CardContent>
             </Card>
         ))}
