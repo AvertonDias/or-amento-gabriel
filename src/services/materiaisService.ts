@@ -1,12 +1,17 @@
 
 import { db as firestoreDB } from '@/lib/firebase';
-import { doc, updateDoc as updateDocFirestore, deleteDoc as deleteDocFirestore, setDoc } from 'firebase/firestore';
+import { collection, getDocs, where, query, doc, updateDoc as updateDocFirestore, deleteDoc as deleteDocFirestore, setDoc } from 'firebase/firestore';
 import { db as dexieDB } from '@/lib/dexie';
 import type { MaterialItem } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { auth } from '@/lib/firebase';
 
 // --- Funções que interagem com o Dexie (local) ---
+
+export const getMateriais = async (userId: string): Promise<MaterialItem[]> => {
+    const items = await dexieDB.materiais.where('userId').equals(userId).toArray();
+    return items.map(item => item.data);
+};
 
 export const addMaterial = async (userId: string, material: Omit<MaterialItem, 'id' | 'userId'>): Promise<string> => {
   const newId = uuidv4();
