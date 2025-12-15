@@ -1,3 +1,4 @@
+
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -142,14 +143,28 @@ export const maskDecimal = (value: string): string => {
 
 export const maskDecimalWithAutoComma = (value: string): string => {
     if (!value) return "0,00";
+
+    let v = value.replace(/\D/g, "");
     
-    let v = value.replace(/\D/g, "").replace(/^0+/, "");
-
+    // Remove leading zeros
+    v = v.replace(/^0+/, "");
+    
+    // Ensure at least one digit, default to '0' if empty
     if (v.length === 0) return "0,00";
-    if (v.length === 1) return `0,0${v}`;
-    if (v.length === 2) return `0,${v}`;
 
-    return `${v.slice(0, -2)},${v.slice(-2)}`;
+    // Pad with leading zeros if less than 3 digits
+    if (v.length < 3) {
+      v = v.padStart(3, '0');
+    }
+
+    // Insert comma
+    let integerPart = v.slice(0, -2);
+    let decimalPart = v.slice(-2);
+
+    // Format integer part with thousand separators
+    integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+    return `${integerPart},${decimalPart}`;
 };
 
 

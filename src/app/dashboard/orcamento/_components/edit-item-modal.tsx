@@ -44,7 +44,8 @@ export function EditItemModal({ isOpen, onOpenChange, item, onSave }: EditItemMo
             setEditingMargemLucroStr(margem > 0 ? String(margem).replace('.', ',') : '');
 
             const priceAsNumber = Number(item.precoUnitario) || 0;
-            setEditingPrecoUnitarioStr(maskCurrency(String(priceAsNumber.toFixed(2))));
+            const priceString = String(priceAsNumber.toFixed(2)).replace('.', ',');
+            setEditingPrecoUnitarioStr(maskCurrency(priceString));
             
             setIsPriceUnlocked(!!item.materialId && item.materialId.startsWith('avulso-'));
         }
