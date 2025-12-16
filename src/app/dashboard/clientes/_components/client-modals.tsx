@@ -32,6 +32,9 @@ interface ClientModalsProps {
 
     isApiNotSupportedAlertOpen: boolean;
     setIsApiNotSupportedAlertOpen: (isOpen: boolean) => void;
+    
+    deleteErrorAlert: { isOpen: boolean; message: string; };
+    setDeleteErrorAlert: (alert: { isOpen: boolean; message: string; }) => void;
 }
 
 const formatAddress = (address: any): string => {
@@ -58,7 +61,8 @@ export function ClientModals({
     isEditModalOpen, setIsEditModalOpen, editingClient, onSaveEdit, isSubmitting,
     isContactSelectionModalOpen, setIsContactSelectionModalOpen, selectedContactDetails, onConfirmContactSelection,
     isDuplicateAlertOpen, setIsDuplicateAlertOpen, duplicateMessage,
-    isApiNotSupportedAlertOpen, setIsApiNotSupportedAlertOpen
+    isApiNotSupportedAlertOpen, setIsApiNotSupportedAlertOpen,
+    deleteErrorAlert, setDeleteErrorAlert,
 }: ClientModalsProps) {
 
     const handleConfirmContact = (e: React.FormEvent) => {
@@ -81,7 +85,7 @@ export function ClientModals({
         const phoneNumber = normalizePhoneNumber(selectedTelRaw);
 
         onConfirmContactSelection({
-          nome: selectedContactDetails.name?.[0] || '',
+          nome: selectedContactDetails.name?.[0] || 'Sem nome',
           email: selectedEmail,
           telefones: [{ nome: 'Principal', numero: phoneNumber ? maskTelefone(phoneNumber) : '' }],
           endereco: formattedAddress,
@@ -155,6 +159,18 @@ export function ClientModals({
             
             <AlertDialog open={isApiNotSupportedAlertOpen} onOpenChange={setIsApiNotSupportedAlertOpen}>
                 <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Recurso Indisponível</AlertDialogTitle><AlertDialogDescription>A importação de contatos não é suportada pelo seu navegador atual. Recomendamos usar o Google Chrome ou Microsoft Edge.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogAction onClick={() => setIsApiNotSupportedAlertOpen(false)}>Entendido</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={deleteErrorAlert.isOpen} onOpenChange={(isOpen) => setDeleteErrorAlert({ ...deleteErrorAlert, isOpen })}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Não é possível remover o cliente</AlertDialogTitle>
+                        <AlertDialogDescription>{deleteErrorAlert.message}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogAction onClick={() => setDeleteErrorAlert({ isOpen: false, message: '' })}>Entendido</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
             </AlertDialog>
         </>
     );

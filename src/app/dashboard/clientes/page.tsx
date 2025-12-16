@@ -77,6 +77,7 @@ export default function ClientesPage() {
   const [duplicateMessage, setDuplicateMessage] = useState("");
   const [isApiNotSupportedAlertOpen, setIsApiNotSupportedAlertOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteErrorAlert, setDeleteErrorAlert] = useState({ isOpen: false, message: '' });
 
   const { toast } = useToast();
   const { requestPermission } = usePermissionDialog();
@@ -173,7 +174,17 @@ export default function ClientesPage() {
   };
 
   const handleRemoverCliente = async (id: string) => {
-    if (!user) return;
+    if (!user || !orcamentos) return;
+
+    const hasBudgets = orcamentos.some(o => o.cliente.id === id);
+    if (hasBudgets) {
+        setDeleteErrorAlert({
+            isOpen: true,
+            message: 'Este cliente possui orçamentos associados e não pode ser removido. Por favor, remova os orçamentos primeiro.'
+        });
+        return;
+    }
+
     try {
         await deleteCliente(id);
         toast({
@@ -183,6 +194,7 @@ export default function ClientesPage() {
         });
     } catch(error) {
         toast({ title: 'Erro ao remover cliente', variant: 'destructive' });
+        console.error("Erro ao remover cliente:", error);
     }
   };
   
@@ -279,7 +291,7 @@ export default function ClientesPage() {
           const phoneNumber = normalizePhoneNumber(adaptedContact.tel?.[0] || '');
 
           setNewClient({
-              nome: adaptedContact.name?.[0] || '',
+              nome: adaptedContact.name?.[0] || 'Sem nome',
               email: adaptedContact.email?.[0] || '',
               telefones: [{ nome: 'Principal', numero: phoneNumber }],
               endereco: formattedAddress,
@@ -446,6 +458,9 @@ export default function ClientesPage() {
 
         isApiNotSupportedAlertOpen={isApiNotSupportedAlertOpen}
         setIsApiNotSupportedAlertOpen={setIsApiNotSupportedAlertOpen}
+        
+        deleteErrorAlert={deleteErrorAlert}
+        setDeleteErrorAlert={setDeleteErrorAlert}
       />
     </div>
   );
