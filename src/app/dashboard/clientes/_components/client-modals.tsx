@@ -57,7 +57,7 @@ export default function ClientModals({
 }: ClientModalsProps) {
     const [selectedPhones, setSelectedPhones] = React.useState<Record<string, string>>({});
 
-    const handleInternalSave = (formData: any) => {
+    const handleInternalSave = (formData: ClienteData) => {
         if (editingClient) {
             onSaveEdit({
                 ...editingClient,
@@ -87,7 +87,6 @@ export default function ClientModals({
         onConfirmContactSelection(finalData);
     };
 
-
     return (
         <>
             {/* Edit Modal */}
@@ -116,27 +115,27 @@ export default function ClientModals({
                 <DialogContent>
                     <DialogHeader><DialogTitle>Selecione os Dados</DialogTitle><DialogDescription>O contato importado tem múltiplas opções. Escolha quais usar.</DialogDescription></DialogHeader>
                         <div className="space-y-4">
-                            {selectedContactDetails?.tel?.length > 1 && (
+                            {(selectedContactDetails?.tel?.length ?? 0) > 1 && (
                                 <div className="space-y-2">
                                     <Label>Telefone</Label>
-                                    <RadioGroup onValueChange={(v) => handleSelectionChange('tel', v)} defaultValue={selectedContactDetails.tel[0]}>
-                                        {selectedContactDetails.tel.map(t => <div key={t} className="flex items-center space-x-2"><RadioGroupItem value={t} id={`tel-${t}`}/><Label htmlFor={`tel-${t}`}>{t}</Label></div>)}
+                                    <RadioGroup onValueChange={(v) => handleSelectionChange('tel', v)} defaultValue={selectedContactDetails!.tel![0]}>
+                                        {selectedContactDetails!.tel!.map(t => <div key={t} className="flex items-center space-x-2"><RadioGroupItem value={t} id={`tel-${t}`}/><Label htmlFor={`tel-${t}`}>{t}</Label></div>)}
                                     </RadioGroup>
                                 </div>
                             )}
-                             {selectedContactDetails?.email?.length > 1 && (
+                             {(selectedContactDetails?.email?.length ?? 0) > 1 && (
                                 <div className="space-y-2">
                                     <Label>Email</Label>
-                                    <RadioGroup onValueChange={(v) => handleSelectionChange('email', v)} defaultValue={selectedContactDetails.email[0]}>
-                                        {selectedContactDetails.email.map(e => <div key={e} className="flex items-center space-x-2"><RadioGroupItem value={e} id={`email-${e}`}/><Label htmlFor={`email-${e}`}>{e}</Label></div>)}
+                                    <RadioGroup onValueChange={(v) => handleSelectionChange('email', v)} defaultValue={selectedContactDetails!.email![0]}>
+                                        {selectedContactDetails!.email!.map(e => <div key={e} className="flex items-center space-x-2"><RadioGroupItem value={e} id={`email-${e}`}/><Label htmlFor={`email-${e}`}>{e}</Label></div>)}
                                     </RadioGroup>
                                 </div>
                             )}
-                             {selectedContactDetails?.address?.length > 1 && (
+                             {(selectedContactDetails?.address?.length ?? 0) > 1 && (
                                 <div className="space-y-2">
                                     <Label>Endereço</Label>
-                                    <RadioGroup onValueChange={(v) => handleSelectionChange('address', v)} defaultValue={selectedContactDetails.address[0]}>
-                                        {selectedContactDetails.address.map((a: any) => <div key={a} className="flex items-center space-x-2"><RadioGroupItem value={a} id={`addr-${a}`}/><Label htmlFor={`addr-${a}`}>{a}</Label></div>)}
+                                    <RadioGroup onValueChange={(v) => handleSelectionChange('address', v)} defaultValue={selectedContactDetails!.address![0]}>
+                                        {selectedContactDetails!.address!.map((a: any) => <div key={a} className="flex items-center space-x-2"><RadioGroupItem value={a} id={`addr-${a}`}/><Label htmlFor={`addr-${a}`}>{a}</Label></div>)}
                                     </RadioGroup>
                                 </div>
                             )}
@@ -148,7 +147,7 @@ export default function ClientModals({
             {/* Duplicate Alert */}
             <AlertDialog open={isDuplicateAlertOpen} onOpenChange={setIsDuplicateAlertOpen}>
                 <AlertDialogContent>
-                    <AlertDialogHeader><DialogTitle>Cliente Duplicado</AlertDialogTitle><AlertDialogDescription>{duplicateMessage}</AlertDialogDescription></AlertDialogHeader>
+                    <AlertDialogHeader><DialogTitle>Cliente Duplicado</DialogTitle><AlertDialogDescription>{duplicateMessage}</AlertDialogDescription></AlertDialogHeader>
                     <AlertDialogFooter><AlertDialogAction>OK</AlertDialogAction></AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -156,7 +155,7 @@ export default function ClientModals({
             {/* API Not Supported Alert */}
             <AlertDialog open={isApiNotSupportedAlertOpen} onOpenChange={setIsApiNotSupportedAlertOpen}>
                 <AlertDialogContent>
-                    <AlertDialogHeader><DialogTitle>Função não suportada</AlertDialogTitle><AlertDialogDescription>Seu navegador não suporta a importação de contatos. Por favor, use um navegador moderno como o Chrome em um dispositivo móvel ou preencha os dados manualmente.</AlertDialogDescription></AlertDialogHeader>
+                    <AlertDialogHeader><DialogTitle>Função não suportada</DialogTitle><AlertDialogDescription>Seu navegador não suporta a importação de contatos. Por favor, use um navegador moderno como o Chrome em um dispositivo móvel ou preencha os dados manualmente.</AlertDialogDescription></AlertDialogHeader>
                     <AlertDialogFooter><AlertDialogAction>OK</AlertDialogAction></AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -164,7 +163,7 @@ export default function ClientModals({
             {/* Delete Error Alert */}
              <AlertDialog open={deleteErrorAlert.isOpen} onOpenChange={(isOpen) => setDeleteErrorAlert({ isOpen, message: '' })}>
                 <AlertDialogContent>
-                    <AlertDialogHeader><DialogTitle>Erro ao Excluir</AlertDialogTitle><AlertDialogDescription>{deleteErrorAlert.message}</AlertDialogDescription></AlertDialogHeader>
+                    <AlertDialogHeader><DialogTitle>Erro ao Excluir</DialogTitle><AlertDialogDescription>{deleteErrorAlert.message}</AlertDialogDescription></AlertDialogHeader>
                     <AlertDialogFooter><AlertDialogAction>OK</AlertDialogAction></AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
