@@ -36,8 +36,10 @@ import { Contacts } from '@capacitor-community/contacts';
 
 import ClientForm from './_components/client-form';
 import ClientList from './_components/client-list';
-import ClientModals from './_components/client-modals';
 import type { BudgetCounts } from './_components/client-list';
+import { DeleteClientDialog } from './_components/delete-client-dialog';
+import { EditClientDialog } from './_components/edit-client-dialog';
+import { ContactImportModals } from './_components/contact-import-modals';
 
 /* -------------------------------------------------------------------------- */
 /* ESTADO INICIAL                                                              */
@@ -63,7 +65,7 @@ export default function ClientesPage() {
   const clientes = useLiveQuery(
     () =>
       user
-        ? db.clientes.where('userId').equals(user.uid).sortBy('nome')
+        ? db.clientes.where('userId').equals(user.uid).sortBy('data.nome')
         : [],
     [user]
   )?.map(c => c.data);
@@ -316,12 +318,23 @@ export default function ClientesPage() {
         </CardContent>
       </Card>
 
-      <ClientModals
+      <EditClientDialog
         isEditModalOpen={!!editingClient}
         setIsEditModalOpen={open => !open && setEditingClient(null)}
         editingClient={editingClient}
         onSaveEdit={handleSalvarEdicao}
         isSubmitting={isSubmitting}
+      />
+
+      <DeleteClientDialog
+        clientToDelete={clientToDelete}
+        setClientToDelete={setClientToDelete}
+        onConfirmDelete={handleConfirmarRemocao}
+        deleteErrorAlert={deleteErrorAlert}
+        setDeleteErrorAlert={setDeleteErrorAlert}
+      />
+
+      <ContactImportModals
         isContactSelectionModalOpen={isContactSelectionModalOpen}
         setIsContactSelectionModalOpen={setIsContactSelectionModalOpen}
         selectedContactDetails={selectedContactDetails}
@@ -331,11 +344,6 @@ export default function ClientesPage() {
         duplicateMessage={duplicateMessage}
         isApiNotSupportedAlertOpen={isApiNotSupportedAlertOpen}
         setIsApiNotSupportedAlertOpen={setIsApiNotSupportedAlertOpen}
-        deleteErrorAlert={deleteErrorAlert}
-        setDeleteErrorAlert={setDeleteErrorAlert}
-        clientToDelete={clientToDelete}
-        setClientToDelete={setClientToDelete}
-        onConfirmDelete={handleConfirmarRemocao}
       />
     </div>
   );
