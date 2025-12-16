@@ -24,6 +24,13 @@ export interface BudgetCounts {
     Total: number;
 }
 
+export interface SelectedContactDetails {
+    name: string[];
+    email: string[];
+    tel: string[];
+    address: any[];
+}
+
 
 interface ClientListProps {
     clientes: ClienteData[];
@@ -70,7 +77,7 @@ export default function ClientList({ clientes, budgetCounts, onEdit, onDelete, o
             {clientes.map(item => (
                 <AccordionItem value={item.id!} key={item.id}>
                      <div className="relative flex items-center w-full">
-                        <AccordionTrigger className="flex-1 text-left py-3 px-2 rounded-t-lg data-[state=open]:bg-muted/50">
+                        <AccordionTrigger className="flex-1 text-left py-3 px-2 rounded-t-lg data-[state=open]:bg-muted/50 hover:no-underline">
                             <span className="font-medium text-lg text-primary">{item.nome}</span>
                         </AccordionTrigger>
                         <div className="absolute right-12 top-1/2 -translate-y-1/2 flex items-center gap-2 pr-2">
@@ -114,7 +121,7 @@ export default function ClientList({ clientes, budgetCounts, onEdit, onDelete, o
                     <AccordionContent className="p-4 space-y-3">
                         {item.cpfCnpj && <p className="text-sm"><span className="font-medium text-muted-foreground">CPF/CNPJ:</span> {item.cpfCnpj}</p>}
                         {item.telefones?.map((tel, index) => (
-                            <p key={index} className="text-sm">
+                            <p key={`${item.id}-tel-${index}`} className="text-sm">
                                 <span className="font-medium text-muted-foreground">{tel.nome || `Telefone ${index + 1}`}:</span> {tel.numero}
                             </p>
                         ))}
