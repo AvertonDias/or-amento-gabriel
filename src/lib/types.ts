@@ -16,7 +16,7 @@ export interface ClienteData {
   id: string; // Firestore document ID
   userId: string;
   nome: string;
-  endereco: string;
+  endereco?: string;
   telefones: { nome: string; numero: string; principal?: boolean }[];
   email?: string;
   cpfCnpj?: string;

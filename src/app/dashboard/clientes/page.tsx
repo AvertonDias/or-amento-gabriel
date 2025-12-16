@@ -134,6 +134,9 @@ export default function ClientesPage() {
       const dataToSave = {
         ...clientData,
         telefones: clientData.telefones.filter(t => t.numero.trim() !== ''),
+        cpfCnpj: clientData.cpfCnpj || '',
+        email: clientData.email || '',
+        endereco: clientData.endereco || ''
       };
       await addCliente(user.uid, dataToSave);
       setNewClient(initialNewClientState);
