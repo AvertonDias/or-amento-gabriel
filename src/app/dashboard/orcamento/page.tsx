@@ -96,6 +96,9 @@ export default function OrcamentoPage() {
     () => (user ? db.empresa.get(user.uid) : undefined),
     [user]
   )?.data;
+  
+  const [clienteFiltrado, setClienteFiltrado] = useState<ClienteData | null>(null);
+
 
   // =========================
   // STATE
@@ -108,15 +111,26 @@ export default function OrcamentoPage() {
   const [isExpiredModalOpen, setIsExpiredModalOpen] = useState(false);
 
   const budgetPdfRef = useRef<{
-    handleGerarPDF: (orcamento: Orcamento, type: 'client' | 'internal') => void;
+    gerarPDF: (orcamento: Orcamento, type: 'client' | 'internal') => void;
   }>(null);
+
 
   const isLoading =
     loadingAuth ||
     !materiais ||
     !clientes ||
     !orcamentosSalvos ||
-    !empresa;
+    empresa === undefined;
+    
+  useEffect(() => {
+    if (clienteIdParam && clientes) {
+        const cliente = clientes.find(c => c.id === clienteIdParam);
+        setClienteFiltrado(cliente || null);
+    } else {
+        setClienteFiltrado(null);
+    }
+  }, [clienteIdParam, clientes]);
+
 
   // =========================
   // PERMISSÃO DE NOTIFICAÇÃO
@@ -228,10 +242,54 @@ export default function OrcamentoPage() {
     toast({ title: 'Orçamento salvo (offline)' });
     setIsWizardOpen(false);
   };
+  
+  const handleUpdateStatus = async (
+    budgetId: string,
+    status: 'Aceito' | 'Recusado'
+  ) => {
+    if (!user) return;
+
+    const now = new Date().toISOString();
+    const payload = status === 'Aceito' ? { dataAceite: now } : { dataRecusa: now };
+    
+    try {
+      await updateOrcamentoStatus(budgetId, status, payload);
+
+      if (status === 'Aceito') {
+          const budget = orcamentosSalvos?.find(o => o.id === budgetId);
+          if (budget) {
+              for (const item of budget.itens) {
+                  // Apenas atualiza estoque para itens do catálogo (não 'avulso')
+                  if (!item.materialId.startsWith('avulso-')) {
+                     await updateEstoque(user.uid, item.materialId, item.quantidade);
+                  }
+              }
+          }
+      }
+
+      toast({ title: `Orçamento marcado como ${status.toLowerCase()}` });
+    } catch (e) {
+      console.error(e);
+      toast({
+        title: 'Erro ao atualizar status',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleGerarPDF = (orc: Orcamento, type: 'client' | 'internal') => {
-    budgetPdfRef.current?.handleGerarPDF(orc, type);
+    if (!budgetPdfRef.current) {
+        toast({ title: "Erro", description: "O componente de PDF não está pronto.", variant: "destructive" });
+        return;
+    }
+    budgetPdfRef.current.gerarPDF(orc, type);
   };
+
+  const handleClearFilter = () => {
+    router.push('/dashboard/orcamento');
+    setSearchTerm('');
+  };
+
 
   // =========================
   // RENDER
@@ -242,14 +300,22 @@ export default function OrcamentoPage() {
         <CardHeader>
           <CardTitle>Meus Orçamentos</CardTitle>
           <CardDescription>
-            Crie e gerencie seus orçamentos, mesmo offline.
+            {clienteFiltrado ? `Filtrando orçamentos para ${clienteFiltrado.nome}` : 'Crie e gerencie seus orçamentos, mesmo offline.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={() => setIsWizardOpen(true)} disabled={isLoading}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Novo Orçamento
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button onClick={() => setIsWizardOpen(true)} disabled={isLoading} className="w-full sm:w-auto">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Novo Orçamento
+            </Button>
+            <BudgetHeader 
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              showClearFilter={!!clienteFiltrado}
+              onClearFilter={handleClearFilter}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -258,17 +324,29 @@ export default function OrcamentoPage() {
         budgets={filteredOrcamentos}
         empresa={empresa || null}
         onGeneratePDF={handleGerarPDF}
-        onEdit={setEditingBudget}
+        onEdit={budget => setEditingBudget(budget)}
         onDelete={deleteOrcamento}
+        onUpdateStatus={handleUpdateStatus}
+        clienteFiltrado={clienteFiltrado}
       />
 
-      {isWizardOpen && (
+      {isWizardOpen && clientes && materiais && (
         <BudgetWizard
           isOpen
           onOpenChange={setIsWizardOpen}
-          clientes={clientes || []}
-          materiais={materiais || []}
+          clientes={clientes}
+          materiais={materiais}
           onSaveBudget={handleSaveBudget}
+        />
+      )}
+      
+      {editingBudget && materiais && (
+        <BudgetEditDialog
+            isOpen={!!editingBudget}
+            onOpenChange={open => !open && setEditingBudget(null)}
+            budget={editingBudget}
+            materiais={materiais}
+            onUpdateBudget={updateOrcamento as any}
         />
       )}
 
