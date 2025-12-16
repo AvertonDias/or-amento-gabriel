@@ -276,6 +276,26 @@ export default function OrcamentoPage() {
     setIsWizardOpen(false);
   };
 
+  const handleUpdateBudget = async (budget: Orcamento) => {
+    if (!user) return;
+  
+    try {
+      const { id, ...data } = budget;
+  
+      await updateOrcamento(id, data);
+  
+      toast({
+        title: 'Orçamento atualizado com sucesso',
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: 'Erro ao atualizar orçamento',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleUpdateStatus = async (
     budgetId: string,
     status: 'Aceito' | 'Recusado'
@@ -423,16 +443,14 @@ export default function OrcamentoPage() {
       {editingBudget &&
         materiais && (
           <BudgetEditDialog
-            isOpen
+            isOpen={!!editingBudget}
             onOpenChange={open =>
               !open &&
               setEditingBudget(null)
             }
             budget={editingBudget}
             materiais={materiais}
-            onUpdateBudget={
-              updateOrcamento
-            }
+            onUpdateBudget={handleUpdateBudget}
           />
         )}
 

@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import type { ClienteData } from '@/lib/types';
+
 import {
   Card,
   CardContent,
@@ -9,16 +10,24 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+
 import { Button } from '@/components/ui/button';
-import { Users, Search, XCircle } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
-import { addCliente, deleteCliente, updateCliente } from '@/services/clientesService';
+
+import {
+  addCliente,
+  deleteCliente,
+  updateCliente,
+} from '@/services/clientesService';
+
 import { useRouter } from 'next/navigation';
 import { Accordion } from '@/components/ui/accordion';
-import { Input } from '@/components/ui/input';
+
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/dexie';
 
@@ -28,10 +37,10 @@ import { Contacts } from '@capacitor-community/contacts';
 import ClientForm from './_components/client-form';
 import ClientList from './_components/client-list';
 import ClientModals from './_components/client-modals';
-import type { SelectedContactDetails, BudgetCounts } from './_components/client-list';
+import type { BudgetCounts } from './_components/client-list';
 
 /* -------------------------------------------------------------------------- */
-/* ESTADO INICIAL                                                             */
+/* ESTADO INICIAL                                                              */
 /* -------------------------------------------------------------------------- */
 
 const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
@@ -48,16 +57,13 @@ export default function ClientesPage() {
   const { toast } = useToast();
 
   /* -------------------------------------------------------------------------- */
-  /* DADOS LOCAIS (DEXIE)                                                        */
+  /* DADOS OFFLINE (DEXIE)                                                       */
   /* -------------------------------------------------------------------------- */
 
   const clientes = useLiveQuery(
     () =>
       user
-        ? db.clientes
-            .where('userId')
-            .equals(user.uid)
-            .sortBy('nome')
+        ? db.clientes.where('userId').equals(user.uid).sortBy('nome')
         : [],
     [user]
   )?.map(c => ({ ...c.data, id: c.id }));
@@ -65,10 +71,7 @@ export default function ClientesPage() {
   const orcamentos = useLiveQuery(
     () =>
       user
-        ? db.orcamentos
-            .where('userId')
-            .equals(user.uid)
-            .toArray()
+        ? db.orcamentos.where('userId').equals(user.uid).toArray()
         : [],
     [user]
   )?.map(o => o.data);
@@ -83,19 +86,12 @@ export default function ClientesPage() {
   const [newClient, setNewClient] = useState(initialNewClientState);
   const [editingClient, setEditingClient] = useState<ClienteData | null>(null);
   const [clientToDelete, setClientToDelete] = useState<ClienteData | null>(null);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const [isContactSelectionModalOpen, setIsContactSelectionModalOpen] =
-    useState(false);
-  const [selectedContactDetails, setSelectedContactDetails] =
-    useState<SelectedContactDetails | null>(null);
-
-  const [isDuplicateAlertOpen, setIsDuplicateAlertOpen] = useState(false);
-  const [duplicateMessage, setDuplicateMessage] = useState('');
   const [isApiNotSupportedAlertOpen, setIsApiNotSupportedAlertOpen] =
     useState(false);
+
   const [deleteErrorAlert, setDeleteErrorAlert] = useState({
     isOpen: false,
     message: '',
@@ -108,6 +104,7 @@ export default function ClientesPage() {
   const filteredClientes = useMemo(() => {
     if (!clientes) return [];
     if (!searchTerm) return clientes;
+
     return clientes.filter(c =>
       c.nome.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -156,7 +153,7 @@ export default function ClientesPage() {
 
       setNewClient(initialNewClientState);
       toast({ title: 'Cliente adicionado com sucesso' });
-    } catch (e) {
+    } catch {
       toast({ title: 'Erro ao adicionar cliente', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
@@ -198,7 +195,7 @@ export default function ClientesPage() {
   };
 
   /* -------------------------------------------------------------------------- */
-  /* IMPORTAÇÃO DE CONTATOS (WEB + APK)                                          */
+  /* IMPORTAÇÃO DE CONTATOS                                                      */
   /* -------------------------------------------------------------------------- */
 
   const normalizePhone = (tel: string) =>
@@ -207,7 +204,6 @@ export default function ClientesPage() {
   const handleImportContacts = async () => {
     const isNative = Capacitor.isNativePlatform();
 
-    /* ----------------------------- ANDROID APK ----------------------------- */
     if (isNative) {
       try {
         const perm = await Contacts.requestPermissions();
@@ -229,8 +225,14 @@ export default function ClientesPage() {
           },
         });
 
-        const contact = result.contacts[0];
-        if (!contact) return;
+        const contact = result.contacts.find(
+          c => c.phones?.length || c.emails?.length
+        );
+
+        if (!contact) {
+          toast({ title: 'Nenhum contato válido encontrado' });
+          return;
+        }
 
         setNewClient({
           nome: contact.name?.display || 'Sem nome',
@@ -255,34 +257,9 @@ export default function ClientesPage() {
       return;
     }
 
-    /* ---------------------------------- WEB --------------------------------- */
     if (!('contacts' in navigator)) {
       setIsApiNotSupportedAlertOpen(true);
       return;
-    }
-
-    try {
-      const contacts = await (navigator as any).contacts.select(
-        ['name', 'email', 'tel', 'address'],
-        { multiple: false }
-      );
-
-      const c = contacts[0];
-      if (!c) return;
-
-      setNewClient({
-        nome: c.name?.[0] || '',
-        email: c.email?.[0] || '',
-        telefones: [
-          { nome: 'Principal', numero: normalizePhone(c.tel?.[0] || '') },
-        ],
-        endereco: c.address?.[0] || '',
-        cpfCnpj: '',
-      });
-
-      toast({ title: 'Contato importado' });
-    } catch {
-      setIsApiNotSupportedAlertOpen(true);
     }
   };
 
@@ -336,13 +313,6 @@ export default function ClientesPage() {
         editingClient={editingClient}
         onSaveEdit={handleSalvarEdicao}
         isSubmitting={isSubmitting}
-        isContactSelectionModalOpen={isContactSelectionModalOpen}
-        setIsContactSelectionModalOpen={setIsContactSelectionModalOpen}
-        selectedContactDetails={selectedContactDetails}
-        onConfirmContactSelection={() => {}}
-        isDuplicateAlertOpen={isDuplicateAlertOpen}
-        setIsDuplicateAlertOpen={setIsDuplicateAlertOpen}
-        duplicateMessage={duplicateMessage}
         isApiNotSupportedAlertOpen={isApiNotSupportedAlertOpen}
         setIsApiNotSupportedAlertOpen={setIsApiNotSupportedAlertOpen}
         deleteErrorAlert={deleteErrorAlert}

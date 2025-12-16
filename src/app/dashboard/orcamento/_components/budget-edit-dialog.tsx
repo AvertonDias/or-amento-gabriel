@@ -220,7 +220,7 @@ export function BudgetEditDialog({
         totalVenda: finalTotal,
       });
 
-      toast({ title: 'Orçamento atualizado com sucesso.' });
+      // O toast de sucesso agora é responsabilidade da página.
       onOpenChange(false);
     } catch {
       toast({
