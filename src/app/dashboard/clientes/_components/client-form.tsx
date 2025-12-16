@@ -1,8 +1,8 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import type { ClienteData, Telefone } from '@/lib/types';
+import React from 'react';
+import type { ClienteData } from '@/lib/types';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -10,7 +10,7 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PlusCircle, Trash2, Loader2, UserPlus } from 'lucide-react';
 import { maskCpfCnpj, maskTelefone } from '@/lib/utils';
 
@@ -31,8 +31,8 @@ const formSchema = z.object({
 type ClientFormValues = z.infer<typeof formSchema>;
 
 interface ClientFormProps {
-    initialData: Partial<ClientFormValues>;
-    onSubmit: (data: ClientFormValues) => void;
+    initialData: Partial<ClienteData>;
+    onSubmit: (data: ClientFormValues | ClienteData) => void;
     onImportContacts?: () => void;
     isSubmitting: boolean;
     triggerTitle?: string;
