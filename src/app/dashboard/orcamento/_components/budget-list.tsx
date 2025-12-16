@@ -55,7 +55,7 @@ interface BudgetListProps {
   onUpdateStatus: (
     budgetId: string,
     status: 'Aceito' | 'Recusado'
-  ) => Promise<Orcamento | null | undefined>;
+  ) => Promise<void>;
   onDelete: (budgetId: string) => void;
   onEdit: (budget: Orcamento) => void;
   clienteFiltrado: ClienteData | null;
