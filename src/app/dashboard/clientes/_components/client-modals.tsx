@@ -163,7 +163,7 @@ export default function ClientModals({
             {/* Duplicate Alert */}
             <AlertDialog open={isDuplicateAlertOpen} onOpenChange={setIsDuplicateAlertOpen}>
                 <AlertDialogContent>
-                    <AlertDialogHeader><DialogTitle>Cliente Duplicado</DialogTitle><AlertDialogDescription>{duplicateMessage}</AlertDialogDescription></AlertDialogHeader>
+                    <AlertDialogHeader><AlertDialogTitle>Cliente Duplicado</AlertDialogTitle><AlertDialogDescription>{duplicateMessage}</AlertDialogDescription></AlertDialogHeader>
                     <AlertDialogFooter><AlertDialogAction>OK</AlertDialogAction></AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -171,7 +171,7 @@ export default function ClientModals({
             {/* API Not Supported Alert */}
             <AlertDialog open={isApiNotSupportedAlertOpen} onOpenChange={setIsApiNotSupportedAlertOpen}>
                 <AlertDialogContent>
-                    <AlertDialogHeader><DialogTitle>Função não suportada</DialogTitle><AlertDialogDescription>Seu navegador não suporta a importação de contatos. Por favor, use um navegador moderno como o Chrome em um dispositivo móvel ou preencha os dados manualmente.</AlertDialogDescription></AlertDialogHeader>
+                    <AlertDialogHeader><AlertDialogTitle>Função não suportada</AlertDialogTitle><AlertDialogDescription>Seu navegador não suporta a importação de contatos. Por favor, use um navegador moderno como o Chrome em um dispositivo móvel ou preencha os dados manualmente.</AlertDialogDescription></AlertDialogHeader>
                     <AlertDialogFooter><AlertDialogAction>OK</AlertDialogAction></AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -179,7 +179,7 @@ export default function ClientModals({
             {/* Delete Error Alert */}
              <AlertDialog open={deleteErrorAlert.isOpen} onOpenChange={(isOpen) => setDeleteErrorAlert({ isOpen, message: '' })}>
                 <AlertDialogContent>
-                    <AlertDialogHeader><DialogTitle>Erro ao Excluir</DialogTitle><AlertDialogDescription>{deleteErrorAlert.message}</AlertDialogDescription></AlertDialogHeader>
+                    <AlertDialogHeader><AlertDialogTitle>Erro ao Excluir</AlertDialogTitle><AlertDialogDescription>{deleteErrorAlert.message}</AlertDialogDescription></AlertDialogHeader>
                     <AlertDialogFooter><AlertDialogAction>OK</AlertDialogAction></AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
