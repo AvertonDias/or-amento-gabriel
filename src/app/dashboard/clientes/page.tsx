@@ -66,7 +66,7 @@ export default function ClientesPage() {
         ? db.clientes.where('userId').equals(user.uid).sortBy('nome')
         : [],
     [user]
-  )?.map(c => ({ ...c.data, id: c.id }));
+  )?.map(c => c.data);
 
   const orcamentos = useLiveQuery(
     () =>
@@ -96,6 +96,15 @@ export default function ClientesPage() {
     isOpen: false,
     message: '',
   });
+
+  const [isContactSelectionModalOpen, setIsContactSelectionModalOpen] =
+    useState(false);
+
+  const [selectedContactDetails, setSelectedContactDetails] = useState(null);
+
+  const [isDuplicateAlertOpen, setIsDuplicateAlertOpen] = useState(false);
+
+  const [duplicateMessage, setDuplicateMessage] = useState('');
 
   /* -------------------------------------------------------------------------- */
   /* FILTRO E CONTAGEM                                                          */
@@ -313,6 +322,13 @@ export default function ClientesPage() {
         editingClient={editingClient}
         onSaveEdit={handleSalvarEdicao}
         isSubmitting={isSubmitting}
+        isContactSelectionModalOpen={isContactSelectionModalOpen}
+        setIsContactSelectionModalOpen={setIsContactSelectionModalOpen}
+        selectedContactDetails={selectedContactDetails}
+        onConfirmContactSelection={() => {}}
+        isDuplicateAlertOpen={isDuplicateAlertOpen}
+        setIsDuplicateAlertOpen={setIsDuplicateAlertOpen}
+        duplicateMessage={duplicateMessage}
         isApiNotSupportedAlertOpen={isApiNotSupportedAlertOpen}
         setIsApiNotSupportedAlertOpen={setIsApiNotSupportedAlertOpen}
         deleteErrorAlert={deleteErrorAlert}
