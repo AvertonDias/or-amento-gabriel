@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -168,8 +169,8 @@ export default function ConversoesPage() {
   
   useEffect(() => {
     const units = Object.keys(CONVERSION_FACTORS[convType]);
-    setFromUnit(units[0]);
-    setToUnit(units[1]);
+    setFromUnit(units[0] as Unit);
+    setToUnit(units[1] as Unit);
   }, [convType]);
 
   /* =======================
