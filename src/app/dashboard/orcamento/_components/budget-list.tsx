@@ -321,7 +321,7 @@ export function BudgetList({
               </div>
                {(orcamento.observacoes || orcamento.observacoesInternas) && (
                 <Accordion type="single" collapsible className="w-full mt-4">
-                  <AccordionItem value="item-1" className="border-b-0">
+                  <AccordionItem value={orcamento.id} className="border-b-0">
                     <AccordionTrigger className="text-sm text-muted-foreground py-2 hover:no-underline">
                         <div className="flex items-center gap-2">
                             <FileSignature className="h-4 w-4" />
