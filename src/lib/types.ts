@@ -12,12 +12,18 @@ export interface EmpresaData {
   fcmToken?: string; // Adicionado para salvar o token de notificação
 }
 
+export interface Telefone {
+  nome?: string;
+  numero: string;
+  principal?: boolean;
+}
+
 export interface ClienteData {
   id: string; // Firestore document ID
   userId: string;
   nome: string;
   endereco?: string;
-  telefones: { nome?: string; numero: string; principal?: boolean }[];
+  telefones: Telefone[];
   email?: string;
   cpfCnpj?: string;
 }
