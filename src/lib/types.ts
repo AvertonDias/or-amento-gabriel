@@ -66,6 +66,7 @@ export interface Orcamento {
   observacoesInternas?: string; // Novo campo para anotações internas
   dataAceite: string | null; // ISO Date String
   dataRecusa: string | null; // ISO Date String
+  notificacaoVencimentoEnviada?: boolean;
 }
 
 // Helper para garantir que o ID exista

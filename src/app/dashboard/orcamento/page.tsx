@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useRef,
 } from 'react';
+
 import type { ClienteData, Orcamento } from '@/lib/types';
 
 import {
@@ -101,12 +102,11 @@ export default function OrcamentoPage() {
     [user]
   )?.data;
 
-  const [clienteFiltrado, setClienteFiltrado] =
-    useState<ClienteData | null>(null);
-
   // =========================
   // STATE UI
   // =========================
+  const [clienteFiltrado, setClienteFiltrado] =
+    useState<ClienteData | null>(null);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingBudget, setEditingBudget] =
@@ -157,64 +157,43 @@ export default function OrcamentoPage() {
   }, []);
 
   // =========================
-  // NOTIFICAÇÕES (QUASE VENCIDO)
-  // =========================
-  const scheduleNotification = async (
-    orcamento: Orcamento
-  ) => {
-    if (!Capacitor.isNativePlatform()) return;
-
-    const permission =
-      await LocalNotifications.checkPermissions();
-    if (permission.display !== 'granted') return;
-
-    const key = `notif_expiring_${orcamento.id}`;
-    if (localStorage.getItem(key)) return;
-
-    await LocalNotifications.schedule({
-      notifications: [
-        {
-          id: Date.now(),
-          title: 'Orçamento quase vencendo',
-          body: `Orçamento #${orcamento.numeroOrcamento} - ${orcamento.cliente.nome}`,
-          schedule: {
-            at: new Date(Date.now() + 1000),
-          },
-        },
-      ],
-    });
-
-    localStorage.setItem(key, '1');
-  };
-
-  // =========================
-  // VERIFICA VENCIMENTO
+  // NOTIFICAÇÃO DE VENCIMENTO
   // =========================
   useEffect(() => {
-    if (!orcamentosSalvos) return;
+    if (!orcamentosSalvos || !Capacitor.isNativePlatform())
+      return;
 
     const now = new Date();
 
-    orcamentosSalvos.forEach(orc => {
-      if (orc.status !== 'Pendente') return;
+    orcamentosSalvos.forEach(async orc => {
+      if (
+        orc.status !== 'Pendente' ||
+        orc.notificacaoVencimentoEnviada
+      )
+        return;
 
       const validade = Number(orc.validadeDias);
       if (!validade) return;
 
-      const dataCriacao = parseISO(
-        orc.dataCriacao
-      );
-      const dataValidade = addDays(
-        dataCriacao,
-        validade
-      );
-      const horas = differenceInHours(
-        dataValidade,
-        now
-      );
+      const dataCriacao = parseISO(orc.dataCriacao);
+      const dataValidade = addDays(dataCriacao, validade);
+      const horas = differenceInHours(dataValidade, now);
 
       if (horas > 0 && horas <= 24) {
-        scheduleNotification(orc);
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: Date.now(),
+              title: 'Orçamento quase vencendo',
+              body: `Orçamento #${orc.numeroOrcamento} - ${orc.cliente.nome}`,
+              schedule: { at: new Date(Date.now() + 1000) },
+            },
+          ],
+        });
+
+        await updateOrcamento(orc.id, {
+          notificacaoVencimentoEnviada: true,
+        });
       }
     });
   }, [orcamentosSalvos]);
@@ -225,7 +204,7 @@ export default function OrcamentoPage() {
   const filteredOrcamentos = useMemo(() => {
     if (!orcamentosSalvos) return [];
 
-    let list = orcamentosSalvos;
+    let list = [...orcamentosSalvos];
 
     if (clienteIdParam) {
       list = list.filter(
@@ -237,21 +216,13 @@ export default function OrcamentoPage() {
       const s = searchTerm.toLowerCase();
       list = list.filter(
         o =>
-          o.cliente.nome
-            .toLowerCase()
-            .includes(s) ||
-          o.numeroOrcamento
-            ?.toLowerCase()
-            .includes(s)
+          o.cliente.nome.toLowerCase().includes(s) ||
+          o.numeroOrcamento?.toLowerCase().includes(s)
       );
     }
 
     return list;
-  }, [
-    orcamentosSalvos,
-    searchTerm,
-    clienteIdParam,
-  ]);
+  }, [orcamentosSalvos, searchTerm, clienteIdParam]);
 
   // =========================
   // HANDLERS
@@ -270,30 +241,17 @@ export default function OrcamentoPage() {
       userId: user.uid,
     });
 
-    toast({
-      title: 'Orçamento salvo com sucesso',
-    });
+    toast({ title: 'Orçamento salvo com sucesso' });
     setIsWizardOpen(false);
   };
 
   const handleUpdateBudget = async (budget: Orcamento) => {
     if (!user) return;
-  
-    try {
-      const { id, ...data } = budget;
-  
-      await updateOrcamento(id, data);
-  
-      toast({
-        title: 'Orçamento atualizado com sucesso',
-      });
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: 'Erro ao atualizar orçamento',
-        variant: 'destructive',
-      });
-    }
+
+    const { id, ...data } = budget;
+    await updateOrcamento(id, data);
+
+    toast({ title: 'Orçamento atualizado com sucesso' });
   };
 
   const handleUpdateStatus = async (
@@ -303,62 +261,48 @@ export default function OrcamentoPage() {
     if (!user) return;
 
     const now = new Date().toISOString();
-    const payload =
-      status === 'Aceito'
-        ? { dataAceite: now }
-        : { dataRecusa: now };
 
-    try {
-      await updateOrcamentoStatus(
-        budgetId,
-        status,
-        payload
+    await updateOrcamentoStatus(budgetId, status, {
+      ...(status === 'Aceito'
+        ? { dataAceite: now }
+        : { dataRecusa: now }),
+    });
+
+    if (status === 'Aceito') {
+      const budget = orcamentosSalvos?.find(
+        o => o.id === budgetId
       );
 
-      if (status === 'Aceito') {
-        const budget =
-          orcamentosSalvos?.find(
-            o => o.id === budgetId
-          );
-
-        if (budget) {
-          for (const item of budget.itens) {
-            if (
-              !item.materialId.startsWith(
-                'avulso-'
-              )
-            ) {
+      if (budget) {
+        for (const item of budget.itens) {
+          if (!item.materialId.startsWith('avulso-')) {
+            try {
               await updateEstoque(
                 user.uid,
                 item.materialId,
                 item.quantidade
               );
+            } catch (err) {
+              console.error(
+                'Erro ao atualizar estoque:',
+                err
+              );
             }
           }
         }
       }
-
-      toast({
-        title: `Orçamento ${status.toLowerCase()}`,
-      });
-    } catch (error) {
-      console.error(error);
-      toast({
-        title:
-          'Erro ao atualizar o status',
-        variant: 'destructive',
-      });
     }
+
+    toast({
+      title: `Orçamento ${status.toLowerCase()}`,
+    });
   };
 
   const handleGerarPDF = (
     orc: Orcamento,
     type: 'client' | 'internal'
   ) => {
-    budgetPdfRef.current?.gerarPDF(
-      orc,
-      type
-    );
+    budgetPdfRef.current?.gerarPDF(orc, type);
   };
 
   const handleClearFilter = () => {
@@ -373,9 +317,7 @@ export default function OrcamentoPage() {
     <div className="container mx-auto p-4 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>
-            Meus Orçamentos
-          </CardTitle>
+          <CardTitle>Meus Orçamentos</CardTitle>
           <CardDescription>
             {clienteFiltrado
               ? `Filtrando orçamentos para ${clienteFiltrado.nome}`
@@ -385,11 +327,8 @@ export default function OrcamentoPage() {
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-2">
             <Button
-              onClick={() =>
-                setIsWizardOpen(true)
-              }
+              onClick={() => setIsWizardOpen(true)}
               disabled={isLoading}
-              className="w-full sm:w-auto"
             >
               <PlusCircle className="mr-2 h-4 w-4" />
               Novo Orçamento
@@ -398,12 +337,8 @@ export default function OrcamentoPage() {
             <BudgetHeader
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
-              showClearFilter={
-                !!clienteFiltrado
-              }
-              onClearFilter={
-                handleClearFilter
-              }
+              showClearFilter={!!clienteFiltrado}
+              onClearFilter={handleClearFilter}
             />
           </div>
         </CardContent>
@@ -416,43 +351,31 @@ export default function OrcamentoPage() {
         onGeneratePDF={handleGerarPDF}
         onEdit={setEditingBudget}
         onDelete={deleteOrcamento}
-        onUpdateStatus={
-          handleUpdateStatus
-        }
-        clienteFiltrado={
-          clienteFiltrado
-        }
+        onUpdateStatus={handleUpdateStatus}
+        clienteFiltrado={clienteFiltrado}
       />
 
-      {isWizardOpen &&
-        clientes &&
-        materiais && (
-          <BudgetWizard
-            isOpen
-            onOpenChange={
-              setIsWizardOpen
-            }
-            clientes={clientes}
-            materiais={materiais}
-            onSaveBudget={
-              handleSaveBudget
-            }
-          />
-        )}
+      {isWizardOpen && clientes && materiais && (
+        <BudgetWizard
+          isOpen
+          onOpenChange={setIsWizardOpen}
+          clientes={clientes}
+          materiais={materiais}
+          onSaveBudget={handleSaveBudget}
+        />
+      )}
 
-      {editingBudget &&
-        materiais && (
-          <BudgetEditDialog
-            isOpen={!!editingBudget}
-            onOpenChange={open =>
-              !open &&
-              setEditingBudget(null)
-            }
-            budget={editingBudget}
-            materiais={materiais}
-            onUpdateBudget={handleUpdateBudget}
-          />
-        )}
+      {editingBudget && materiais && (
+        <BudgetEditDialog
+          isOpen
+          onOpenChange={open =>
+            !open && setEditingBudget(null)
+          }
+          budget={editingBudget}
+          materiais={materiais}
+          onUpdateBudget={handleUpdateBudget}
+        />
+      )}
 
       <BudgetPDFs
         ref={budgetPdfRef}
