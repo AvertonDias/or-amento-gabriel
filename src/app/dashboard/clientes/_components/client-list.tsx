@@ -58,12 +58,12 @@ export function ClientList({ clientes, budgetCounts, onEdit, onDelete, onViewBud
     return (
         <Accordion type="multiple" className="w-full">
             {clientes.map(item => (
-                <AccordionItem value={item.id!} key={item.id} className="border-b">
-                     <div className="flex items-center w-full group">
-                        <AccordionTrigger className="flex-1 text-left py-3 px-2 rounded-t-lg data-[state=open]:bg-muted/50">
+                <AccordionItem value={item.id!} key={item.id} className="border-b group">
+                     <div className="relative flex items-center w-full">
+                        <AccordionTrigger className="flex-1 text-left py-3 px-2 hover:no-underline rounded-t-lg data-[state=open]:bg-muted/50">
                             <span className="font-medium text-lg text-primary">{item.nome}</span>
                         </AccordionTrigger>
-                        <div className="flex items-center gap-2 pr-2">
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2 pr-2 bg-background group-hover:bg-muted/50 transition-colors rounded-full data-[state=open]:bg-muted/50">
                              <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -104,7 +104,7 @@ export function ClientList({ clientes, budgetCounts, onEdit, onDelete, onViewBud
                     <AccordionContent className="p-4 space-y-3">
                         {item.cpfCnpj && <p className="text-sm"><span className="font-medium text-muted-foreground">CPF/CNPJ:</span> {item.cpfCnpj}</p>}
                         {item.telefones?.map((tel, index) => (
-                            <p key={index} className="text-sm">
+                            <p key={`${item.id}-tel-${index}`} className="text-sm">
                                 <span className="font-medium text-muted-foreground">{tel.nome || `Telefone ${index + 1}`}:</span> {tel.numero}
                             </p>
                         ))}
