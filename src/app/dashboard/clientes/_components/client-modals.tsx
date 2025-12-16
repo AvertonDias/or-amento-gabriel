@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import type { ClienteData } from '@/lib/types';
+import type { ClienteData, Telefone } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,10 @@ interface ClientModalsProps {
 
     deleteErrorAlert: { isOpen: boolean, message: string };
     setDeleteErrorAlert: (alert: { isOpen: boolean, message: string }) => void;
+    
+    clientToDelete: ClienteData | null;
+    setClientToDelete: (client: ClienteData | null) => void;
+    onConfirmDelete: () => void;
 }
 
 
@@ -54,10 +58,13 @@ export default function ClientModals({
     setIsApiNotSupportedAlertOpen,
     deleteErrorAlert,
     setDeleteErrorAlert,
+    clientToDelete,
+    setClientToDelete,
+    onConfirmDelete
 }: ClientModalsProps) {
     const [selectedPhones, setSelectedPhones] = React.useState<Record<string, string>>({});
 
-    const handleInternalSave = (formData: ClienteData) => {
+    const handleInternalSave = (formData: ClienteData | Omit<ClienteData, 'id' | 'userId'>) => {
         if (editingClient) {
             onSaveEdit({
                 ...editingClient,
@@ -77,13 +84,22 @@ export default function ClientModals({
         };
         if (selectedPhones.tel) {
             finalData.telefones = [{ nome: 'Principal', numero: selectedPhones.tel }];
+        } else if (selectedContactDetails.tel?.[0]) {
+             finalData.telefones = [{ nome: 'Principal', numero: selectedContactDetails.tel[0] }];
         }
+
         if (selectedPhones.email) {
             finalData.email = selectedPhones.email;
+        } else if (selectedContactDetails.email?.[0]) {
+             finalData.email = selectedContactDetails.email[0];
         }
+
         if (selectedPhones.address) {
             finalData.endereco = selectedPhones.address;
+        } else if (selectedContactDetails.address?.[0]) {
+             finalData.endereco = selectedContactDetails.address[0];
         }
+
         onConfirmContactSelection(finalData);
     };
 
@@ -165,6 +181,24 @@ export default function ClientModals({
                 <AlertDialogContent>
                     <AlertDialogHeader><DialogTitle>Erro ao Excluir</DialogTitle><AlertDialogDescription>{deleteErrorAlert.message}</AlertDialogDescription></AlertDialogHeader>
                     <AlertDialogFooter><AlertDialogAction>OK</AlertDialogAction></AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={!!clientToDelete} onOpenChange={() => setClientToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. Isso excluirá permanentemente o cliente &quot;{clientToDelete?.nome}&quot;.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={onConfirmDelete}>
+                        Sim, Excluir
+                    </AlertDialogAction>
+                    </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
         </>

@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, FormEvent, useEffect, useCallback, useMemo } from 'react';
-import type { ClienteData } from '@/lib/types';
+import type { ClienteData, Telefone } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, PlusCircle, Search, XCircle } from 'lucide-react';
@@ -50,8 +50,10 @@ export default function ClientesPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newClient, setNewClient] = useState(initialNewClientState);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  
   const [editingClient, setEditingClient] = useState<ClienteData | null>(null);
+  const [clientToDelete, setClientToDelete] = useState<ClienteData | null>(null);
+
   const [isContactSelectionModalOpen, setIsContactSelectionModalOpen] = useState(false);
   const [selectedContactDetails, setSelectedContactDetails] = useState<SelectedContactDetails | null>(null);
   const [isDuplicateAlertOpen, setIsDuplicateAlertOpen] = useState(false);
@@ -152,22 +154,25 @@ export default function ClientesPage() {
     }
   };
 
-  const handleRemoverCliente = async (id: string) => {
-    if (!user || !orcamentos) return;
-    const hasBudgets = orcamentos.some(o => o.cliente.id === id);
+  const handleConfirmarRemocao = async () => {
+    if (!user || !orcamentos || !clientToDelete) return;
+    const hasBudgets = orcamentos.some(o => o.cliente.id === clientToDelete.id);
     if (hasBudgets) {
         setDeleteErrorAlert({
             isOpen: true,
             message: 'Este cliente possui orçamentos associados e não pode ser removido. Por favor, remova os orçamentos primeiro.'
         });
+        setClientToDelete(null);
         return;
     }
     try {
-        await deleteCliente(id);
+        await deleteCliente(clientToDelete.id);
         toast({ title: 'Cliente Removido', description: 'A remoção será sincronizada.', variant: 'destructive' });
     } catch(error) {
         toast({ title: 'Erro ao remover cliente', variant: 'destructive' });
         console.error("Erro ao remover cliente:", error);
+    } finally {
+        setClientToDelete(null);
     }
   };
   
@@ -177,7 +182,6 @@ export default function ClientesPage() {
         telefones: Array.isArray(client.telefones) && client.telefones.length > 0 ? client.telefones : [{ nome: 'Principal', numero: '' }]
     };
     setEditingClient(clientWithTelefones);
-    setIsEditModalOpen(true);
   };
   
   const handleSalvarEdicao = async (clientToUpdate: ClienteData) => {
@@ -190,7 +194,6 @@ export default function ClientesPage() {
           telefones: data.telefones.filter(t => t.numero.trim() !== ''),
         };
         await updateCliente(id, payload);
-        setIsEditModalOpen(false);
         setEditingClient(null);
         toast({ title: 'Sucesso!', description: 'Cliente atualizado localmente. Sincronizando...' });
     } catch(error) {
@@ -369,7 +372,7 @@ export default function ClientesPage() {
                  clientes={filteredClientes}
                  budgetCounts={budgetCountsByClient}
                  onEdit={handleEditClick}
-                 onDelete={handleRemoverCliente}
+                 onDelete={setClientToDelete}
                  onViewBudgets={handleViewBudgets}
                />
             </div>
@@ -380,8 +383,8 @@ export default function ClientesPage() {
       </Card>
 
       <ClientModals
-        isEditModalOpen={isEditModalOpen}
-        setIsEditModalOpen={setIsEditModalOpen}
+        isEditModalOpen={!!editingClient}
+        setIsEditModalOpen={(isOpen) => !isOpen && setEditingClient(null)}
         editingClient={editingClient}
         onSaveEdit={handleSalvarEdicao}
         isSubmitting={isSubmitting}
@@ -400,6 +403,10 @@ export default function ClientesPage() {
         
         deleteErrorAlert={deleteErrorAlert}
         setDeleteErrorAlert={setDeleteErrorAlert}
+
+        clientToDelete={clientToDelete}
+        setClientToDelete={setClientToDelete}
+        onConfirmDelete={handleConfirmarRemocao}
       />
     </div>
   );

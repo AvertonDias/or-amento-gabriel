@@ -2,14 +2,12 @@
 'use client';
 
 import React from 'react';
-import type { ClienteData } from '@/lib/types';
+import type { ClienteData, Telefone } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge, badgeVariants } from '@/components/ui/badge';
 import { MoreVertical, Pencil, History, Trash2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import type { VariantProps } from 'class-variance-authority';
 
 
@@ -36,7 +34,7 @@ interface ClientListProps {
     clientes: ClienteData[];
     budgetCounts: Record<string, BudgetCounts>;
     onEdit: (client: ClienteData) => void;
-    onDelete: (id: string) => void;
+    onDelete: (client: ClienteData) => void;
     onViewBudgets: (id: string) => void;
 }
 
@@ -97,18 +95,13 @@ export default function ClientList({ clientes, budgetCounts, onEdit, onDelete, o
                                         Ver Orçamentos
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                             <div className={cn("relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:bg-destructive/10 focus:text-destructive")} onSelect={(e) => e.preventDefault()}>
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Excluir Cliente
-                                            </div>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader><AlertDialogTitle>Você tem certeza?</AlertDialogTitle><AlertDialogDescription>Esta ação não pode ser desfeita. Isso excluirá permanentemente o cliente.</AlertDialogDescription></AlertDialogHeader>
-                                            <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => onDelete(item.id!)}>Sim, Excluir</AlertDialogAction></AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
+                                    <DropdownMenuItem
+                                        className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                        onClick={() => onDelete(item)}
+                                        >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Excluir Cliente
+                                    </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                             {budgetCounts[item.id!]?.Total > 0 && (
