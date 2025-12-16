@@ -155,7 +155,7 @@ export default function ClientesPage() {
   };
 
   const handleConfirmarRemocao = async () => {
-    if (!user || !orcamentos || !clientToDelete) return;
+    if (!user || !orcamentos || !clientToDelete || !clientToDelete.id) return;
     const hasBudgets = orcamentos.some(o => o.cliente.id === clientToDelete.id);
     if (hasBudgets) {
         setDeleteErrorAlert({
@@ -188,7 +188,7 @@ export default function ClientesPage() {
     if (!clientToUpdate || !clientToUpdate.id || !user) return;
     setIsSubmitting(true);
     try {
-        const { id, ...data } = clientToUpdate;
+        const { id, userId, ...data } = clientToUpdate;
         const payload = {
           ...data,
           telefones: data.telefones.filter(t => t.numero.trim() !== ''),
@@ -411,3 +411,5 @@ export default function ClientesPage() {
     </div>
   );
 }
+
+    
