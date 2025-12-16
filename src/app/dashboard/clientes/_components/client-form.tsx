@@ -30,19 +30,31 @@ import { maskCpfCnpj, maskTelefone } from '@/lib/utils';
 
 const telefoneSchema = z.object({
   nome: z.string().optional(),
-  numero: z.string().min(1, 'Número é obrigatório'),
+  numero: z
+    .string()
+    .min(8, 'Telefone inválido')
+    .refine(
+      value => value.replace(/\D/g, '').length >= 10,
+      'Informe um número válido'
+    ),
 });
 
 const formSchema = z.object({
   nome: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres'),
-  cpfCnpj: z.string().optional(),
+  cpfCnpj: z
+    .string()
+    .optional()
+    .refine(
+      value => !value || [11, 14].includes(value.replace(/\D/g, '').length),
+      'CPF ou CNPJ inválido'
+    ),
   endereco: z.string().optional(),
   email: z
     .string()
     .email('Formato de e-mail inválido')
     .optional()
     .or(z.literal('')),
-  telefones: z.array(telefoneSchema).min(1),
+  telefones: z.array(telefoneSchema).min(1, 'Informe ao menos um telefone'),
 });
 
 export type ClientFormValues = z.infer<typeof formSchema>;
@@ -86,7 +98,7 @@ export default function ClientForm({
   const { control, handleSubmit, reset } = form;
 
   /* ------------------------------------------------------------------------ */
-  /* SINCRONIZA QUANDO initialData MUDA (ESSENCIAL)                            */
+  /* SINCRONIZA initialData                                                    */
   /* ------------------------------------------------------------------------ */
 
   useEffect(() => {
@@ -158,6 +170,7 @@ export default function ClientForm({
                   }
                 />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -171,6 +184,7 @@ export default function ClientForm({
               <FormControl>
                 <Input placeholder="Opcional" {...field} />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -207,6 +221,7 @@ export default function ClientForm({
                         }
                       />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -227,7 +242,7 @@ export default function ClientForm({
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => append({ nome: 'Principal', numero: '' })}
+            onClick={() => append({ nome: 'Outro', numero: '' })}
           >
             <PlusCircle className="mr-2 h-4 w-4" />
             Adicionar Telefone

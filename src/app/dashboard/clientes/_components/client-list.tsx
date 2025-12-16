@@ -1,134 +1,239 @@
-
 'use client';
 
-import React from 'react';
-import type { ClienteData, Telefone } from '@/lib/types';
+import React, { memo } from 'react';
+import type { ClienteData } from '@/lib/types';
+
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+
 import { Badge, badgeVariants } from '@/components/ui/badge';
 import { MoreVertical, Pencil, History, Trash2 } from 'lucide-react';
 import type { VariantProps } from 'class-variance-authority';
 
+/* -------------------------------------------------------------------------- */
+/* TIPOS                                                                       */
+/* -------------------------------------------------------------------------- */
 
-// Tipos
 export type OrcamentoStatus = 'Pendente' | 'Aceito' | 'Recusado' | 'Vencido';
 
 export interface BudgetCounts {
-    Pendente: number;
-    Aceito: number;
-    Recusado: number;
-    Vencido: number;
-    Total: number;
+  Pendente: number;
+  Aceito: number;
+  Recusado: number;
+  Vencido: number;
+  Total: number;
 }
-
-export interface SelectedContactDetails {
-    name: string[];
-    email: string[];
-    tel: string[];
-    address: any[];
-}
-
 
 interface ClientListProps {
-    clientes: ClienteData[];
-    budgetCounts: Record<string, BudgetCounts>;
-    onEdit: (client: ClienteData) => void;
-    onDelete: (client: ClienteData) => void;
-    onViewBudgets: (id: string) => void;
+  clientes: ClienteData[];
+  budgetCounts: Record<string, BudgetCounts>;
+  onEdit: (client: ClienteData) => void;
+  onDelete: (client: ClienteData) => void;
+  onViewBudgets: (id: string) => void;
 }
 
-const getStatusBadgeVariant = (status: OrcamentoStatus): VariantProps<typeof badgeVariants>['variant'] => {
-    switch (status) {
-        case 'Aceito': return 'default';
-        case 'Recusado': return 'destructive';
-        case 'Vencido': return 'warning';
-        case 'Pendente': return 'secondary';
-        default: return 'secondary';
-    }
-}
+/* -------------------------------------------------------------------------- */
+/* HELPERS                                                                     */
+/* -------------------------------------------------------------------------- */
 
-const BudgetBadges = ({ counts }: { counts: BudgetCounts | undefined }) => {
-    if (!counts || counts.Total === 0) {
-        return <p className="text-xs text-muted-foreground mt-1">Nenhum orçamento</p>;
-    }
-    const statusOrder: OrcamentoStatus[] = ['Pendente', 'Aceito', 'Recusado', 'Vencido'];
-    return (
-        <div className="flex flex-wrap items-center gap-2 mt-2">
-            {statusOrder.map(status => {
-                if (counts[status] > 0) {
-                    return (
-                        <Badge key={status} variant={getStatusBadgeVariant(status)} className="text-xs">
-                            {counts[status]} {status}
-                        </Badge>
-                    );
-                }
-                return null;
-            })}
-        </div>
-    );
+const getStatusBadgeVariant = (
+  status: OrcamentoStatus
+): VariantProps<typeof badgeVariants>['variant'] => {
+  switch (status) {
+    case 'Aceito':
+      return 'default';
+    case 'Recusado':
+      return 'destructive';
+    case 'Vencido':
+      return 'warning';
+    case 'Pendente':
+    default:
+      return 'secondary';
+  }
 };
 
-export default function ClientList({ clientes, budgetCounts, onEdit, onDelete, onViewBudgets }: ClientListProps) {
+const BudgetBadges = memo(
+  ({ counts }: { counts: BudgetCounts | undefined }) => {
+    if (!counts || counts.Total === 0) {
+      return (
+        <p className="text-xs text-muted-foreground mt-1">
+          Nenhum orçamento
+        </p>
+      );
+    }
+
+    const statusOrder: OrcamentoStatus[] = [
+      'Pendente',
+      'Aceito',
+      'Recusado',
+      'Vencido',
+    ];
+
     return (
-        <Accordion type="multiple" className="w-full">
-            {clientes.map(item => (
-                <AccordionItem value={item.id!} key={item.id}>
-                     <div className="flex items-center w-full group">
-                        <AccordionTrigger className="flex-1 text-left py-3 px-2 rounded-t-lg data-[state=open]:bg-muted/50 hover:no-underline">
-                            <span className="font-medium text-lg text-primary">{item.nome}</span>
-                        </AccordionTrigger>
-                        <div className="flex items-center gap-2 pr-2 group-data-[state=open]:bg-muted/50 h-full py-3">
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
-                                        <MoreVertical className="h-5 w-5" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                    <DropdownMenuItem onClick={() => onEdit(item)}>
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        Editar Cliente
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => onViewBudgets(item.id!)}>
-                                        <History className="mr-2 h-4 w-4" />
-                                        Ver Orçamentos
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                        className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                                        onClick={() => onDelete(item)}
-                                        >
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Excluir Cliente
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                            {budgetCounts[item.id!]?.Total > 0 && (
-                                <Badge className="h-6 w-6 rounded-full p-0 flex items-center justify-center text-xs">
-                                    {budgetCounts[item.id!].Total}
-                                </Badge>
-                            )}
-                        </div>
-                    </div>
-                    <AccordionContent className="p-4 space-y-3">
-                        {item.cpfCnpj && <p className="text-sm"><span className="font-medium text-muted-foreground">CPF/CNPJ:</span> {item.cpfCnpj}</p>}
-                        {item.telefones?.map((tel, index) => (
-                            <p key={`${item.id}-tel-${index}`} className="text-sm">
-                                <span className="font-medium text-muted-foreground">{tel.nome || `Telefone ${index + 1}`}:</span> {tel.numero}
-                            </p>
-                        ))}
-                        {item.email && <p className="text-sm"><span className="font-medium text-muted-foreground">Email:</span> {item.email}</p>}
-                        {item.endereco && <p className="text-sm"><span className="font-medium text-muted-foreground">Endereço:</span> {item.endereco}</p>}
-                        <div className="pt-2">
-                            <p className="text-sm font-medium text-muted-foreground mb-2 cursor-pointer hover:text-primary transition-colors" onClick={() => onViewBudgets(item.id!)}>
-                                Histórico de Orçamentos
-                            </p>
-                            <BudgetBadges counts={budgetCounts[item.id!]} />
-                        </div>
-                    </AccordionContent>
-                </AccordionItem>
-            ))}
-        </Accordion>
+      <div className="flex flex-wrap items-center gap-2 mt-2">
+        {statusOrder.map(status =>
+          counts[status] > 0 ? (
+            <Badge
+              key={status}
+              variant={getStatusBadgeVariant(status)}
+              className="text-xs"
+            >
+              {counts[status]} {status}
+            </Badge>
+          ) : null
+        )}
+      </div>
     );
+  }
+);
+
+BudgetBadges.displayName = 'BudgetBadges';
+
+/* -------------------------------------------------------------------------- */
+/* COMPONENT                                                                   */
+/* -------------------------------------------------------------------------- */
+
+function ClientList({
+  clientes,
+  budgetCounts,
+  onEdit,
+  onDelete,
+  onViewBudgets,
+}: ClientListProps) {
+  return (
+    <Accordion type="multiple" className="w-full">
+      {clientes.map(item => {
+        if (!item.id) return null;
+
+        const counts = budgetCounts[item.id];
+
+        return (
+          <AccordionItem value={item.id} key={item.id}>
+            <div className="flex items-center w-full group">
+              <AccordionTrigger className="flex-1 text-left py-3 px-2 rounded-t-lg cursor-pointer data-[state=open]:bg-muted/50 hover:no-underline hover:bg-muted/30 transition-colors">
+                <span className="font-medium text-lg text-primary">
+                  {item.nome}
+                </span>
+              </AccordionTrigger>
+
+              <div className="flex items-center gap-2 pr-2 h-full py-3">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <MoreVertical className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+
+                  <DropdownMenuContent
+                    align="end"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <DropdownMenuItem onClick={() => onEdit(item)}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Editar Cliente
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      onClick={() => onViewBudgets(item.id)}
+                    >
+                      <History className="mr-2 h-4 w-4" />
+                      Ver Orçamentos
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator />
+
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                      onClick={() => onDelete(item)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Excluir Cliente
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {counts?.Total > 0 && (
+                  <Badge className="h-6 w-6 rounded-full p-0 flex items-center justify-center text-xs">
+                    {counts.Total}
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            <AccordionContent className="p-4 space-y-3">
+              {item.cpfCnpj && (
+                <p className="text-sm">
+                  <span className="font-medium text-muted-foreground">
+                    CPF/CNPJ:
+                  </span>{' '}
+                  {item.cpfCnpj}
+                </p>
+              )}
+
+              {item.telefones?.map((tel, index) => (
+                <p
+                  key={`${item.id}-tel-${index}`}
+                  className="text-sm"
+                >
+                  <span className="font-medium text-muted-foreground">
+                    {tel.nome || `Telefone ${index + 1}`}:
+                  </span>{' '}
+                  {tel.numero}
+                </p>
+              ))}
+
+              {item.email && (
+                <p className="text-sm">
+                  <span className="font-medium text-muted-foreground">
+                    Email:
+                  </span>{' '}
+                  {item.email}
+                </p>
+              )}
+
+              {item.endereco && (
+                <p className="text-sm">
+                  <span className="font-medium text-muted-foreground">
+                    Endereço:
+                  </span>{' '}
+                  {item.endereco}
+                </p>
+              )}
+
+              <div className="pt-2">
+                <p
+                  className="text-sm font-medium text-muted-foreground mb-2 cursor-pointer hover:text-primary transition-colors"
+                  onClick={() => onViewBudgets(item.id)}
+                >
+                  Histórico de Orçamentos
+                </p>
+
+                <BudgetBadges counts={counts} />
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        );
+      })}
+    </Accordion>
+  );
 }
+
+export default memo(ClientList);

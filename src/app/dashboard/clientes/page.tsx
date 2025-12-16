@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import type { ClienteData } from '@/lib/types';
 
 import {
@@ -11,10 +11,10 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 
-import { Button } from '@/components/ui/button';
-import { Users } from 'lucide-react';
+import { Users, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
 
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
@@ -39,7 +39,10 @@ import ClientList from './_components/client-list';
 import type { BudgetCounts } from './_components/client-list';
 import { DeleteClientDialog } from './_components/delete-client-dialog';
 import { EditClientDialog } from './_components/edit-client-dialog';
-import { ContactImportModals } from './_components/contact-import-modals';
+import {
+  ContactImportModals,
+  type SelectedContactDetails,
+} from './_components/contact-import-modals';
 
 /* -------------------------------------------------------------------------- */
 /* ESTADO INICIAL                                                              */
@@ -65,10 +68,13 @@ export default function ClientesPage() {
   const clientes = useLiveQuery(
     () =>
       user
-        ? db.clientes.where('userId').equals(user.uid).sortBy('data.nome')
+        ? db.clientes
+            .where('userId')
+            .equals(user.uid)
+            .toArray()
         : [],
     [user]
-  )?.map(c => c.data);
+  )?.map(c => ({ ...c.data, id: c.id }));
 
   const orcamentos = useLiveQuery(
     () =>
@@ -102,24 +108,38 @@ export default function ClientesPage() {
   const [isContactSelectionModalOpen, setIsContactSelectionModalOpen] =
     useState(false);
 
-  const [selectedContactDetails, setSelectedContactDetails] = useState(null);
+  const [selectedContactDetails, setSelectedContactDetails] =
+    useState<SelectedContactDetails | null>(null);
 
   const [isDuplicateAlertOpen, setIsDuplicateAlertOpen] = useState(false);
-
   const [duplicateMessage, setDuplicateMessage] = useState('');
 
   /* -------------------------------------------------------------------------- */
-  /* FILTRO E CONTAGEM                                                          */
+  /* FILTRO, ORDENAÇÃO E CONTAGEM                                               */
   /* -------------------------------------------------------------------------- */
+
+  const normalizedSearch = searchTerm.trim().toLowerCase();
 
   const filteredClientes = useMemo(() => {
     if (!clientes) return [];
-    if (!searchTerm) return clientes;
 
-    return clientes.filter(c =>
-      c.nome.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [clientes, searchTerm]);
+    return clientes
+      .filter(c => {
+        if (!normalizedSearch) return true;
+
+        const nome = c.nome.toLowerCase();
+        const email = c.email?.toLowerCase() || '';
+        const telefones =
+          c.telefones?.map(t => t.numero).join(' ') || '';
+
+        return (
+          nome.includes(normalizedSearch) ||
+          email.includes(normalizedSearch) ||
+          telefones.includes(normalizedSearch)
+        );
+      })
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [clientes, normalizedSearch]);
 
   const budgetCountsByClient = useMemo(() => {
     const counts: Record<string, BudgetCounts> = {};
@@ -150,60 +170,76 @@ export default function ClientesPage() {
   /* CRUD CLIENTE                                                               */
   /* -------------------------------------------------------------------------- */
 
-  const handleAdicionarCliente = async (
-    data: Omit<ClienteData, 'id' | 'userId'>
-  ) => {
-    if (!user) return;
+  const handleAdicionarCliente = useCallback(
+    async (data: Omit<ClienteData, 'id' | 'userId'>) => {
+      if (!user) return;
 
-    setIsSubmitting(true);
-    try {
-      await addCliente(user.uid, {
-        ...data,
-        telefones: data.telefones.filter(t => t.numero.trim()),
-      });
+      setIsSubmitting(true);
+      try {
+        await addCliente(user.uid, {
+          ...data,
+          telefones: data.telefones.filter(t => t.numero.trim()),
+        });
 
-      setNewClient(initialNewClientState);
-      toast({ title: 'Cliente adicionado com sucesso' });
-    } catch {
-      toast({ title: 'Erro ao adicionar cliente', variant: 'destructive' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+        setNewClient(initialNewClientState);
+        toast({ title: 'Cliente adicionado com sucesso' });
+      } catch {
+        toast({
+          title: 'Erro ao adicionar cliente',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [user, toast]
+  );
 
-  const handleSalvarEdicao = async (client: ClienteData) => {
-    if (!client.id) return;
+  const handleSalvarEdicao = useCallback(
+    async (client: ClienteData) => {
+      if (!client.id) return;
 
-    setIsSubmitting(true);
-    try {
-      const { id, userId, ...data } = client;
+      setIsSubmitting(true);
+      try {
+        const { id, userId, ...data } = client;
 
-      await updateCliente(id, {
-        ...data,
-        telefones: data.telefones.filter(t => t.numero.trim()),
-      });
+        await updateCliente(id, {
+          ...data,
+          telefones: data.telefones.filter(t => t.numero.trim()),
+        });
 
-      setEditingClient(null);
-      toast({ title: 'Cliente atualizado' });
-    } catch {
-      toast({ title: 'Erro ao atualizar', variant: 'destructive' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+        setEditingClient(null);
+        toast({ title: 'Cliente atualizado' });
+      } catch {
+        toast({
+          title: 'Erro ao atualizar',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [toast]
+  );
 
-  const handleConfirmarRemocao = async () => {
+  const handleConfirmarRemocao = useCallback(async () => {
     if (!clientToDelete?.id) return;
 
     try {
       await deleteCliente(clientToDelete.id);
-      toast({ title: 'Cliente removido', variant: 'destructive' });
+      toast({
+        title: 'Cliente removido',
+        variant: 'destructive',
+      });
     } catch {
-      toast({ title: 'Erro ao remover', variant: 'destructive' });
+      toast({
+        title: 'Erro ao remover',
+        variant: 'destructive',
+      });
     } finally {
       setClientToDelete(null);
     }
-  };
+  }, [clientToDelete, toast]);
 
   /* -------------------------------------------------------------------------- */
   /* IMPORTAÇÃO DE CONTATOS                                                      */
@@ -212,67 +248,64 @@ export default function ClientesPage() {
   const normalizePhone = (tel: string) =>
     tel.replace(/\D/g, '').replace(/^55/, '');
 
-  const handleImportContacts = async () => {
-    const isNative = Capacitor.isNativePlatform();
-
-    if (isNative) {
-      try {
-        const perm = await Contacts.requestPermissions();
-        if (perm.contacts !== 'granted') {
-          toast({
-            title: 'Permissão negada',
-            description: 'Permita acesso aos contatos.',
-            variant: 'destructive',
-          });
-          return;
-        }
-
-        const result = await Contacts.getContacts({
-          projection: {
-            name: true,
-            phones: true,
-            emails: true,
-            postalAddresses: true,
-          },
-        });
-
-        const contact = result.contacts.find(
-          c => c.phones?.length || c.emails?.length
-        );
-
-        if (!contact) {
-          toast({ title: 'Nenhum contato válido encontrado' });
-          return;
-        }
-
-        setNewClient({
-          nome: contact.name?.display || 'Sem nome',
-          email: contact.emails?.[0]?.address || '',
-          telefones: [
-            {
-              nome: 'Principal',
-              numero: normalizePhone(contact.phones?.[0]?.number || ''),
-            },
-          ],
-          endereco: contact.postalAddresses?.[0]?.street || '',
-          cpfCnpj: '',
-        });
-
-        toast({ title: 'Contato importado do celular' });
-      } catch {
-        toast({
-          title: 'Erro ao importar contatos',
-          variant: 'destructive',
-        });
-      }
-      return;
-    }
-
-    if (!('contacts' in navigator)) {
+  const handleImportContacts = useCallback(async () => {
+    if (!Capacitor.isNativePlatform()) {
       setIsApiNotSupportedAlertOpen(true);
       return;
     }
-  };
+
+    try {
+      const perm = await Contacts.requestPermissions();
+      if (perm.contacts !== 'granted') {
+        toast({
+          title: 'Permissão negada',
+          description: 'Permita acesso aos contatos.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const result = await Contacts.getContacts({
+        projection: {
+          name: true,
+          phones: true,
+          emails: true,
+          postalAddresses: true,
+        },
+      });
+
+      const contact = result.contacts.find(
+        c => c.phones?.length || c.emails?.length
+      );
+
+      if (!contact) {
+        toast({ title: 'Nenhum contato válido encontrado' });
+        return;
+      }
+
+      setNewClient({
+        nome: contact.name?.display || 'Sem nome',
+        email: contact.emails?.[0]?.address || '',
+        telefones: [
+          {
+            nome: 'Principal',
+            numero: normalizePhone(
+              contact.phones?.[0]?.number || ''
+            ),
+          },
+        ],
+        endereco: contact.postalAddresses?.[0]?.street || '',
+        cpfCnpj: '',
+      });
+
+      toast({ title: 'Contato importado do celular' });
+    } catch {
+      toast({
+        title: 'Erro ao importar contatos',
+        variant: 'destructive',
+      });
+    }
+  }, [toast]);
 
   /* -------------------------------------------------------------------------- */
   /* UI                                                                         */
@@ -287,11 +320,21 @@ export default function ClientesPage() {
             Clientes
           </CardTitle>
           <CardDescription>
-            Cadastre, edite e importe clientes da agenda do celular.
+            Cadastre, edite e gerencie seus clientes.
           </CardDescription>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome, telefone ou email..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
           <Accordion type="single" collapsible>
             <ClientForm
               initialData={newClient}
@@ -303,7 +346,11 @@ export default function ClientesPage() {
           </Accordion>
 
           {isLoadingData ? (
-            <Skeleton className="h-40 w-full mt-6" />
+            <Skeleton className="h-40 w-full" />
+          ) : filteredClientes.length === 0 ? (
+            <p className="text-center text-muted-foreground py-10">
+              Nenhum cliente encontrado.
+            </p>
           ) : (
             <ClientList
               clientes={filteredClientes}
@@ -311,7 +358,9 @@ export default function ClientesPage() {
               onEdit={setEditingClient}
               onDelete={setClientToDelete}
               onViewBudgets={id =>
-                router.push(`/dashboard/orcamento?clienteId=${id}`)
+                router.push(
+                  `/dashboard/orcamento?clienteId=${id}`
+                )
               }
             />
           )}
@@ -320,7 +369,9 @@ export default function ClientesPage() {
 
       <EditClientDialog
         isEditModalOpen={!!editingClient}
-        setIsEditModalOpen={open => !open && setEditingClient(null)}
+        setIsEditModalOpen={open =>
+          !open && setEditingClient(null)
+        }
         editingClient={editingClient}
         onSaveEdit={handleSalvarEdicao}
         isSubmitting={isSubmitting}
@@ -335,15 +386,23 @@ export default function ClientesPage() {
       />
 
       <ContactImportModals
-        isContactSelectionModalOpen={isContactSelectionModalOpen}
-        setIsContactSelectionModalOpen={setIsContactSelectionModalOpen}
+        isContactSelectionModalOpen={
+          isContactSelectionModalOpen
+        }
+        setIsContactSelectionModalOpen={
+          setIsContactSelectionModalOpen
+        }
         selectedContactDetails={selectedContactDetails}
         onConfirmContactSelection={() => {}}
         isDuplicateAlertOpen={isDuplicateAlertOpen}
         setIsDuplicateAlertOpen={setIsDuplicateAlertOpen}
         duplicateMessage={duplicateMessage}
-        isApiNotSupportedAlertOpen={isApiNotSupportedAlertOpen}
-        setIsApiNotSupportedAlertOpen={setIsApiNotSupportedAlertOpen}
+        isApiNotSupportedAlertOpen={
+          isApiNotSupportedAlertOpen
+        }
+        setIsApiNotSupportedAlertOpen={
+          setIsApiNotSupportedAlertOpen
+        }
       />
     </div>
   );
