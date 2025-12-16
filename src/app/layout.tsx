@@ -1,14 +1,16 @@
-
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster";
-import { UnifiedThemeProvider } from "@/contexts/unified-theme-provider";
-import PwaRegistry from '@/app/pwa-registry';
+
+import { Toaster } from '@/components/ui/toaster';
+import { UnifiedThemeProvider } from '@/contexts/unified-theme-provider';
 import { PermissionDialogProvider } from '@/hooks/use-permission-dialog';
+import PwaRegistry from '@/app/pwa-registry';
 
-
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   title: 'Meu orçamento',
@@ -22,29 +24,33 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: '#64B5F6',
-}
+};
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
+        {/* Compatibilidade PWA / iOS */}
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Meu orçamento" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <PwaRegistry />
       </head>
+
       <body className={`${inter.variable} font-body antialiased`}>
+        {/* Registro do Service Worker / PWA */}
+        <PwaRegistry />
+
         <UnifiedThemeProvider>
           <PermissionDialogProvider>
             {children}
           </PermissionDialogProvider>
+
+          {/* Toast global */}
           <Toaster />
         </UnifiedThemeProvider>
       </body>

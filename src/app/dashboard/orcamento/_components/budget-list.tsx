@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -30,11 +29,12 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion"
+} from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   FileText, Pencil, MessageCircle,
-  CheckCircle2, XCircle, Trash2, MoreVertical, FileSignature
+  CheckCircle2, XCircle, Trash2,
+  MoreVertical, FileSignature
 } from 'lucide-react';
 import { addDays, format, parseISO } from 'date-fns';
 import { formatCurrency, formatNumber } from '@/lib/utils';
@@ -62,26 +62,26 @@ interface BudgetListProps {
   onGeneratePDF: (budget: Orcamento, type: 'client' | 'internal') => void;
 }
 
+/* ---------------- BADGE DE AJUSTE ---------------- */
 const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
-    const calculatedTotal = orcamento.itens.reduce((sum, item) => sum + item.precoVenda, 0);
-    const finalTotal = orcamento.totalVenda;
-    
-    if (calculatedTotal.toFixed(2) === finalTotal.toFixed(2)) {
-        return null;
-    }
+  const calculated = orcamento.itens.reduce((s, i) => s + i.precoVenda, 0);
+  if (calculated.toFixed(2) === orcamento.totalVenda.toFixed(2)) return null;
 
-    const difference = finalTotal - calculatedTotal;
-    const percentage = calculatedTotal > 0 ? (difference / calculatedTotal) * 100 : 0;
-    const isDiscount = difference < 0;
+  const diff = orcamento.totalVenda - calculated;
+  const percent = calculated ? (diff / calculated) * 100 : 0;
 
-    return (
-        <Badge variant={isDiscount ? "destructive" : "default"} className="text-xs ml-2">
-            {isDiscount ? "" : "+"}
-            {formatNumber(percentage, 1)}%
-        </Badge>
-    );
+  return (
+    <Badge
+      variant={diff < 0 ? 'destructive' : 'default'}
+      className="text-xs ml-2"
+    >
+      {diff > 0 && '+'}
+      {formatNumber(percent, 1)}%
+    </Badge>
+  );
 };
 
+/* ---------------- COMPONENTE PRINCIPAL ---------------- */
 export function BudgetList({
   isLoading,
   budgets,
@@ -96,86 +96,69 @@ export function BudgetList({
   const { toast } = useToast();
   const [selectedPhone, setSelectedPhone] = useState('');
 
-  const [phoneSelectionConfig, setPhoneSelectionConfig] = useState<{
-    isOpen: boolean;
+  const [phoneDialog, setPhoneDialog] = useState<{
+    open: boolean;
     phones: { nome: string; numero: string; principal?: boolean }[];
-    title: string;
-    description: string;
     onConfirm: (phone: string) => void;
-  }>({
-    isOpen: false,
-    phones: [],
-    title: '',
-    description: '',
-    onConfirm: () => {}
-  });
+  }>({ open: false, phones: [], onConfirm: () => {} });
 
-  const getStatusBadgeVariant = (
+  const getStatusVariant = (
     status: Orcamento['status']
   ): VariantProps<typeof badgeVariants>['variant'] => {
-    switch (status) {
-      case 'Aceito': return 'default';
-      case 'Recusado': return 'destructive';
-      case 'Vencido': return 'warning';
-      default: return 'secondary';
-    }
+    if (status === 'Aceito') return 'default';
+    if (status === 'Recusado') return 'destructive';
+    if (status === 'Vencido') return 'warning';
+    return 'secondary';
   };
 
-  const handleSendWhatsApp = (orcamento: Orcamento) => {
-    const phones = orcamento.cliente.telefones;
-    if (phones && phones.length > 1) {
-      const principal = phones.find(p => p.principal);
-      setSelectedPhone(principal?.numero || phones[0].numero);
+  /* ---------------- WHATSAPP ---------------- */
+  const sendWhatsApp = (orcamento: Orcamento) => {
+    const phones = orcamento.cliente.telefones ?? [];
 
-      setPhoneSelectionConfig({
-        isOpen: true,
-        phones,
-        title: 'Escolha um Telefone',
-        description: `O cliente ${orcamento.cliente.nome} possui múltiplos telefones. Para qual número deseja enviar?`,
-        onConfirm: (phone) => openWhatsApp(orcamento, phone)
-      });
-    } else {
-      openWhatsApp(orcamento, phones?.[0]?.numero);
-    }
-  };
-
-  const openWhatsApp = (orcamento: Orcamento, phone: string | undefined) => {
-    if (!phone) {
-      toast({ title: 'Nenhum telefone encontrado para este cliente.', variant: 'destructive' });
+    if (phones.length === 0) {
+      toast({ title: 'Cliente sem telefone.', variant: 'destructive' });
       return;
     }
-    const cleanPhone = `55${phone.replace(/\D/g, '')}`;
-    
-    const calculatedTotal = orcamento.itens.reduce((sum, item) => sum + item.precoVenda, 0);
-    const isTotalEdited = calculatedTotal.toFixed(2) !== orcamento.totalVenda.toFixed(2);
-    const adjustment = orcamento.totalVenda - calculatedTotal;
 
-    const itemsText = orcamento.itens.map(item => `\n- ${item.materialNome} (${formatNumber(item.quantidade, 2)} ${item.unidade}): ${formatCurrency(item.precoVenda)}`).join('');
-    
-    let totalText = '';
-    if (isTotalEdited) {
-        totalText = `\n\n*Subtotal:* ${formatCurrency(calculatedTotal)}`;
-        totalText += `\n*${adjustment < 0 ? 'Desconto' : 'Acréscimo'}:* ${formatCurrency(adjustment)}`;
-        totalText += `\n*Total Final:* *${formatCurrency(orcamento.totalVenda)}*`;
+    if (phones.length > 1) {
+      setSelectedPhone(phones.find(p => p.principal)?.numero ?? phones[0].numero);
+      setPhoneDialog({
+        open: true,
+        phones,
+        onConfirm: (phone) => openWhatsApp(orcamento, phone),
+      });
     } else {
-        totalText = `\n\n*Total:* *${formatCurrency(orcamento.totalVenda)}*`;
-    }
-
-    const observacoesText = orcamento.observacoes ? `\n\n*Observações:*\n${orcamento.observacoes}` : '';
-
-    const text = `Olá, ${orcamento.cliente.nome}! Segue o orçamento Nº ${orcamento.numeroOrcamento} da empresa ${empresa?.nome || 'Nossa Empresa'}:\n\n*Itens:*${itemsText}${totalText}${observacoesText}\n\nEste orçamento é válido até ${format(addDays(parseISO(orcamento.dataCriacao), parseInt(orcamento.validadeDias, 10)), 'dd/MM/yyyy')}.`;
-    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank');
-  };
-
-  const confirmPhoneSelection = () => {
-    if (selectedPhone) {
-      phoneSelectionConfig.onConfirm(selectedPhone);
-      setPhoneSelectionConfig(prev => ({ ...prev, isOpen: false }));
+      openWhatsApp(orcamento, phones[0].numero);
     }
   };
 
-  /* ---------- LOADING ---------- */
+  const openWhatsApp = (orcamento: Orcamento, phone: string) => {
+    const cleanPhone = `55${phone.replace(/\D/g, '')}`;
+
+    const subtotal = orcamento.itens.reduce((s, i) => s + i.precoVenda, 0);
+    const total = orcamento.totalVenda;
+    const diff = total - subtotal;
+
+    const items = orcamento.itens
+      .map(i => `- ${i.materialNome} (${formatNumber(i.quantidade, 2)} ${i.unidade}): ${formatCurrency(i.precoVenda)}`)
+      .join('\n');
+
+    let text = `Olá, ${orcamento.cliente.nome}!\n\nOrçamento Nº ${orcamento.numeroOrcamento}\n\nItens:\n${items}\n\n`;
+
+    if (diff !== 0) {
+      text += `Subtotal: ${formatCurrency(subtotal)}\n`;
+      text += `${diff < 0 ? 'Desconto' : 'Acréscimo'}: ${formatCurrency(diff)}\n`;
+    }
+
+    text += `Total: ${formatCurrency(total)}\n\n`;
+    if (orcamento.observacoes) text += `Obs:\n${orcamento.observacoes}\n\n`;
+
+    text += `Válido até ${format(addDays(parseISO(orcamento.dataCriacao), Number(orcamento.validadeDias)), 'dd/MM/yyyy')}`;
+
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  /* ---------------- LOADING ---------------- */
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -185,10 +168,10 @@ export function BudgetList({
     );
   }
 
-  /* ---------- EMPTY ---------- */
-  if (budgets.length === 0) {
+  /* ---------------- EMPTY ---------------- */
+  if (!budgets.length) {
     return (
-      <p className="text-center text-muted-foreground py-4">
+      <p className="text-center text-muted-foreground py-6">
         {clienteFiltrado
           ? `Nenhum orçamento encontrado para ${clienteFiltrado.nome}.`
           : 'Nenhum orçamento encontrado.'}
@@ -196,202 +179,75 @@ export function BudgetList({
     );
   }
 
-  const BudgetActionsMenu = ({ orcamento }: { orcamento: Orcamento }) => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <MoreVertical className="h-5 w-5" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {orcamento.status === 'Pendente' && (
-          <>
-            <DropdownMenuItem onClick={() => onUpdateStatus(orcamento.id, 'Aceito')}>
-              <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
-              Marcar como Aceito
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onUpdateStatus(orcamento.id, 'Recusado')}>
-              <XCircle className="mr-2 h-4 w-4 text-red-500" />
-              Marcar como Recusado
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-          </>
-        )}
-        <DropdownMenuItem
-          onClick={() => onEdit(orcamento)}
-          disabled={orcamento.status === 'Aceito' || orcamento.status === 'Vencido'}
-        >
-          <Pencil className="mr-2 h-4 w-4" />
-          Editar
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <FileText className="mr-2 h-4 w-4" />
-            Gerar PDF
-          </DropdownMenuSubTrigger>
-          <DropdownMenuPortal>
-            <DropdownMenuSubContent>
-              <DropdownMenuItem onClick={() => onGeneratePDF(orcamento, 'client')}>
-                Para Cliente
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onGeneratePDF(orcamento, 'internal')}>
-                Para Controle Interno
-              </DropdownMenuItem>
-            </DropdownMenuSubContent>
-          </DropdownMenuPortal>
-        </DropdownMenuSub>
-        <DropdownMenuItem onClick={() => handleSendWhatsApp(orcamento)}>
-          <MessageCircle className="mr-2 h-4 w-4" />
-          Enviar por WhatsApp
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <div className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive focus:bg-destructive/10">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Excluir Orçamento
-            </div>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-              <AlertDialogDescription>Esta ação não pode ser desfeita. Isso excluirá permanentemente o orçamento.</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => onDelete(orcamento.id)}>Sim, Excluir</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-
+  /* ---------------- RENDER ---------------- */
   return (
     <>
-      {/* DIALOG DE SELEÇÃO DE TELEFONE */}
-      <Dialog open={phoneSelectionConfig.isOpen} onOpenChange={(isOpen) => setPhoneSelectionConfig(prev => ({ ...prev, isOpen }))}>
+      {/* Dialog telefone */}
+      <Dialog open={phoneDialog.open} onOpenChange={(o) => setPhoneDialog(p => ({ ...p, open: o }))}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{phoneSelectionConfig.title}</DialogTitle>
-            <DialogDescription>{phoneSelectionConfig.description}</DialogDescription>
+            <DialogTitle>Escolha o telefone</DialogTitle>
+            <DialogDescription>Selecione o número para envio</DialogDescription>
           </DialogHeader>
+
           <RadioGroup value={selectedPhone} onValueChange={setSelectedPhone} className="space-y-3">
-            {phoneSelectionConfig.phones.map((phone, index) => (
-              <div key={`${phone.numero}-${index}`} className="flex items-center space-x-2">
-                <RadioGroupItem value={phone.numero} id={`phone-${index}`} />
-                <Label htmlFor={`phone-${index}`}>{phone.nome} — {phone.numero}{phone.principal && ' (Principal)'}</Label>
+            {phoneDialog.phones.map((p, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <RadioGroupItem value={p.numero} id={`phone-${i}`} />
+                <Label htmlFor={`phone-${i}`}>{p.nome} — {p.numero}</Label>
               </div>
             ))}
           </RadioGroup>
-          <DialogFooter><Button onClick={confirmPhoneSelection}>Confirmar</Button></DialogFooter>
+
+          <DialogFooter>
+            <Button onClick={() => phoneDialog.onConfirm(selectedPhone)}>Confirmar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Mobile view */}
-      <div className="md:hidden grid grid-cols-1 gap-4">
-        {budgets.map(orcamento => (
-          <Card key={orcamento.id} className="flex flex-col">
-            <CardHeader className="p-4">
-              <div className="flex justify-between items-start gap-4">
-                  <div>
-                      <CardTitle className='text-lg'>{orcamento.cliente.nome}</CardTitle>
-                      <CardDescription>{`#${orcamento.numeroOrcamento}`}</CardDescription>
+      {/* Desktop */}
+      <div className="hidden md:block border rounded-md">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nº</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Data</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Valor</TableHead>
+              <TableHead className="text-center">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {budgets.map(o => (
+              <TableRow key={o.id}>
+                <TableCell>{o.numeroOrcamento}</TableCell>
+                <TableCell className="font-medium">{o.cliente.nome}</TableCell>
+                <TableCell>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</TableCell>
+                <TableCell>
+                  <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
+                </TableCell>
+                <TableCell className="text-right font-semibold text-primary">
+                  <div className="flex justify-end items-center">
+                    {formatCurrency(o.totalVenda)}
+                    <AdjustmentBadge orcamento={o} />
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                       <Badge variant={getStatusBadgeVariant(orcamento.status)} className="text-xs">
-                         {orcamento.status}
-                       </Badge>
-                       <BudgetActionsMenu orcamento={orcamento} />
-                  </div>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 flex-grow">
-              <div className="space-y-4">
-                {orcamento.itens.map(item => (
-                   <div key={item.id} className="text-sm border-b pb-3 last:border-b-0">
-                     <div className="flex justify-between items-start">
-                         <p className="font-medium text-foreground pr-2 line-clamp-2">{item.materialNome}</p>
-                         <p className="text-muted-foreground">{formatNumber(item.quantidade, 2)} {item.unidade}</p>
-                     </div>
-                     <p className="font-semibold text-primary text-right mt-1">{formatCurrency(item.precoVenda)}</p>
-                   </div>
-                ))}
-              </div>
-               {(orcamento.observacoes || orcamento.observacoesInternas) && (
-                <Accordion type="single" collapsible className="w-full mt-4">
-                  <AccordionItem value={orcamento.id} className="border-b-0">
-                    <AccordionTrigger className="text-sm text-muted-foreground py-2 hover:no-underline">
-                        <div className="flex items-center gap-2">
-                            <FileSignature className="h-4 w-4" />
-                            Ver Observações
-                        </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-2 text-sm text-muted-foreground space-y-3">
-                      {orcamento.observacoes && (
-                        <div className="whitespace-pre-wrap">
-                          <p className="font-semibold text-foreground mb-1">Observações para o Cliente:</p>
-                          {orcamento.observacoes}
-                        </div>
-                      )}
-                      {orcamento.observacoesInternas && (
-                         <div className="whitespace-pre-wrap">
-                          <p className="font-semibold text-foreground mb-1">Observações Internas:</p>
-                          {orcamento.observacoesInternas}
-                        </div>
-                      )}
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              )}
-            </CardContent>
-            <CardFooter className="p-4 mt-2 bg-muted/50 flex justify-between items-center">
-                <p className="font-bold">TOTAL</p>
-                <div className="flex items-center">
-                    <p className="font-bold text-primary text-lg">{formatCurrency(orcamento.totalVenda)}</p>
-                    <AdjustmentBadge orcamento={orcamento} />
-                </div>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-
-      {/* Desktop view */}
-      <div className="hidden md:block">
-        <div className="border rounded-md">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                    <TableHead>Nº</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead className="text-center">Ações</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {budgets.map(orcamento => (
-                    <TableRow key={orcamento.id}>
-                        <TableCell>{orcamento.numeroOrcamento}</TableCell>
-                        <TableCell className='font-medium'>{orcamento.cliente.nome}</TableCell>
-                        <TableCell>{format(parseISO(orcamento.dataCriacao), 'dd/MM/yyyy')}</TableCell>
-                        <TableCell><Badge variant={getStatusBadgeVariant(orcamento.status)}>{orcamento.status}</Badge></TableCell>
-                        <TableCell className="text-right font-semibold text-primary">
-                          <div className="flex items-center justify-end">
-                            <span>{formatCurrency(orcamento.totalVenda)}</span>
-                            <AdjustmentBadge orcamento={orcamento} />
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                        <BudgetActionsMenu orcamento={orcamento} />
-                        </TableCell>
-                    </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </div>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Button variant="ghost" size="icon" aria-label="Enviar WhatsApp" onClick={() => sendWhatsApp(o)}>
+                    <MessageCircle className="h-5 w-5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" aria-label="Editar" onClick={() => onEdit(o)}>
+                    <Pencil className="h-5 w-5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" aria-label="Excluir" onClick={() => onDelete(o.id)}>
+                    <Trash2 className="h-5 w-5 text-destructive" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
     </>
   );

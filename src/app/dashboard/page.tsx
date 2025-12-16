@@ -1,8 +1,14 @@
-
 'use client';
 
-import OrcamentoPage from './orcamento/page';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  return <OrcamentoPage />;
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/orcamento');
+  }, [router]);
+
+  return null;
 }

@@ -1,36 +1,72 @@
 
 'use client';
 
-import React, { FormEvent, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { FormEvent, useState, useEffect, useMemo } from 'react';
 import type { EmpresaData } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Building, Save, CheckCircle, XCircle, Upload, Trash2, KeyRound, Mail, Settings, User, PlusCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+
+import {
+  Building,
+  Save,
+  CheckCircle,
+  XCircle,
+  Upload,
+  Trash2,
+  KeyRound,
+  Mail,
+  Settings,
+  User,
+  PlusCircle,
+  Loader2,
+} from 'lucide-react';
+
+import { useToast } from '@/hooks/use-toast';
 import { maskCpfCnpj, maskTelefone, validateCpfCnpj } from '@/lib/utils';
+
 import { auth } from '@/lib/firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { sendPasswordResetEmail } from 'firebase/auth';
+
 import { saveEmpresaData } from '@/services/empresaService';
-import { Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+
 import Image from 'next/image';
-import { User as FirebaseUser, sendPasswordResetEmail } from 'firebase/auth';
+import { cn } from '@/lib/utils';
+
 import { ThemePicker } from '@/components/theme-picker';
 import { ThemeToggle } from '@/components/theme-toggle';
+
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/dexie';
+
+/* =======================
+   ESTADO INICIAL
+======================= */
 
 const initialEmpresaState: Omit<EmpresaData, 'id' | 'userId'> = {
   nome: '',
   endereco: '',
   telefones: [{ nome: 'Principal', numero: '', principal: true }],
   cnpj: '',
-  logo: ''
+  logo: '',
 };
+
+/* =======================
+   COMPONENTE
+======================= */
 
 export default function ConfiguracoesPage() {
   const [user, loadingAuth] = useAuthState(auth);
@@ -38,404 +74,467 @@ export default function ConfiguracoesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
-  const empresaData = useLiveQuery(() => 
-    user ? db.empresa.get(user.uid) : undefined, 
+  const empresaDexie = useLiveQuery(
+    () => (user ? db.empresa.get(user.uid) : undefined),
     [user]
   );
-  const isLoadingData = loadingAuth || empresaData === undefined;
 
+  const isLoadingData = loadingAuth || empresaDexie === undefined;
+
+  /* =======================
+     CARREGAMENTO INICIAL
+  ======================= */
 
   useEffect(() => {
-    if (empresaData) {
-      setEmpresa(empresaData.data);
-    } else if (user && !isLoadingData) {
-      // Se não há dados no Dexie, use o estado inicial
-      setEmpresa({ ...initialEmpresaState, userId: user.uid, id: user.uid });
+    if (!user || isLoadingData) return;
+
+    if (empresaDexie) {
+      setEmpresa(empresaDexie.data); // Corrigido: acessa a propriedade 'data'
+    } else {
+      setEmpresa({
+        ...initialEmpresaState,
+        id: user.uid,
+        userId: user.uid,
+      });
     }
-  }, [empresaData, user, isLoadingData]);
+  }, [empresaDexie, user, isLoadingData]);
+
+
+  /* =======================
+     CPF / CNPJ
+  ======================= */
 
   const cpfCnpjStatus = useMemo(() => {
     if (!empresa?.cnpj) return 'incomplete';
     return validateCpfCnpj(empresa.cnpj);
   }, [empresa?.cnpj]);
 
+  const isCpfCnpjInvalid =
+    empresa?.cnpj && cpfCnpjStatus === 'invalid';
+
+  /* =======================
+     HANDLERS
+  ======================= */
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!empresa) return;
     const { name, value } = e.target;
-    let maskedValue = value;
-    if (name === 'cnpj') {
-      maskedValue = maskCpfCnpj(value);
-    }
-    setEmpresa(prev => (prev ? { ...prev, [name]: maskedValue } : null));
-  };
-  
-  const handleTelefoneChange = (index: number, field: 'nome' | 'numero', value: string) => {
-    if (!empresa) return;
-    const novosTelefones = [...empresa.telefones];
-    const maskedValue = field === 'numero' ? maskTelefone(value) : value;
-    novosTelefones[index] = { ...novosTelefones[index], [field]: maskedValue };
-    setEmpresa({ ...empresa, telefones: novosTelefones });
+
+    const newValue =
+      name === 'cnpj' ? maskCpfCnpj(value) : value;
+
+    setEmpresa({ ...empresa, [name]: newValue });
   };
 
-  const handlePrincipalTelefoneChange = (selectedIndex: number) => {
+  const handleTelefoneChange = (
+    index: number,
+    field: 'nome' | 'numero',
+    value: string
+  ) => {
     if (!empresa) return;
-    const novosTelefones = empresa.telefones.map((tel, index) => ({
-      ...tel,
-      principal: index === selectedIndex,
-    }));
-    setEmpresa({ ...empresa, telefones: novosTelefones });
+
+    const telefones = [...empresa.telefones];
+    telefones[index] = {
+      ...telefones[index],
+      [field]: field === 'numero' ? maskTelefone(value) : value,
+    };
+
+    setEmpresa({ ...empresa, telefones });
   };
 
+  const handlePrincipalTelefoneChange = (index: number) => {
+    if (!empresa) return;
+
+    setEmpresa({
+      ...empresa,
+      telefones: empresa.telefones.map((t, i) => ({
+        ...t,
+        principal: i === index,
+      })),
+    });
+  };
 
   const addTelefone = () => {
     if (!empresa) return;
+
     setEmpresa({
       ...empresa,
-      telefones: [...empresa.telefones, { nome: '', numero: '', principal: false }]
+      telefones: [
+        ...empresa.telefones,
+        { nome: '', numero: '', principal: false },
+      ],
     });
   };
 
   const removeTelefone = (index: number) => {
     if (!empresa || empresa.telefones.length <= 1) {
-        toast({ title: "Ação não permitida", description: "Deve haver pelo menos um número de telefone.", variant: "destructive" });
-        return;
-    }
-    const novosTelefones = empresa.telefones.filter((_, i) => i !== index);
-    
-    // Se o telefone principal foi removido, define o primeiro da lista como principal
-    if (!novosTelefones.some(t => t.principal)) {
-      novosTelefones[0].principal = true;
-    }
-
-    setEmpresa({ ...empresa, telefones: novosTelefones });
-  };
-
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-
-      reader.onload = (loadEvent) => {
-        const img = document.createElement('img');
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 200;
-          const MAX_HEIGHT = 200;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-          
-          setEmpresa(prev => (prev ? { ...prev, logo: dataUrl } : null));
-        };
-        img.src = loadEvent.target?.result as string;
-      };
-      
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeLogo = async () => {
-    if (!empresa) return;
-    setEmpresa(prev => (prev ? { ...prev, logo: '' } : null));
-    toast({ title: "Logo removido" });
-  };
-
-
-  const handleEmpresaSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!empresa || !user) {
-      toast({ title: "Erro", description: "Dados da empresa ou usuário não encontrado.", variant: 'destructive' });
-      return;
-    };
-    if (!empresa.nome || !empresa.endereco) {
-      toast({ title: "Campos obrigatórios", description: "Nome da empresa e endereço são obrigatórios.", variant: 'destructive' });
-      return;
-    }
-    if (empresa.cnpj && cpfCnpjStatus === 'invalid') {
-      toast({ title: "Documento inválido", description: "O CPF/CNPJ inserido não é válido.", variant: "destructive" });
-      return;
-    }
-    const hasAtLeastOnePhone = empresa.telefones.some(t => t.numero.trim() !== '');
-    if (!hasAtLeastOnePhone) {
-        toast({ title: "Telefone obrigatório", description: "Pelo menos um número de telefone deve ser preenchido.", variant: "destructive" });
-        return;
-    }
-
-
-    if (empresa.logo && empresa.logo.length > 900 * 1024) { // Aproximadamente 900KB
-        toast({
-            title: "Imagem muito grande",
-            description: "A imagem da logo, mesmo comprimida, é muito grande para salvar. Por favor, escolha uma imagem com menor resolução.",
-            variant: "destructive",
-            duration: 8000
-        });
-        return;
-    }
-    
-    setIsSaving(true);
-    
-    try {
-      const dataToSave = { ...empresa, telefones: empresa.telefones.filter(t => t.numero.trim() !== '') };
-      if (!dataToSave.userId) {
-          dataToSave.userId = user.uid;
-      }
-      
-      await saveEmpresaData(user.uid, dataToSave);
       toast({
-        title: 'Sucesso!',
-        description: 'Os dados da empresa foram salvos localmente e serão sincronizados.',
-      });
-    } catch(error: any) {
-       toast({
-        title: 'Erro ao Salvar',
-        description: error.message || "Ocorreu um erro.",
+        title: 'Ação não permitida',
+        description: 'É necessário ao menos um telefone.',
         variant: 'destructive',
       });
-      console.error("Erro ao salvar dados da empresa:", error);
+      return;
+    }
+
+    const telefones = empresa.telefones.filter((_, i) => i !== index);
+
+    if (!telefones.some(t => t.principal)) {
+      telefones[0].principal = true;
+    }
+
+    setEmpresa({ ...empresa, telefones });
+  };
+
+  /* =======================
+     LOGO
+  ======================= */
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !empresa) return;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new window.Image(); // Corrigido: usa window.Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const max = 200;
+
+        let { width, height } = img;
+        if (width > height && width > max) {
+          height *= max / width;
+          width = max;
+        } else if (height > max) {
+          width *= max / height;
+          height = max;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
+
+        setEmpresa({
+          ...empresa,
+          logo: canvas.toDataURL('image/jpeg', 0.8),
+        });
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeLogo = () => {
+    if (!empresa) return;
+    setEmpresa({ ...empresa, logo: '' });
+    toast({ title: 'Logo removido' });
+  };
+
+  /* =======================
+     SALVAR
+  ======================= */
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!empresa || !user) return;
+
+    if (!empresa.nome || !empresa.endereco) {
+      toast({
+        title: 'Campos obrigatórios',
+        description: 'Nome e endereço são obrigatórios.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (isCpfCnpjInvalid) {
+      toast({
+        title: 'Documento inválido',
+        description: 'CPF ou CNPJ inválido.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!empresa.telefones.some(t => t.numero.trim())) {
+      toast({
+        title: 'Telefone obrigatório',
+        description: 'Informe ao menos um telefone.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await saveEmpresaData(user.uid, {
+        ...empresa,
+        telefones: empresa.telefones.filter(t => t.numero.trim()),
+      });
+
+      toast({
+        title: 'Sucesso',
+        description: 'Dados salvos com sucesso.',
+      });
     } finally {
       setIsSaving(false);
     }
   };
 
+  /* =======================
+     RESET SENHA
+  ======================= */
+
   const handlePasswordReset = async () => {
-    if (!user?.email) {
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível identificar o seu e-mail para enviar o link de recuperação.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    try {
-      await sendPasswordResetEmail(auth, user.email);
-      toast({
-        title: 'E-mail enviado!',
-        description: 'Verifique sua caixa de entrada e a de SPAM para redefinir sua senha.',
-      });
-    } catch (error) {
-      console.error('Erro ao enviar e-mail de redefinição de senha:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível enviar o e-mail de redefinição. Tente novamente mais tarde.',
-        variant: 'destructive',
-      });
-    }
+    if (!user?.email) return;
+
+    await sendPasswordResetEmail(auth, user.email);
+    toast({
+      title: 'E-mail enviado',
+      description: 'Confira sua caixa de entrada.',
+    });
   };
 
-  const isCpfCnpjInvalid = empresa?.cnpj ? cpfCnpjStatus === 'invalid' : false;
+  /* =======================
+     RENDER
+  ======================= */
+
+  if (isLoadingData) {
+    return (
+      <div className="container mx-auto p-4 md:p-6 space-y-6">
+        <Skeleton className="h-8 w-48 mb-4" />
+        <Skeleton className="h-[500px] w-full" />
+      </div>
+    );
+  }
+
+  if (!empresa) {
+    return <p className="p-6">Erro ao carregar dados da empresa.</p>;
+  }
+
+  const principalIndex =
+    empresa.telefones.findIndex(t => t.principal) >= 0
+      ? empresa.telefones.findIndex(t => t.principal)
+      : 0;
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
-        <header className="mb-8">
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-                <Settings className="h-8 w-8 text-primary"/>
-                Configurações
-            </h1>
-            <p className="text-muted-foreground">Gerencie as informações da sua empresa, conta e aparência do aplicativo.</p>
-        </header>
-        
-        {/* DADOS DA EMPRESA */}
+      <h1 className="text-2xl font-bold flex items-center gap-2">
+        <Settings size={24} />
+        Configurações
+      </h1>
+
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Dados da Empresa */}
         <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Building className="h-6 w-6" />
-                    Dados da Empresa
-                </CardTitle>
-                <CardDescription>
-                    Insira as informações e o logo da sua empresa. Estes dados serão usados nos orçamentos.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                {isLoadingData ? (
-                    <div className="space-y-6">
-                    <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
-                    <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
-                    <Skeleton className="h-10 w-32" />
-                    </div>
-                ) : empresa ? (
-                    <form onSubmit={handleEmpresaSubmit} className="space-y-6">
-                        <div>
-                        <Label>Logo da Empresa</Label>
-                        <div className="mt-2 flex items-center gap-4">
-                            {empresa.logo ? (
-                            <div className="relative">
-                                <Image src={empresa.logo} alt="Logo" width={80} height={80} className="rounded-lg object-contain border bg-muted" unoptimized />
-                                <Button type="button" size="icon" variant="destructive" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={removeLogo}>
-                                <Trash2 className="h-3 w-3" />
-                                </Button>
-                            </div>
-                            ) : (
-                            <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center">
-                                <Building className="h-10 w-10 text-muted-foreground" />
-                            </div>
-                            )}
-                            <div className="flex-1">
-                            <Button asChild variant="outline" className="cursor-pointer">
-                                <Label htmlFor="logo-upload" className="cursor-pointer flex items-center gap-2">
-                                    <Upload className="mr-2 h-4 w-4" />
-                                    Carregar Imagem
-                                </Label>
-                            </Button>
-                            <Input id="logo-upload" type="file" className="sr-only" accept="image/png, image/jpeg, image/webp" onChange={handleLogoChange}/>
-                            <p className="text-xs text-muted-foreground mt-2">A imagem será comprimida para caber no banco de dados.</p>
-                            </div>
-                        </div>
-                        </div>
-
-                        <div>
-                            <Label htmlFor="nome">Nome da Empresa / Seu Nome</Label>
-                            <Input id="nome" name="nome" value={empresa.nome} onChange={handleChange} placeholder="Ex: João da Silva - Reparos Residenciais" required />
-                        </div>
-                        <div>
-                            <Label htmlFor="endereco">Endereço</Label>
-                            <Input id="endereco" name="endereco" value={empresa.endereco} onChange={handleChange} placeholder="Rua, 123, Bairro, Cidade - UF" required />
-                        </div>
-
-                        <div className="space-y-4">
-                            <Label>Telefones de Contato</Label>
-                            <RadioGroup
-                                value={empresa.telefones.findIndex(t => t.principal).toString()}
-                                onValueChange={(value) => handlePrincipalTelefoneChange(parseInt(value, 10))}
-                                className="space-y-2"
-                            >
-                                {empresa.telefones.map((tel, index) => (
-                                <div key={index} className="flex items-center gap-2 p-3 border rounded-md">
-                                    <div className="flex items-center h-full">
-                                    <RadioGroupItem value={index.toString()} id={`tel-principal-${index}`} />
-                                    </div>
-                                    <div className="flex-grow grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                    <div className="sm:col-span-1">
-                                        <Label htmlFor={`tel-nome-${index}`} className="text-xs text-muted-foreground">Apelido</Label>
-                                        <Input id={`tel-nome-${index}`} value={tel.nome} onChange={(e) => handleTelefoneChange(index, 'nome', e.target.value)} placeholder="Ex: Vendas" />
-                                    </div>
-                                    <div className="sm:col-span-2">
-                                        <Label htmlFor={`tel-numero-${index}`} className="text-xs text-muted-foreground">Número</Label>
-                                        <Input id={`tel-numero-${index}`} value={tel.numero} onChange={(e) => handleTelefoneChange(index, 'numero', e.target.value)} placeholder="(DD) XXXXX-XXXX" />
-                                    </div>
-                                    </div>
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeTelefone(index)} disabled={empresa.telefones.length <= 1}>
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                </div>
-                                ))}
-                            </RadioGroup>
-                            <Label className="text-xs text-muted-foreground">Selecione o telefone que aparecerá no orçamento.</Label>
-                            <Button type="button" variant="outline" onClick={addTelefone} className="w-full sm:w-auto">
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Adicionar Telefone
-                            </Button>
-                        </div>
-                        
-                        <div>
-                        <Label htmlFor="cnpj">CNPJ / CPF</Label>
-                            <div className="relative">
-                            <Input id="cnpj" name="cnpj" value={empresa.cnpj} onChange={handleChange} placeholder="XX.XXX.XXX/XXXX-XX"
-                                className={cn('pr-10', cpfCnpjStatus === 'valid' && 'border-green-500 focus-visible:ring-green-500', cpfCnpjStatus === 'invalid' && 'border-destructive focus-visible:ring-destructive')} />
-                                {empresa.cnpj && (
-                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                                    {cpfCnpjStatus === 'valid' && <CheckCircle className="h-5 w-5 text-green-500" />}
-                                    {cpfCnpjStatus === 'invalid' && <XCircle className="h-5 w-5 text-destructive" />}
-                                    </div>
-                                )}
-                            </div>
-                            {empresa.cnpj && (
-                            <p className={cn("text-xs mt-1", cpfCnpjStatus === 'invalid' ? 'text-destructive' : 'text-muted-foreground')}>
-                                {cpfCnpjStatus === 'invalid' ? 'Documento inválido.' : cpfCnpjStatus === 'incomplete' ? 'Documento incompleto.' : 'Documento válido.'}
-                            </p>
-                            )}
-                        </div>
-                        <Button type="submit" className="w-full sm:w-auto" disabled={isSaving || isCpfCnpjInvalid}>
-                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                            {isSaving ? "Salvando..." : "Salvar Dados da Empresa"}
-                        </Button>
-                    </form>
-                ) : (
-                    <p className="py-4 text-center text-muted-foreground">Não foi possível carregar os dados da empresa. Tente recarregar a página.</p>
-                )}
-            </CardContent>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building size={20} />
+              Dados da Empresa
+            </CardTitle>
+            <CardDescription>
+              Informações que aparecerão nos seus orçamentos.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Formulário */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="nome">Nome da Empresa</Label>
+                  <Input
+                    id="nome"
+                    name="nome"
+                    value={empresa.nome}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endereco">Endereço Completo</Label>
+                  <Input
+                    id="endereco"
+                    name="endereco"
+                    value={empresa.endereco}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cnpj">CNPJ / CPF</Label>
+                  <div className="relative">
+                    <Input
+                      id="cnpj"
+                      name="cnpj"
+                      value={empresa.cnpj}
+                      onChange={handleChange}
+                      className={cn(isCpfCnpjInvalid && 'border-destructive')}
+                    />
+                    {empresa.cnpj && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {cpfCnpjStatus === 'valid' ? (
+                          <CheckCircle className="text-green-500" size={16} />
+                        ) : (
+                          <XCircle className="text-destructive" size={16} />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {/* Logo */}
+              <div className="space-y-2 flex flex-col items-center justify-center bg-muted/50 rounded-lg p-4">
+                <Label>Logo da Empresa</Label>
+                <div className="w-32 h-32 rounded-full border-2 border-dashed flex items-center justify-center bg-background overflow-hidden">
+                  {empresa.logo ? (
+                    <Image
+                      src={empresa.logo}
+                      alt="Logo"
+                      width={128}
+                      height={128}
+                      className="object-cover"
+                    />
+                  ) : (
+                    <Building className="text-muted-foreground" size={48} />
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button asChild variant="outline" size="sm">
+                    <Label className="cursor-pointer">
+                      <Upload size={16} className="mr-2" /> Enviar
+                      <Input
+                        type="file"
+                        className="hidden"
+                        accept="image/png, image/jpeg"
+                        onChange={handleLogoChange}
+                      />
+                    </Label>
+                  </Button>
+                  {empresa.logo && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={removeLogo}
+                    >
+                      <Trash2 size={16} className="mr-2" /> Remover
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Envie JPG ou PNG (max 200x200px)
+                </p>
+              </div>
+            </div>
+            {/* Telefones */}
+            <div className="space-y-4">
+              <Label>Telefones</Label>
+              <RadioGroup
+                value={String(principalIndex)}
+                onValueChange={index => handlePrincipalTelefoneChange(Number(index))}
+              >
+                {empresa.telefones.map((tel, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <RadioGroupItem value={String(index)} id={`tel-principal-${index}`} />
+                    <Label htmlFor={`tel-principal-${index}`} className="font-normal cursor-pointer">
+                      Marcar como principal
+                    </Label>
+                    <Input
+                      placeholder="Nome (Ex: Vendas)"
+                      value={tel.nome}
+                      onChange={e =>
+                        handleTelefoneChange(index, 'nome', e.target.value)
+                      }
+                      className="max-w-[150px]"
+                    />
+                    <Input
+                      placeholder="(DD) XXXXX-XXXX"
+                      value={tel.numero}
+                      onChange={e =>
+                        handleTelefoneChange(index, 'numero', e.target.value)
+                      }
+                      required
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeTelefone(index)}
+                      disabled={empresa.telefones.length <= 1}
+                    >
+                      <Trash2 size={16} className="text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </RadioGroup>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addTelefone}
+              >
+                <PlusCircle size={16} className="mr-2" /> Adicionar Telefone
+              </Button>
+            </div>
+          </CardContent>
         </Card>
 
-        {/* MINHA CONTA & APARÊNCIA */}
+        {/* Conta e Aparência */}
         <div className="grid md:grid-cols-2 gap-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <User className="h-6 w-6" />
-                        Minha Conta
-                    </CardTitle>
-                    <CardDescription>
-                        Informações da sua conta e gerenciamento de senha.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                {loadingAuth ? (
-                    <div className="space-y-4">
-                        <Skeleton className="h-10 w-full" />
-                        <Skeleton className="h-10 w-40" />
-                    </div>
-                ) : user ? (
-                    <div className="space-y-6">
-                    <div className="flex items-center gap-3 p-4 border rounded-lg bg-muted/50">
-                        <Mail className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                            <Label className="text-xs">Seu E-mail de Login</Label>
-                            <p className="font-semibold text-foreground">{user.email}</p>
-                        </div>
-                    </div>
-                    <div>
-                        <Button onClick={handlePasswordReset}>
-                            <KeyRound className="mr-2 h-4 w-4" />
-                            Alterar Senha
-                        </Button>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            Um e-mail será enviado para você com as instruções.
-                        </p>
-                    </div>
-                    </div>
-                ) : (
-                    <p>Não foi possível carregar as informações do usuário.</p>
-                )}
-                </CardContent>
-            </Card>
-            
-            <Card>
-                <CardHeader>
-                    <CardTitle>Aparência</CardTitle>
-                    <CardDescription>Personalize o visual do aplicativo.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="grid gap-2">
-                        <h4 className="font-medium">Modo de Exibição</h4>
-                        <div className="flex items-center gap-2">
-                        <ThemeToggle />
-                        <span className="text-sm text-muted-foreground">Claro / Escuro</span>
-                        </div>
-                    </div>
-                    <div className="grid gap-2">
-                        <h4 className="font-medium">Paleta de Cores</h4>
-                        <ThemePicker />
-                    </div>
-                </CardContent>
-            </Card>
+          {/* Conta */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User size={20} /> Conta
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="flex items-center gap-2">
+                  <Mail size={16} /> E-mail
+                </Label>
+                <Input id="email" value={user?.email ?? ''} disabled />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePasswordReset}
+              >
+                <KeyRound size={16} className="mr-2" />
+                Redefinir Senha
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Aparência */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Aparência</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Cores</Label>
+                <ThemePicker />
+              </div>
+              <div className="space-y-2">
+                <Label>Modo de Exibição</Label>
+                <ThemeToggle />
+              </div>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Salvar */}
+        <div className="flex justify-end">
+          <Button type="submit" size="lg" disabled={isSaving}>
+            {isSaving ? (
+              <Loader2 size={20} className="animate-spin mr-2" />
+            ) : (
+              <Save size={20} className="mr-2" />
+            )}
+            Salvar Alterações
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }
