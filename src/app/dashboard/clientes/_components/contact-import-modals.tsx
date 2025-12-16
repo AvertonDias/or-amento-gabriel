@@ -144,7 +144,7 @@ export function ContactImportModals({
           </DialogHeader>
 
           <div className="space-y-4">
-            {selectedContactDetails?.tel?.length > 1 && (
+            {selectedContactDetails?.tel && selectedContactDetails.tel.length > 1 && (
               <div>
                 <Label>Telefone</Label>
                 <RadioGroup
@@ -161,7 +161,7 @@ export function ContactImportModals({
               </div>
             )}
 
-            {selectedContactDetails?.email?.length > 1 && (
+            {selectedContactDetails?.email && selectedContactDetails.email.length > 1 && (
               <div>
                 <Label>Email</Label>
                 <RadioGroup
@@ -178,17 +178,17 @@ export function ContactImportModals({
               </div>
             )}
 
-            {selectedContactDetails?.address?.length > 1 && (
+            {selectedContactDetails?.address && selectedContactDetails.address.length > 1 && (
               <div>
                 <Label>Endereço</Label>
                 <RadioGroup
                   value={selectedAddress ?? undefined}
                   onValueChange={setSelectedAddress}
                 >
-                  {selectedContactDetails.address.map(a => (
-                    <div key={a} className="flex items-center gap-2">
-                      <RadioGroupItem value={a} id={`addr-${a}`} />
-                      <Label htmlFor={`addr-${a}`}>{a}</Label>
+                  {selectedContactDetails.address.map((a, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <RadioGroupItem value={a} id={`addr-${index}`} />
+                      <Label htmlFor={`addr-${index}`}>{a}</Label>
                     </div>
                   ))}
                 </RadioGroup>
