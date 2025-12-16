@@ -74,11 +74,11 @@ export default function ClientList({ clientes, budgetCounts, onEdit, onDelete, o
         <Accordion type="multiple" className="w-full">
             {clientes.map(item => (
                 <AccordionItem value={item.id!} key={item.id}>
-                     <div className="relative flex items-center w-full">
+                     <div className="flex items-center w-full group">
                         <AccordionTrigger className="flex-1 text-left py-3 px-2 rounded-t-lg data-[state=open]:bg-muted/50 hover:no-underline">
                             <span className="font-medium text-lg text-primary">{item.nome}</span>
                         </AccordionTrigger>
-                        <div className="absolute right-12 top-1/2 -translate-y-1/2 flex items-center gap-2 pr-2">
+                        <div className="flex items-center gap-2 pr-2 group-data-[state=open]:bg-muted/50 h-full py-3">
                              <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
