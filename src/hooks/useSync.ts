@@ -132,31 +132,36 @@ export function useSync() {
 
   const pullFromFirestore = useCallback(async () => {
     if (!user || !isOnline || syncLock.current) return;
-
+  
     syncLock.current = true;
     setIsSyncing(true);
-
+  
     try {
       const collections: SyncableCollection[] = ['clientes', 'materiais', 'orcamentos', 'empresa'];
-
+  
       for (const coll of collections) {
-          const q = query(collection(firestoreDB, coll), where('userId', '==', user.uid));
-          const snapshot = await getDocs(q);
-
-          // Limpa a tabela local antes de popular com dados frescos
+        const q = query(collection(firestoreDB, coll), where('userId', '==', user.uid));
+        const snapshot = await getDocs(q);
+  
+        if (!snapshot.empty) {
+          const items = snapshot.docs.map(doc => ({
+            id: doc.id,
+            userId: user.uid,
+            data: doc.data(),
+            syncStatus: 'synced',
+            syncError: null,
+          }));
+  
+          // Limpa a tabela local SOMENTE APÓS buscar os dados com sucesso
           await (dexieDB as any)[coll].where('userId').equals(user.uid).delete();
-
-          if (!snapshot.empty) {
-              const items = snapshot.docs.map(doc => ({
-                  id: doc.id,
-                  userId: user.uid,
-                  data: doc.data(),
-                  syncStatus: 'synced',
-                  syncError: null,
-              }));
-              
-              await (dexieDB as any)[coll].bulkPut(items);
+          await (dexieDB as any)[coll].bulkPut(items);
+        } else {
+          // Se não há nada no Firestore, verifica se há algo localmente antes de limpar
+          const localCount = await (dexieDB as any)[coll].where('userId').equals(user.uid).count();
+          if (localCount > 0) {
+            await (dexieDB as any)[coll].where('userId').equals(user.uid).delete();
           }
+        }
       }
     } catch (error) {
         console.error("Erro ao puxar dados do Firestore:", error);
