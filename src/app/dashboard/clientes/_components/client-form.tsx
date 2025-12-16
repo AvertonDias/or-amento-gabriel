@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -146,7 +147,7 @@ export default function ClientForm({ initialData, onSubmit, onImportContacts, is
                             </Button>
                         </div>
                     ))}
-                    <Button type="button" variant="outline" size="sm" onClick={() => append({ nome: '', numero: '' })}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => append({ nome: 'Principal', numero: '' })}>
                         <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Telefone
                     </Button>
                 </div>

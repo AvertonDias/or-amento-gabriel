@@ -14,7 +14,7 @@ export const addCliente = async (userId: string, cliente: Omit<ClienteData, 'id'
     ...cliente,
     id: newId,
     userId,
-    // Garante que campos opcionais sejam nulos se vazios
+    // Garante que campos opcionais sejam strings vazias se não forem fornecidos
     cpfCnpj: cliente.cpfCnpj || '',
     email: cliente.email || '',
     endereco: cliente.endereco || ''
@@ -69,4 +69,3 @@ export const deleteClienteFromFirestore = async (clienteId: string) => {
     const clienteDoc = doc(firestoreDB, 'clientes', clienteId);
     await deleteDocFirestore(clienteDoc);
 };
-
