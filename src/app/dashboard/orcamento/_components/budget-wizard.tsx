@@ -95,6 +95,8 @@ export function BudgetWizard({
 
   const [wizardStep, setWizardStep] = useState(1);
   const [orcamentoItens, setOrcamentoItens] = useState<OrcamentoItem[]>([]);
+  
+  const [clientSelectionType, setClientSelectionType] = useState<'existente' | 'novo'>('novo');
 
   const [clienteData, setClienteData] = useState<{
     id?: string;
@@ -168,6 +170,7 @@ export function BudgetWizard({
   const resetWizard = () => {
     setWizardStep(1);
     setOrcamentoItens([]);
+    setClientSelectionType('novo');
     setClienteData({
       id: undefined,
       nome: '',
@@ -186,10 +189,22 @@ export function BudgetWizard({
     setItemAvulsoPrecoStr('');
     setIsAddingAvulso(false);
   };
-
+  
   const handleOpenChange = (open: boolean) => {
     if (!open) resetWizard();
     onOpenChange(open);
+  };
+  
+  const handleClientSelectionTypeChange = (value: 'existente' | 'novo') => {
+    setClientSelectionType(value);
+    setClienteData({
+      id: undefined,
+      nome: '',
+      endereco: '',
+      email: '',
+      cpfCnpj: '',
+      telefones: [{ nome: 'Principal', numero: '', principal: true }],
+    });
   };
 
   const handleClienteTelefoneChange = (index: number, value: string) => {
@@ -334,9 +349,7 @@ export function BudgetWizard({
             {/* Passo 1: Cliente */}
             {wizardStep === 1 && (
               <div className="space-y-4">
-                <RadioGroup value={clienteData.id ? "existente" : "novo"} onValueChange={(v) => {
-                  setClienteData({ id: undefined, nome: '', endereco: '', email: '', cpfCnpj: '', telefones: [{ nome: 'Principal', numero: '', principal: true }] });
-                }}>
+                <RadioGroup value={clientSelectionType} onValueChange={(v) => handleClientSelectionTypeChange(v as 'existente' | 'novo')}>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="existente" id="r-existente" />
                     <Label htmlFor="r-existente">Cliente Existente</Label>
@@ -347,7 +360,7 @@ export function BudgetWizard({
                   </div>
                 </RadioGroup>
 
-                {clienteData.id ? (
+                {clientSelectionType === 'existente' ? (
                   <Popover open={isClientPopoverOpen} onOpenChange={setIsClientPopoverOpen}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" role="combobox" aria-expanded={isClientPopoverOpen} className="w-full justify-between">
