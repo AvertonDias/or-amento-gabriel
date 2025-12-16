@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
-import type { ClienteData, Telefone } from '@/lib/types';
+import React, { useState, useEffect } from 'react';
+import type { ClienteData } from '@/lib/types';
+
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,7 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,15 +22,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+
+/* -------------------------------------------------------------------------- */
+/* TIPOS                                                                       */
+/* -------------------------------------------------------------------------- */
 
 export interface SelectedContactDetails {
   name: string[];
   email: string[];
   tel: string[];
-  address: any[];
+  address: string[];
 }
 
 interface ContactImportModalsProps {
@@ -45,6 +52,20 @@ interface ContactImportModalsProps {
   setIsApiNotSupportedAlertOpen: (isOpen: boolean) => void;
 }
 
+/* -------------------------------------------------------------------------- */
+/* HELPERS                                                                     */
+/* -------------------------------------------------------------------------- */
+
+const normalizePhone = (value: string) =>
+  value.replace(/\D/g, '').replace(/^55/, '');
+
+const normalizeEmail = (value: string) =>
+  value.trim().toLowerCase();
+
+/* -------------------------------------------------------------------------- */
+/* COMPONENT                                                                   */
+/* -------------------------------------------------------------------------- */
+
 export function ContactImportModals({
   isContactSelectionModalOpen,
   setIsContactSelectionModalOpen,
@@ -56,69 +77,82 @@ export function ContactImportModals({
   isApiNotSupportedAlertOpen,
   setIsApiNotSupportedAlertOpen,
 }: ContactImportModalsProps) {
-  const [selectedPhones, setSelectedPhones] = React.useState<
-    Record<string, string>
-  >({});
+  const [selectedTel, setSelectedTel] = useState<string | null>(null);
+  const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
 
-  const handleSelectionChange = (
-    type: 'tel' | 'email' | 'address',
-    value: string
-  ) => {
-    setSelectedPhones(prev => ({ ...prev, [type]: value }));
-  };
+  /* ------------------------------------------------------------------------ */
+  /* RESET AO ABRIR MODAL                                                     */
+  /* ------------------------------------------------------------------------ */
+
+  useEffect(() => {
+    if (!selectedContactDetails) return;
+
+    setSelectedTel(selectedContactDetails.tel?.[0] ?? null);
+    setSelectedEmail(selectedContactDetails.email?.[0] ?? null);
+    setSelectedAddress(selectedContactDetails.address?.[0] ?? null);
+  }, [selectedContactDetails]);
+
+  /* ------------------------------------------------------------------------ */
+  /* CONFIRMAÇÃO                                                             */
+  /* ------------------------------------------------------------------------ */
 
   const handleConfirm = () => {
     if (!selectedContactDetails) return;
-    const finalData: Partial<ClienteData> = {
-      nome: selectedContactDetails.name?.[0] || '',
+
+    const data: Partial<ClienteData> = {
+      nome: selectedContactDetails.name?.[0]?.trim() || 'Sem nome',
     };
-    if (selectedPhones.tel) {
-      finalData.telefones = [{ nome: 'Principal', numero: selectedPhones.tel }];
-    } else if (selectedContactDetails.tel?.[0]) {
-      finalData.telefones = [
-        { nome: 'Principal', numero: selectedContactDetails.tel[0] },
+
+    if (selectedTel) {
+      data.telefones = [
+        {
+          nome: 'Principal',
+          numero: normalizePhone(selectedTel),
+        },
       ];
     }
 
-    if (selectedPhones.email) {
-      finalData.email = selectedPhones.email;
-    } else if (selectedContactDetails.email?.[0]) {
-      finalData.email = selectedContactDetails.email[0];
+    if (selectedEmail) {
+      data.email = normalizeEmail(selectedEmail);
     }
 
-    if (selectedPhones.address) {
-      finalData.endereco = selectedPhones.address;
-    } else if (selectedContactDetails.address?.[0]) {
-      finalData.endereco = selectedContactDetails.address[0];
+    if (selectedAddress) {
+      data.endereco = selectedAddress;
     }
 
-    onConfirmContactSelection(finalData);
+    onConfirmContactSelection(data);
   };
+
+  /* ------------------------------------------------------------------------ */
+  /* UI                                                                       */
+  /* ------------------------------------------------------------------------ */
 
   return (
     <>
-      {/* Contact Selection Modal */}
+      {/* MODAL DE SELEÇÃO */}
       <Dialog
         open={isContactSelectionModalOpen}
         onOpenChange={setIsContactSelectionModalOpen}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Selecione os Dados</DialogTitle>
+            <DialogTitle>Selecionar dados do contato</DialogTitle>
             <DialogDescription>
-              O contato importado tem múltiplas opções. Escolha quais usar.
+              O contato possui mais de uma informação. Escolha quais deseja usar.
             </DialogDescription>
           </DialogHeader>
+
           <div className="space-y-4">
-            {(selectedContactDetails?.tel?.length ?? 0) > 1 && (
-              <div className="space-y-2">
+            {selectedContactDetails?.tel?.length > 1 && (
+              <div>
                 <Label>Telefone</Label>
                 <RadioGroup
-                  onValueChange={v => handleSelectionChange('tel', v)}
-                  defaultValue={selectedContactDetails!.tel![0]}
+                  value={selectedTel ?? undefined}
+                  onValueChange={setSelectedTel}
                 >
-                  {selectedContactDetails!.tel!.map(t => (
-                    <div key={t} className="flex items-center space-x-2">
+                  {selectedContactDetails.tel.map(t => (
+                    <div key={t} className="flex items-center gap-2">
                       <RadioGroupItem value={t} id={`tel-${t}`} />
                       <Label htmlFor={`tel-${t}`}>{t}</Label>
                     </div>
@@ -126,15 +160,16 @@ export function ContactImportModals({
                 </RadioGroup>
               </div>
             )}
-            {(selectedContactDetails?.email?.length ?? 0) > 1 && (
-              <div className="space-y-2">
+
+            {selectedContactDetails?.email?.length > 1 && (
+              <div>
                 <Label>Email</Label>
                 <RadioGroup
-                  onValueChange={v => handleSelectionChange('email', v)}
-                  defaultValue={selectedContactDetails!.email![0]}
+                  value={selectedEmail ?? undefined}
+                  onValueChange={setSelectedEmail}
                 >
-                  {selectedContactDetails!.email!.map(e => (
-                    <div key={e} className="flex items-center space-x-2">
+                  {selectedContactDetails.email.map(e => (
+                    <div key={e} className="flex items-center gap-2">
                       <RadioGroupItem value={e} id={`email-${e}`} />
                       <Label htmlFor={`email-${e}`}>{e}</Label>
                     </div>
@@ -142,15 +177,16 @@ export function ContactImportModals({
                 </RadioGroup>
               </div>
             )}
-            {(selectedContactDetails?.address?.length ?? 0) > 1 && (
-              <div className="space-y-2">
+
+            {selectedContactDetails?.address?.length > 1 && (
+              <div>
                 <Label>Endereço</Label>
                 <RadioGroup
-                  onValueChange={v => handleSelectionChange('address', v)}
-                  defaultValue={selectedContactDetails!.address![0]}
+                  value={selectedAddress ?? undefined}
+                  onValueChange={setSelectedAddress}
                 >
-                  {selectedContactDetails!.address!.map((a: any) => (
-                    <div key={a} className="flex items-center space-x-2">
+                  {selectedContactDetails.address.map(a => (
+                    <div key={a} className="flex items-center gap-2">
                       <RadioGroupItem value={a} id={`addr-${a}`} />
                       <Label htmlFor={`addr-${a}`}>{a}</Label>
                     </div>
@@ -159,23 +195,28 @@ export function ContactImportModals({
               </div>
             )}
           </div>
+
           <DialogFooter>
             <DialogClose asChild>
-              <Button onClick={handleConfirm}>Confirmar</Button>
+              <Button onClick={handleConfirm}>
+                Confirmar importação
+              </Button>
             </DialogClose>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Duplicate Alert */}
+      {/* ALERTA DUPLICADO */}
       <AlertDialog
         open={isDuplicateAlertOpen}
         onOpenChange={setIsDuplicateAlertOpen}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Cliente Duplicado</AlertDialogTitle>
-            <AlertDialogDescription>{duplicateMessage}</AlertDialogDescription>
+            <AlertDialogTitle>Cliente já existente</AlertDialogTitle>
+            <AlertDialogDescription>
+              {duplicateMessage}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction>OK</AlertDialogAction>
@@ -183,18 +224,17 @@ export function ContactImportModals({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* API Not Supported Alert */}
+      {/* API NÃO SUPORTADA */}
       <AlertDialog
         open={isApiNotSupportedAlertOpen}
         onOpenChange={setIsApiNotSupportedAlertOpen}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Função não suportada</AlertDialogTitle>
+            <AlertDialogTitle>Função indisponível</AlertDialogTitle>
             <AlertDialogDescription>
-              Seu navegador não suporta a importação de contatos. Por favor,
-              use um navegador moderno como o Chrome em um dispositivo móvel ou
-              preencha os dados manualmente.
+              Este dispositivo ou navegador não suporta importação de contatos.
+              Utilize um celular compatível ou cadastre manualmente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

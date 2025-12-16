@@ -1,6 +1,6 @@
 'use client';
 
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import type { ClienteData } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
@@ -65,8 +65,12 @@ const getStatusBadgeVariant = (
   }
 };
 
+/* -------------------------------------------------------------------------- */
+/* SUBCOMPONENTE: BADGES DE ORÇAMENTO                                          */
+/* -------------------------------------------------------------------------- */
+
 const BudgetBadges = memo(
-  ({ counts }: { counts: BudgetCounts | undefined }) => {
+  ({ counts }: { counts?: BudgetCounts }) => {
     if (!counts || counts.Total === 0) {
       return (
         <p className="text-xs text-muted-foreground mt-1">
@@ -84,16 +88,17 @@ const BudgetBadges = memo(
 
     return (
       <div className="flex flex-wrap items-center gap-2 mt-2">
-        {statusOrder.map(status =>
-          counts[status] > 0 ? (
-            <Badge
-              key={status}
-              variant={getStatusBadgeVariant(status)}
-              className="text-xs"
-            >
-              {counts[status]} {status}
-            </Badge>
-          ) : null
+        {statusOrder.map(
+          status =>
+            counts[status] > 0 && (
+              <Badge
+                key={status}
+                variant={getStatusBadgeVariant(status)}
+                className="text-xs"
+              >
+                {counts[status]} {status}
+              </Badge>
+            )
         )}
       </div>
     );
@@ -103,7 +108,7 @@ const BudgetBadges = memo(
 BudgetBadges.displayName = 'BudgetBadges';
 
 /* -------------------------------------------------------------------------- */
-/* COMPONENT                                                                   */
+/* COMPONENTE PRINCIPAL                                                        */
 /* -------------------------------------------------------------------------- */
 
 function ClientList({
@@ -113,19 +118,22 @@ function ClientList({
   onDelete,
   onViewBudgets,
 }: ClientListProps) {
+  const validClientes = useMemo(
+    () => clientes.filter(c => !!c.id),
+    [clientes]
+  );
+
   return (
     <Accordion type="multiple" className="w-full">
-      {clientes.map(item => {
-        if (!item.id) return null;
-
-        const counts = budgetCounts[item.id];
+      {validClientes.map(cliente => {
+        const counts = budgetCounts[cliente.id!];
 
         return (
-          <AccordionItem value={item.id} key={item.id}>
+          <AccordionItem value={cliente.id!} key={cliente.id}>
             <div className="flex items-center w-full group">
               <AccordionTrigger className="flex-1 text-left py-3 px-2 rounded-t-lg cursor-pointer data-[state=open]:bg-muted/50 hover:no-underline hover:bg-muted/30 transition-colors">
                 <span className="font-medium text-lg text-primary">
-                  {item.nome}
+                  {cliente.nome}
                 </span>
               </AccordionTrigger>
 
@@ -135,6 +143,7 @@ function ClientList({
                     <Button
                       variant="ghost"
                       size="icon"
+                      aria-label="Ações do cliente"
                       className="h-8 w-8"
                       onClick={e => e.stopPropagation()}
                     >
@@ -146,13 +155,13 @@ function ClientList({
                     align="end"
                     onClick={e => e.stopPropagation()}
                   >
-                    <DropdownMenuItem onClick={() => onEdit(item)}>
+                    <DropdownMenuItem onClick={() => onEdit(cliente)}>
                       <Pencil className="mr-2 h-4 w-4" />
                       Editar Cliente
                     </DropdownMenuItem>
 
                     <DropdownMenuItem
-                      onClick={() => onViewBudgets(item.id)}
+                      onClick={() => onViewBudgets(cliente.id!)}
                     >
                       <History className="mr-2 h-4 w-4" />
                       Ver Orçamentos
@@ -162,7 +171,7 @@ function ClientList({
 
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                      onClick={() => onDelete(item)}
+                      onClick={() => onDelete(cliente)}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Excluir Cliente
@@ -171,7 +180,10 @@ function ClientList({
                 </DropdownMenu>
 
                 {counts?.Total > 0 && (
-                  <Badge className="h-6 w-6 rounded-full p-0 flex items-center justify-center text-xs">
+                  <Badge
+                    className="h-6 w-6 rounded-full p-0 flex items-center justify-center text-xs"
+                    aria-label={`Total de orçamentos: ${counts.Total}`}
+                  >
                     {counts.Total}
                   </Badge>
                 )}
@@ -179,18 +191,18 @@ function ClientList({
             </div>
 
             <AccordionContent className="p-4 space-y-3">
-              {item.cpfCnpj && (
+              {cliente.cpfCnpj && (
                 <p className="text-sm">
                   <span className="font-medium text-muted-foreground">
                     CPF/CNPJ:
                   </span>{' '}
-                  {item.cpfCnpj}
+                  {cliente.cpfCnpj}
                 </p>
               )}
 
-              {item.telefones?.map((tel, index) => (
+              {cliente.telefones?.map((tel, index) => (
                 <p
-                  key={`${item.id}-tel-${index}`}
+                  key={`${cliente.id}-tel-${index}`}
                   className="text-sm"
                 >
                   <span className="font-medium text-muted-foreground">
@@ -200,31 +212,31 @@ function ClientList({
                 </p>
               ))}
 
-              {item.email && (
+              {cliente.email && (
                 <p className="text-sm">
                   <span className="font-medium text-muted-foreground">
                     Email:
                   </span>{' '}
-                  {item.email}
+                  {cliente.email}
                 </p>
               )}
 
-              {item.endereco && (
+              {cliente.endereco && (
                 <p className="text-sm">
                   <span className="font-medium text-muted-foreground">
                     Endereço:
                   </span>{' '}
-                  {item.endereco}
+                  {cliente.endereco}
                 </p>
               )}
 
               <div className="pt-2">
-                <p
-                  className="text-sm font-medium text-muted-foreground mb-2 cursor-pointer hover:text-primary transition-colors"
-                  onClick={() => onViewBudgets(item.id)}
+                <button
+                  className="text-sm font-medium text-muted-foreground mb-2 hover:text-primary transition-colors"
+                  onClick={() => onViewBudgets(cliente.id!)}
                 >
                   Histórico de Orçamentos
-                </p>
+                </button>
 
                 <BudgetBadges counts={counts} />
               </div>

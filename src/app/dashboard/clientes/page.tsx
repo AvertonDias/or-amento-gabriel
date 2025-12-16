@@ -45,6 +45,52 @@ import {
 } from './_components/contact-import-modals';
 
 /* -------------------------------------------------------------------------- */
+/* HELPERS                                                                    */
+/* -------------------------------------------------------------------------- */
+
+const normalizePhone = (value: string) =>
+  value.replace(/\D/g, '').replace(/^55/, '');
+
+const normalizeEmail = (value: string) =>
+  value.trim().toLowerCase();
+
+function findDuplicateClient(
+  newClient: Omit<ClienteData, 'id' | 'userId'>,
+  existingClients: ClienteData[]
+): ClienteData | null {
+  const newPhones =
+    newClient.telefones?.map(t => normalizePhone(t.numero)) ?? [];
+
+  const newEmail = newClient.email
+    ? normalizeEmail(newClient.email)
+    : null;
+
+  for (const client of existingClients) {
+    // Verifica telefone
+    const clientPhones =
+      client.telefones?.map(t => normalizePhone(t.numero)) ?? [];
+
+    if (
+      newPhones.length > 0 &&
+      newPhones.some(p => p && clientPhones.includes(p))
+    ) {
+      return client;
+    }
+
+    // Verifica email
+    if (
+      newEmail &&
+      client.email &&
+      normalizeEmail(client.email) === newEmail
+    ) {
+      return client;
+    }
+  }
+
+  return null;
+}
+
+/* -------------------------------------------------------------------------- */
 /* ESTADO INICIAL                                                              */
 /* -------------------------------------------------------------------------- */
 
@@ -172,7 +218,18 @@ export default function ClientesPage() {
 
   const handleAdicionarCliente = useCallback(
     async (data: Omit<ClienteData, 'id' | 'userId'>) => {
-      if (!user) return;
+      if (!user || !clientes) return;
+
+      // 🔍 DETECÇÃO DE DUPLICADO
+      const duplicate = findDuplicateClient(data, clientes);
+
+      if (duplicate) {
+        setDuplicateMessage(
+          `Já existe um cliente cadastrado com este telefone ou email:\n\n${duplicate.nome}`
+        );
+        setIsDuplicateAlertOpen(true);
+        return;
+      }
 
       setIsSubmitting(true);
       try {
@@ -192,7 +249,7 @@ export default function ClientesPage() {
         setIsSubmitting(false);
       }
     },
-    [user, toast]
+    [user, clientes, toast]
   );
 
   const handleSalvarEdicao = useCallback(
@@ -244,9 +301,6 @@ export default function ClientesPage() {
   /* -------------------------------------------------------------------------- */
   /* IMPORTAÇÃO DE CONTATOS                                                      */
   /* -------------------------------------------------------------------------- */
-
-  const normalizePhone = (tel: string) =>
-    tel.replace(/\D/g, '').replace(/^55/, '');
 
   const handleImportContacts = useCallback(async () => {
     if (!Capacitor.isNativePlatform()) {
