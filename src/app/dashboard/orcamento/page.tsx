@@ -1,6 +1,11 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+} from 'react';
 import type { ClienteData, Orcamento } from '@/lib/types';
 
 import {
@@ -11,7 +16,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, History, AlertTriangle } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 
 import { useToast } from '@/hooks/use-toast';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -24,14 +29,11 @@ import {
   updateOrcamento,
   updateOrcamentoStatus,
 } from '@/services/orcamentosService';
-import { updateCliente } from '@/services/clientesService';
 import { updateEstoque } from '@/services/materiaisService';
 
 import {
   addDays,
   parseISO,
-  isBefore,
-  startOfToday,
   differenceInHours,
 } from 'date-fns';
 
@@ -39,16 +41,6 @@ import { useSearchParams, useRouter } from 'next/navigation';
 
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
-
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/dexie';
@@ -68,15 +60,27 @@ export default function OrcamentoPage() {
   const clienteIdParam = searchParams.get('clienteId');
 
   // =========================
-  // DEXIE (OFFLINE)
+  // DADOS OFFLINE (DEXIE)
   // =========================
   const materiais = useLiveQuery(
-    () => (user ? db.materiais.where('userId').equals(user.uid).sortBy('data.descricao') : []),
+    () =>
+      user
+        ? db.materiais
+            .where('userId')
+            .equals(user.uid)
+            .sortBy('data.descricao')
+        : [],
     [user]
   )?.map(m => m.data);
 
   const clientes = useLiveQuery(
-    () => (user ? db.clientes.where('userId').equals(user.uid).sortBy('data.nome') : []),
+    () =>
+      user
+        ? db.clientes
+            .where('userId')
+            .equals(user.uid)
+            .sortBy('data.nome')
+        : [],
     [user]
   )?.map(c => c.data);
 
@@ -96,24 +100,24 @@ export default function OrcamentoPage() {
     () => (user ? db.empresa.get(user.uid) : undefined),
     [user]
   )?.data;
-  
-  const [clienteFiltrado, setClienteFiltrado] = useState<ClienteData | null>(null);
 
+  const [clienteFiltrado, setClienteFiltrado] =
+    useState<ClienteData | null>(null);
 
   // =========================
-  // STATE
+  // STATE UI
   // =========================
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isEditBudgetModalOpen, setIsEditBudgetModalOpen] = useState(false);
-  const [editingBudget, setEditingBudget] = useState<Orcamento | null>(null);
-  const [expiredBudgets, setExpiredBudgets] = useState<Orcamento[]>([]);
-  const [isExpiredModalOpen, setIsExpiredModalOpen] = useState(false);
+  const [editingBudget, setEditingBudget] =
+    useState<Orcamento | null>(null);
 
   const budgetPdfRef = useRef<{
-    gerarPDF: (orcamento: Orcamento, type: 'client' | 'internal') => void;
+    gerarPDF: (
+      orcamento: Orcamento,
+      type: 'client' | 'internal'
+    ) => void;
   }>(null);
-
 
   const isLoading =
     loadingAuth ||
@@ -121,16 +125,21 @@ export default function OrcamentoPage() {
     !clientes ||
     !orcamentosSalvos ||
     empresa === undefined;
-    
-  useEffect(() => {
-    if (clienteIdParam && clientes) {
-        const cliente = clientes.find(c => c.id === clienteIdParam);
-        setClienteFiltrado(cliente || null);
-    } else {
-        setClienteFiltrado(null);
-    }
-  }, [clienteIdParam, clientes]);
 
+  // =========================
+  // FILTRO POR CLIENTE (URL)
+  // =========================
+  useEffect(() => {
+    if (!clienteIdParam || !clientes) {
+      setClienteFiltrado(null);
+      return;
+    }
+
+    const cliente = clientes.find(
+      c => c.id === clienteIdParam
+    );
+    setClienteFiltrado(cliente || null);
+  }, [clienteIdParam, clientes]);
 
   // =========================
   // PERMISSÃO DE NOTIFICAÇÃO
@@ -138,38 +147,39 @@ export default function OrcamentoPage() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
-    LocalNotifications.checkPermissions().then(result => {
-      if (result.display !== 'granted') {
-        LocalNotifications.requestPermissions();
+    LocalNotifications.checkPermissions().then(
+      result => {
+        if (result.display !== 'granted') {
+          LocalNotifications.requestPermissions();
+        }
       }
-    });
+    );
   }, []);
 
   // =========================
-  // NOTIFICAÇÕES
+  // NOTIFICAÇÕES (QUASE VENCIDO)
   // =========================
   const scheduleNotification = async (
-    orcamento: Orcamento,
-    type: 'expiring' | 'expired'
+    orcamento: Orcamento
   ) => {
     if (!Capacitor.isNativePlatform()) return;
 
-    const permission = await LocalNotifications.checkPermissions();
+    const permission =
+      await LocalNotifications.checkPermissions();
     if (permission.display !== 'granted') return;
 
-    const key = `notif_${type}_${orcamento.id}`;
+    const key = `notif_expiring_${orcamento.id}`;
     if (localStorage.getItem(key)) return;
 
     await LocalNotifications.schedule({
       notifications: [
         {
           id: Date.now(),
-          title:
-            type === 'expiring'
-              ? 'Orçamento quase vencendo'
-              : 'Orçamento vencido',
+          title: 'Orçamento quase vencendo',
           body: `Orçamento #${orcamento.numeroOrcamento} - ${orcamento.cliente.nome}`,
-          schedule: { at: new Date(Date.now() + 1000) },
+          schedule: {
+            at: new Date(Date.now() + 1000),
+          },
         },
       ],
     });
@@ -188,21 +198,29 @@ export default function OrcamentoPage() {
     orcamentosSalvos.forEach(orc => {
       if (orc.status !== 'Pendente') return;
 
-      const validade = parseInt(orc.validadeDias, 10);
-      if (isNaN(validade)) return;
+      const validade = Number(orc.validadeDias);
+      if (!validade) return;
 
-      const dataCriacao = parseISO(orc.dataCriacao);
-      const dataValidade = addDays(dataCriacao, validade);
-      const horas = differenceInHours(dataValidade, now);
+      const dataCriacao = parseISO(
+        orc.dataCriacao
+      );
+      const dataValidade = addDays(
+        dataCriacao,
+        validade
+      );
+      const horas = differenceInHours(
+        dataValidade,
+        now
+      );
 
       if (horas > 0 && horas <= 24) {
-        scheduleNotification(orc, 'expiring');
+        scheduleNotification(orc);
       }
     });
   }, [orcamentosSalvos]);
 
   // =========================
-  // FILTROS
+  // FILTRO LISTA
   // =========================
   const filteredOrcamentos = useMemo(() => {
     if (!orcamentosSalvos) return [];
@@ -210,28 +228,41 @@ export default function OrcamentoPage() {
     let list = orcamentosSalvos;
 
     if (clienteIdParam) {
-      list = list.filter(o => o.cliente.id === clienteIdParam);
+      list = list.filter(
+        o => o.cliente.id === clienteIdParam
+      );
     }
 
     if (searchTerm) {
       const s = searchTerm.toLowerCase();
       list = list.filter(
         o =>
-          o.cliente.nome.toLowerCase().includes(s) ||
-          o.numeroOrcamento?.toLowerCase().includes(s)
+          o.cliente.nome
+            .toLowerCase()
+            .includes(s) ||
+          o.numeroOrcamento
+            ?.toLowerCase()
+            .includes(s)
       );
     }
 
     return list;
-  }, [orcamentosSalvos, searchTerm, clienteIdParam]);
+  }, [
+    orcamentosSalvos,
+    searchTerm,
+    clienteIdParam,
+  ]);
 
   // =========================
   // HANDLERS
   // =========================
-  const handleSaveBudget = async (data: Omit<Orcamento, 'id'>) => {
+  const handleSaveBudget = async (
+    data: Omit<Orcamento, 'id'>
+  ) => {
     if (!user) return;
 
-    const numero = await getNextOrcamentoNumber(user.uid);
+    const numero =
+      await getNextOrcamentoNumber(user.uid);
 
     await addOrcamento({
       ...data,
@@ -239,10 +270,12 @@ export default function OrcamentoPage() {
       userId: user.uid,
     });
 
-    toast({ title: 'Orçamento salvo (offline)' });
+    toast({
+      title: 'Orçamento salvo com sucesso',
+    });
     setIsWizardOpen(false);
   };
-  
+
   const handleUpdateStatus = async (
     budgetId: string,
     status: 'Aceito' | 'Recusado'
@@ -250,46 +283,68 @@ export default function OrcamentoPage() {
     if (!user) return;
 
     const now = new Date().toISOString();
-    const payload = status === 'Aceito' ? { dataAceite: now } : { dataRecusa: now };
-    
+    const payload =
+      status === 'Aceito'
+        ? { dataAceite: now }
+        : { dataRecusa: now };
+
     try {
-      await updateOrcamentoStatus(budgetId, status, payload);
+      await updateOrcamentoStatus(
+        budgetId,
+        status,
+        payload
+      );
 
       if (status === 'Aceito') {
-          const budget = orcamentosSalvos?.find(o => o.id === budgetId);
-          if (budget) {
-              for (const item of budget.itens) {
-                  // Apenas atualiza estoque para itens do catálogo (não 'avulso')
-                  if (!item.materialId.startsWith('avulso-')) {
-                     await updateEstoque(user.uid, item.materialId, item.quantidade);
-                  }
-              }
+        const budget =
+          orcamentosSalvos?.find(
+            o => o.id === budgetId
+          );
+
+        if (budget) {
+          for (const item of budget.itens) {
+            if (
+              !item.materialId.startsWith(
+                'avulso-'
+              )
+            ) {
+              await updateEstoque(
+                user.uid,
+                item.materialId,
+                item.quantidade
+              );
+            }
           }
+        }
       }
 
-      toast({ title: `Orçamento marcado como ${status.toLowerCase()}` });
-    } catch (e) {
-      console.error(e);
       toast({
-        title: 'Erro ao atualizar status',
+        title: `Orçamento ${status.toLowerCase()}`,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title:
+          'Erro ao atualizar o status',
         variant: 'destructive',
       });
     }
   };
 
-  const handleGerarPDF = (orc: Orcamento, type: 'client' | 'internal') => {
-    if (!budgetPdfRef.current) {
-        toast({ title: "Erro", description: "O componente de PDF não está pronto.", variant: "destructive" });
-        return;
-    }
-    budgetPdfRef.current.gerarPDF(orc, type);
+  const handleGerarPDF = (
+    orc: Orcamento,
+    type: 'client' | 'internal'
+  ) => {
+    budgetPdfRef.current?.gerarPDF(
+      orc,
+      type
+    );
   };
 
   const handleClearFilter = () => {
     router.push('/dashboard/orcamento');
     setSearchTerm('');
   };
-
 
   // =========================
   // RENDER
@@ -298,22 +353,37 @@ export default function OrcamentoPage() {
     <div className="container mx-auto p-4 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Meus Orçamentos</CardTitle>
+          <CardTitle>
+            Meus Orçamentos
+          </CardTitle>
           <CardDescription>
-            {clienteFiltrado ? `Filtrando orçamentos para ${clienteFiltrado.nome}` : 'Crie e gerencie seus orçamentos, mesmo offline.'}
+            {clienteFiltrado
+              ? `Filtrando orçamentos para ${clienteFiltrado.nome}`
+              : 'Crie e gerencie seus orçamentos, mesmo offline.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-2">
-            <Button onClick={() => setIsWizardOpen(true)} disabled={isLoading} className="w-full sm:w-auto">
+            <Button
+              onClick={() =>
+                setIsWizardOpen(true)
+              }
+              disabled={isLoading}
+              className="w-full sm:w-auto"
+            >
               <PlusCircle className="mr-2 h-4 w-4" />
               Novo Orçamento
             </Button>
-            <BudgetHeader 
+
+            <BudgetHeader
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
-              showClearFilter={!!clienteFiltrado}
-              onClearFilter={handleClearFilter}
+              showClearFilter={
+                !!clienteFiltrado
+              }
+              onClearFilter={
+                handleClearFilter
+              }
             />
           </div>
         </CardContent>
@@ -324,33 +394,52 @@ export default function OrcamentoPage() {
         budgets={filteredOrcamentos}
         empresa={empresa || null}
         onGeneratePDF={handleGerarPDF}
-        onEdit={budget => setEditingBudget(budget)}
+        onEdit={setEditingBudget}
         onDelete={deleteOrcamento}
-        onUpdateStatus={handleUpdateStatus}
-        clienteFiltrado={clienteFiltrado}
+        onUpdateStatus={
+          handleUpdateStatus
+        }
+        clienteFiltrado={
+          clienteFiltrado
+        }
       />
 
-      {isWizardOpen && clientes && materiais && (
-        <BudgetWizard
-          isOpen
-          onOpenChange={setIsWizardOpen}
-          clientes={clientes}
-          materiais={materiais}
-          onSaveBudget={handleSaveBudget}
-        />
-      )}
-      
-      {editingBudget && materiais && (
-        <BudgetEditDialog
-            isOpen={!!editingBudget}
-            onOpenChange={open => !open && setEditingBudget(null)}
+      {isWizardOpen &&
+        clientes &&
+        materiais && (
+          <BudgetWizard
+            isOpen
+            onOpenChange={
+              setIsWizardOpen
+            }
+            clientes={clientes}
+            materiais={materiais}
+            onSaveBudget={
+              handleSaveBudget
+            }
+          />
+        )}
+
+      {editingBudget &&
+        materiais && (
+          <BudgetEditDialog
+            isOpen
+            onOpenChange={open =>
+              !open &&
+              setEditingBudget(null)
+            }
             budget={editingBudget}
             materiais={materiais}
-            onUpdateBudget={updateOrcamento as any}
-        />
-      )}
+            onUpdateBudget={
+              updateOrcamento
+            }
+          />
+        )}
 
-      <BudgetPDFs ref={budgetPdfRef} empresa={empresa || null} />
+      <BudgetPDFs
+        ref={budgetPdfRef}
+        empresa={empresa || null}
+      />
     </div>
   );
 }
