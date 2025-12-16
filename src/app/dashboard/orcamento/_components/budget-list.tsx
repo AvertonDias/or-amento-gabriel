@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { Orcamento, EmpresaData, ClienteData } from '@/lib/types';
+import type { Orcamento, EmpresaData, ClienteData, Telefone } from '@/lib/types';
 import {
   Card, CardContent, CardHeader, CardTitle,
   CardDescription, CardFooter
@@ -98,7 +98,7 @@ export function BudgetList({
 
   const [phoneDialog, setPhoneDialog] = useState<{
     open: boolean;
-    phones: { nome: string; numero: string; principal?: boolean }[];
+    phones: Telefone[];
     onConfirm: (phone: string) => void;
   }>({ open: false, phones: [], onConfirm: () => {} });
 
