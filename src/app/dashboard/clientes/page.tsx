@@ -21,9 +21,9 @@ import { Capacitor } from '@capacitor/core';
 import { Contacts, PermissionStatus } from '@capacitor-community/contacts';
 
 import ClientForm from './_components/client-form';
-import ClientList from './_components/client-list';
+import ClientList, { type SelectedContactDetails } from './_components/client-list';
 import ClientModals from './_components/client-modals';
-import type { SelectedContactDetails, BudgetCounts } from './_components/client-list';
+import type { BudgetCounts } from './_components/client-list';
 
 
 const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
@@ -41,7 +41,7 @@ export default function ClientesPage() {
   const clientes = useLiveQuery(() => 
     user ? db.clientes.where('userId').equals(user.uid).sortBy('data.nome') : [],
     [user]
-  )?.map(c => c.data);
+  )?.map(c => ({ id: c.id, ...c.data }));
 
   const orcamentos = useLiveQuery(() =>
     user ? db.orcamentos.where('userId').equals(user.uid).toArray() : [],
@@ -49,7 +49,7 @@ export default function ClientesPage() {
   )?.map(o => o.data);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newClient, setNewClient] = useState(initialNewClientState);
+  const [newClient, setNewClient] = useState<Omit<ClienteData, 'id' | 'userId'>>(initialNewClientState);
   
   const [editingClient, setEditingClient] = useState<ClienteData | null>(null);
   const [clientToDelete, setClientToDelete] = useState<ClienteData | null>(null);
