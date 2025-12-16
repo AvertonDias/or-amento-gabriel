@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useRef } from 'react';
@@ -361,33 +362,45 @@ export function BudgetWizard({
                 </RadioGroup>
 
                 {clientSelectionType === 'existente' ? (
-                  <Popover open={isClientPopoverOpen} onOpenChange={setIsClientPopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" role="combobox" aria-expanded={isClientPopoverOpen} className="w-full justify-between">
-                        {clienteData.nome || "Selecione um cliente..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
-                        <CommandInput placeholder="Buscar cliente..." />
-                        <CommandList>
-                          <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
-                          <CommandGroup>
-                            {clientes.map(c => (
-                              <CommandItem key={c.id} value={c.nome} onSelect={() => {
-                                setClienteData(c);
-                                setIsClientPopoverOpen(false);
-                              }}>
-                                <Check className={cn("mr-2 h-4 w-4", clienteData.id === c.id ? "opacity-100" : "opacity-0")} />
-                                {c.nome}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                   <div className="space-y-4">
+                    <Popover open={isClientPopoverOpen} onOpenChange={setIsClientPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" aria-expanded={isClientPopoverOpen} className="w-full justify-between">
+                          {clienteData.nome || "Selecione um cliente..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                          <CommandInput placeholder="Buscar cliente..." />
+                          <CommandList>
+                            <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              {clientes.map(c => (
+                                <CommandItem key={c.id} value={c.nome} onSelect={() => {
+                                  setClienteData(c);
+                                  setIsClientPopoverOpen(false);
+                                }}>
+                                  <Check className={cn("mr-2 h-4 w-4", clienteData.id === c.id ? "opacity-100" : "opacity-0")} />
+                                  {c.nome}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+
+                    {clienteData.id && (
+                      <div className="border rounded-md p-4 space-y-2 bg-muted/50 text-sm">
+                        <h3 className="font-semibold text-base mb-2">Dados do Cliente</h3>
+                        <p><strong>Nome:</strong> {clienteData.nome}</p>
+                        {clienteData.telefones[0]?.numero && <p><strong>Telefone:</strong> {clienteData.telefones[0].numero}</p>}
+                        {clienteData.email && <p><strong>Email:</strong> {clienteData.email}</p>}
+                        {clienteData.endereco && <p><strong>Endereço:</strong> {clienteData.endereco}</p>}
+                      </div>
+                    )}
+                   </div>
                 ) : (
                   <div className="space-y-4 border p-4 rounded-md">
                     <div className="grid sm:grid-cols-2 gap-4">
