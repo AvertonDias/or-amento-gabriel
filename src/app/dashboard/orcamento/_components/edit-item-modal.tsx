@@ -21,6 +21,7 @@ import {
   maskDecimal,
   maskInteger,
   maskCurrency,
+  formatCurrency,
 } from '@/lib/utils';
 
 import { Capacitor } from '@capacitor/core';
@@ -50,12 +51,12 @@ export function EditItemModal({
   item,
   onSave,
 }: EditItemModalProps) {
-
   const [editingItem, setEditingItem] = useState<OrcamentoItem>(item);
 
   const [quantidadeStr, setQuantidadeStr] = useState('');
   const [margemLucroStr, setMargemLucroStr] = useState('');
   const [precoUnitarioStr, setPrecoUnitarioStr] = useState('');
+  const [precoVendaStr, setPrecoVendaStr] = useState('');
 
   const isAvulso = useMemo(
     () => item.materialId?.startsWith('avulso-'),
@@ -79,16 +80,11 @@ export function EditItemModal({
     setEditingItem({ ...item });
 
     setQuantidadeStr(String(item.quantidade).replace('.', ','));
-
     setMargemLucroStr(
-      item.margemLucro > 0
-        ? String(item.margemLucro).replace('.', ',')
-        : ''
+      item.margemLucro > 0 ? String(item.margemLucro).replace('.', ',') : ''
     );
-
-    setPrecoUnitarioStr(
-      maskCurrency(item.precoUnitario.toFixed(2))
-    );
+    setPrecoUnitarioStr(maskCurrency(item.precoUnitario.toFixed(2)));
+    setPrecoVendaStr(maskCurrency(item.precoVenda.toFixed(2)));
 
     setIsPriceUnlocked(item.materialId.startsWith('avulso-'));
   }, [item]);
@@ -97,47 +93,79 @@ export function EditItemModal({
      HANDLER DE ALTERAÇÃO
   ========================= */
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-
+  const handleChange = (
+    name:
+      | 'materialNome'
+      | 'quantidade'
+      | 'margemLucro'
+      | 'precoUnitario'
+      | 'precoVenda',
+    value: string
+  ) => {
+    let newItem = { ...editingItem };
     let newQuantidadeStr = quantidadeStr;
     let newMargemStr = margemLucroStr;
-    let newPrecoStr = precoUnitarioStr;
-    let newItem = { ...editingItem };
+    let newPrecoUnitStr = precoUnitarioStr;
+    let newPrecoVendaStr = precoVendaStr;
 
-    if (name === 'materialNome') {
-      newItem.materialNome = value;
+    // Atualiza o valor do campo que foi modificado
+    switch (name) {
+      case 'materialNome':
+        newItem.materialNome = value;
+        break;
+      case 'quantidade':
+        newQuantidadeStr = isCurrentUnitInteger
+          ? maskInteger(value)
+          : maskDecimal(value);
+        break;
+      case 'margemLucro':
+        newMargemStr = maskDecimal(value);
+        break;
+      case 'precoUnitario':
+        newPrecoUnitStr = maskCurrency(value);
+        break;
+      case 'precoVenda':
+        newPrecoVendaStr = maskCurrency(value);
+        break;
     }
 
-    if (name === 'quantidade') {
-      newQuantidadeStr = isCurrentUnitInteger
-        ? maskInteger(value)
-        : maskDecimal(value);
-    }
-
-    if (name === 'margemLucro') {
-      newMargemStr = maskDecimal(value);
-    }
-
-    if (name === 'precoUnitario') {
-      newPrecoStr = maskCurrency(value);
-    }
-
+    // Pega os valores numéricos dos campos
     const quantidade = parseFloat(newQuantidadeStr.replace(',', '.')) || 0;
     const margem = parseFloat(newMargemStr.replace(',', '.')) || 0;
     const precoUnitario =
-      parseFloat(newPrecoStr.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+      parseFloat(newPrecoUnitStr.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+    const precoVenda =
+      parseFloat(newPrecoVendaStr.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
 
+    // Recalcula os valores dependentes
+    if (name === 'precoVenda') {
+      // Se o PREÇO DE VENDA foi alterado, recalcula a MARGEM
+      const totalCusto = precoUnitario * quantidade;
+      newItem.precoVenda = precoVenda;
+      if (totalCusto > 0) {
+        const novaMargem = (precoVenda / totalCusto - 1) * 100;
+        newMargemStr = novaMargem > 0 ? String(novaMargem.toFixed(2)).replace('.', ',') : '';
+        newItem.margemLucro = novaMargem > 0 ? novaMargem : 0;
+      } else {
+        newMargemStr = '';
+        newItem.margemLucro = 0;
+      }
+    } else {
+      // Se qualquer OUTRO campo foi alterado, recalcula o PREÇO DE VENDA
+      newItem.total = precoUnitario * quantidade;
+      newItem.precoVenda = newItem.total * (1 + margem / 100);
+      newPrecoVendaStr = formatCurrency(newItem.precoVenda, false);
+    }
+    
     newItem.quantidade = quantidade;
-    newItem.margemLucro = margem;
     newItem.precoUnitario = precoUnitario;
-    newItem.total = precoUnitario * quantidade;
-    newItem.precoVenda = newItem.total * (1 + margem / 100);
 
+    // Atualiza todos os estados
     setEditingItem(newItem);
     setQuantidadeStr(newQuantidadeStr);
     setMargemLucroStr(newMargemStr);
-    setPrecoUnitarioStr(newPrecoStr);
+    setPrecoUnitarioStr(newPrecoUnitStr);
+    setPrecoVendaStr(newPrecoVendaStr);
   };
 
   /* =========================
@@ -164,7 +192,7 @@ export function EditItemModal({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
-        onPointerDownOutside={(e) => {
+        onPointerDownOutside={e => {
           if (Capacitor.isNativePlatform()) e.preventDefault();
         }}
       >
@@ -173,13 +201,12 @@ export function EditItemModal({
         </DialogHeader>
 
         <form onSubmit={handleSave} className="space-y-4 py-4">
-
           <div>
             <Label>Nome do Item</Label>
             <Input
               name="materialNome"
               value={editingItem.materialNome}
-              onChange={handleChange}
+              onChange={e => handleChange('materialNome', e.target.value)}
             />
           </div>
 
@@ -190,50 +217,64 @@ export function EditItemModal({
                 name="quantidade"
                 inputMode={isCurrentUnitInteger ? 'numeric' : 'decimal'}
                 value={quantidadeStr}
-                onChange={handleChange}
+                onChange={e => handleChange('quantidade', e.target.value)}
               />
             </div>
-
             <div>
               <Label>Acréscimo (%)</Label>
               <Input
                 name="margemLucro"
                 inputMode="decimal"
                 value={margemLucroStr}
-                onChange={handleChange}
+                onChange={e => handleChange('margemLucro', e.target.value)}
               />
             </div>
           </div>
 
-          <div>
-            <Label>Preço de Custo Unitário (R$)</Label>
-            <div className="relative">
-              <Input
-                name="precoUnitario"
-                value={precoUnitarioStr}
-                onChange={handleChange}
-                disabled={!isPriceUnlocked}
-                className={cn(!isPriceUnlocked && 'pr-10')}
-              />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Preço de Custo Unitário (R$)</Label>
+              <div className="relative">
+                <Input
+                  name="precoUnitario"
+                  value={precoUnitarioStr}
+                  onChange={e => handleChange('precoUnitario', e.target.value)}
+                  disabled={!isPriceUnlocked}
+                  className={cn(!isPriceUnlocked && 'pr-10')}
+                />
 
-              {!isAvulso && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 -translate-y-1/2"
-                  onClick={() => setIsPriceUnlocked(v => !v)}
-                >
-                  {isPriceUnlocked ? <Unlock size={16} /> : <Lock size={16} />}
-                </Button>
+                {!isAvulso && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2"
+                    onClick={() => setIsPriceUnlocked(v => !v)}
+                  >
+                    {isPriceUnlocked ? (
+                      <Unlock size={16} />
+                    ) : (
+                      <Lock size={16} />
+                    )}
+                  </Button>
+                )}
+              </div>
+
+              {!isAvulso && !isPriceUnlocked && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Preço do catálogo. Clique no cadeado para editar.
+                </p>
               )}
             </div>
 
-            {!isAvulso && !isPriceUnlocked && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Preço do catálogo. Clique no cadeado para editar.
-              </p>
-            )}
+            <div>
+              <Label>Preço Final de Venda (R$)</Label>
+               <Input
+                name="precoVenda"
+                value={precoVendaStr}
+                onChange={e => handleChange('precoVenda', e.target.value)}
+              />
+            </div>
           </div>
 
           <DialogFooter>
@@ -244,7 +285,6 @@ export function EditItemModal({
             </DialogClose>
             <Button type="submit">Salvar</Button>
           </DialogFooter>
-
         </form>
       </DialogContent>
     </Dialog>
