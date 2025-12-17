@@ -30,7 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   FileText, Pencil, MessageCircle,
   CheckCircle2, XCircle, Trash2,
-  MoreVertical, FileSignature, Info
+  MoreVertical, FileSignature, Info, ChevronDown
 } from 'lucide-react';
 import { addDays, format, parseISO } from 'date-fns';
 import { formatCurrency, formatNumber } from '@/lib/utils';
@@ -236,8 +236,6 @@ export function BudgetList({
       <div className="md:hidden space-y-4">
         {budgets.map(o => {
             const hasNotes = !!(o.observacoes || o.observacoesInternas);
-            const dataVencimento = addDays(parseISO(o.dataCriacao), Number(o.validadeDias));
-
             return (
               <Card key={o.id} className="overflow-hidden">
                 <Accordion type="single" collapsible={hasNotes} className="w-full">
@@ -299,7 +297,7 @@ export function BudgetList({
                           </div>
                            <div className="flex justify-between items-center">
                               <span className="font-medium text-muted-foreground">Vencimento:</span>
-                              <span>{format(dataVencimento, 'dd/MM/yyyy')}</span>
+                              <span>{format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</span>
                           </div>
                           <div className="flex justify-between items-center">
                               <span className="font-medium text-muted-foreground">Status:</span>
@@ -349,17 +347,19 @@ export function BudgetList({
         </div>
          <Accordion type="multiple" className="w-full">
             {budgets.map(o => {
-                const dataVencimento = addDays(parseISO(o.dataCriacao), Number(o.validadeDias));
                 const hasNotes = !!(o.observacoes || o.observacoesInternas);
                 return (
-                    <AccordionItem value={o.id} key={o.id}>
-                        <AccordionTrigger className={cn("grid grid-cols-[80px_1fr_100px_100px_110px_1fr_100px] items-center px-4 py-3 text-sm hover:bg-muted/50 hover:no-underline data-[state=open]:bg-muted/50", !hasNotes && "pointer-events-none")}>
+                    <AccordionItem value={o.id} key={o.id} className="border-b">
+                        <AccordionTrigger
+                            className={cn("grid grid-cols-[80px_1fr_100px_100px_110px_1fr_100px] items-center px-4 py-3 text-sm hover:bg-muted/50 hover:no-underline", !hasNotes && "pointer-events-none")}
+                            disabled={!hasNotes}
+                        >
                             <div className="shrink-0 font-medium">{o.numeroOrcamento}</div>
                             <div className="flex items-center text-left">
                               <span>{o.cliente.nome}</span>
                             </div>
                             <div className="shrink-0">{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</div>
-                            <div className="shrink-0">{format(dataVencimento, 'dd/MM/yyyy')}</div>
+                            <div className="shrink-0">{format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</div>
                             <div className="shrink-0"><Badge variant={getStatusVariant(o.status)}>{o.status}</Badge></div>
                             <div className="text-right font-semibold flex justify-end items-center">
                                 {formatCurrency(o.totalVenda)}<AdjustmentBadge orcamento={o} />
@@ -428,3 +428,6 @@ export function BudgetList({
     </>
   );
 }
+
+
+    
