@@ -4,7 +4,7 @@ import React, { useState, FormEvent, useMemo } from 'react';
 import type { MaterialItem } from '@/lib/types';
 
 import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter
+  Card, CardContent, CardDescription, CardHeader, CardTitle
 } from '@/components/ui/card';
 
 import { Input } from '@/components/ui/input';
@@ -356,69 +356,141 @@ export default function MateriaisPage() {
         <CardContent>
           {isLoadingData ? (
             <div className="space-y-2">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
             </div>
+          ) : filteredMateriais?.length === 0 ? (
+            <p className="text-center text-muted-foreground py-10">Nenhum item encontrado.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead className="text-right">Preço de Custo</TableHead>
-                  <TableHead className="text-right">Estoque</TableHead>
-                  <TableHead className="text-center">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredMateriais?.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Nenhum item encontrado.</TableCell></TableRow>
-                ) : (
-                  filteredMateriais?.map(m => (
-                    <TableRow key={m.id}>
-                      <TableCell className="font-medium">{m.descricao}</TableCell>
-                      <TableCell>
-                        <Badge variant={m.tipo === 'item' ? 'secondary' : 'outline'}>
-                            {m.tipo === 'item' ? <Package className="mr-1 h-3 w-3" /> : <Construction className="mr-1 h-3 w-3" />}
-                            {m.tipo === 'item' ? 'Item' : 'Serviço'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">{formatCurrency(m.precoUnitario)} / {m.unidade}</TableCell>
-                      <TableCell className={cn("text-right", m.quantidade !== null && m.quantidadeMinima !== null && m.quantidade < m.quantidadeMinima && "text-destructive font-bold")}>
-                        {m.tipo === 'item' && m.quantidade !== null ? formatNumber(m.quantidade) : 'N/A'}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenEditModal(m)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <Trash2 className="h-4 w-4 text-destructive" />
+            <>
+              {/* Mobile View */}
+              <div className="md:hidden">
+                <Accordion type="multiple" className="w-full">
+                  {filteredMateriais.map(m => (
+                    <AccordionItem value={m.id} key={m.id}>
+                       <AccordionTrigger className="text-left hover:no-underline">
+                          <div className="flex flex-col gap-1">
+                              <span className="font-medium text-base text-primary">{m.descricao}</span>
+                              <span className="text-sm text-muted-foreground">{formatCurrency(m.precoUnitario)} / {m.unidade}</span>
+                          </div>
+                       </AccordionTrigger>
+                       <AccordionContent className="space-y-3">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="font-medium text-muted-foreground">Tipo:</span>
+                            <Badge variant={m.tipo === 'item' ? 'secondary' : 'outline'}>
+                              {m.tipo === 'item' ? <Package className="mr-1 h-3 w-3" /> : <Construction className="mr-1 h-3 w-3" />}
+                              {m.tipo === 'item' ? 'Item' : 'Serviço'}
+                            </Badge>
+                          </div>
+
+                          {m.tipo === 'item' && (
+                            <>
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="font-medium text-muted-foreground">Estoque:</span>
+                                <span className={cn(m.quantidade !== null && m.quantidadeMinima !== null && m.quantidade < m.quantidadeMinima && "text-destructive font-bold")}>
+                                  {m.quantidade !== null ? formatNumber(m.quantidade) : 'N/A'}
+                                </span>
+                              </div>
+                               {m.quantidadeMinima !== null && (
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="font-medium text-muted-foreground">Estoque Mínimo:</span>
+                                  <span>{formatNumber(m.quantidadeMinima)}</span>
+                                </div>
+                               )}
+                            </>
+                          )}
+
+                          <div className="flex gap-2 pt-4 border-t">
+                            <Button variant="outline" size="sm" onClick={() => handleOpenEditModal(m)} className="flex-1">
+                              <Pencil className="mr-2 h-4 w-4" /> Editar
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta ação não pode ser desfeita e irá remover &quot;{m.descricao}&quot; permanentemente.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleConfirmarRemocao(m.id)}>
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </TableCell>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="sm" className="flex-1">
+                                  <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Esta ação não pode ser desfeita e irá remover &quot;{m.descricao}&quot; permanentemente.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleConfirmarRemocao(m.id)}>
+                                    Excluir
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                       </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </div>
+
+              {/* Desktop View */}
+              <div className="hidden md:block border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead className="text-right">Preço de Custo</TableHead>
+                      <TableHead className="text-right">Estoque</TableHead>
+                      <TableHead className="text-center">Ações</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredMateriais?.map(m => (
+                      <TableRow key={m.id}>
+                        <TableCell className="font-medium">{m.descricao}</TableCell>
+                        <TableCell>
+                          <Badge variant={m.tipo === 'item' ? 'secondary' : 'outline'}>
+                              {m.tipo === 'item' ? <Package className="mr-1 h-3 w-3" /> : <Construction className="mr-1 h-3 w-3" />}
+                              {m.tipo === 'item' ? 'Item' : 'Serviço'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">{formatCurrency(m.precoUnitario)} / {m.unidade}</TableCell>
+                        <TableCell className={cn("text-right", m.quantidade !== null && m.quantidadeMinima !== null && m.quantidade < m.quantidadeMinima && "text-destructive font-bold")}>
+                          {m.tipo === 'item' && m.quantidade !== null ? formatNumber(m.quantidade) : 'N/A'}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button variant="ghost" size="icon" onClick={() => handleOpenEditModal(m)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta ação não pode ser desfeita e irá remover &quot;{m.descricao}&quot; permanentemente.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleConfirmarRemocao(m.id)}>
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
