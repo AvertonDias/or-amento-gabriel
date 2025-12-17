@@ -69,6 +69,7 @@ const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
   if (Math.abs(calculated - orcamento.totalVenda) < 0.01) return null;
 
   const diff = orcamento.totalVenda - calculated;
+  const percentage = calculated !== 0 ? (diff / calculated) * 100 : 0;
 
   return (
     <Tooltip>
@@ -80,7 +81,7 @@ const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
           <div className="flex flex-col items-center py-1">
              <span className="font-bold">{formatCurrency(orcamento.totalVenda)}</span>
              <span className="text-xs">
-                {diff < 0 ? 'Desconto' : 'Acréscimo'}
+                {diff < 0 ? 'Desconto' : 'Acréscimo'} ({percentage.toFixed(1)}%)
              </span>
           </div>
         </Badge>
@@ -317,7 +318,7 @@ export function BudgetList({
                        {hasNotes && (
                          <div className="pb-2">
                            <AccordionTrigger className="px-4 text-sm text-muted-foreground hover:no-underline flex items-center gap-1">
-                              <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                              <Info className="h-4 w-4 shrink-0" />
                               Observações
                            </AccordionTrigger>
                            <AccordionContent className="px-4 pb-2 text-sm space-y-2">
@@ -404,8 +405,9 @@ export function BudgetList({
                                 </DropdownMenu>
                                  {hasNotes && (
                                     <AccordionTrigger hideChevron>
-                                      <div className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground">
+                                      <div className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground flex items-center gap-1 text-muted-foreground hover:text-accent-foreground text-xs">
                                         <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                        <span>Obs.</span>
                                       </div>
                                     </AccordionTrigger>
                                 )}
