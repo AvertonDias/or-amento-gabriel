@@ -246,8 +246,8 @@ export function BudgetList({
               <Card key={o.id} className="overflow-hidden">
                 <Accordion type="single" collapsible={hasNotes} className="w-full">
                   <AccordionItem value={o.id} className="border-b-0">
-                    <div className="flex flex-col">
-                      <div className="p-4 flex flex-row items-start justify-between space-y-0">
+                    <div className="p-4 flex flex-col">
+                      <div className="flex flex-row items-start justify-between space-y-0 mb-4">
                         <div className="space-y-1">
                             <CardTitle>{o.cliente.nome}</CardTitle>
                             <CardDescription>Nº {o.numeroOrcamento}</CardDescription>
@@ -296,33 +296,33 @@ export function BudgetList({
                       </DropdownMenu>
                       </div>
 
-                      <div className="px-4 pb-4 space-y-4">
-                        <div className="space-y-2 text-sm">
-                            <div className="flex justify-between items-center">
-                                <span className="font-medium text-muted-foreground">Data:</span>
-                                <span>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</span>
-                            </div>
-                             <div className="flex justify-between items-center">
-                                <span className="font-medium text-muted-foreground">Vencimento:</span>
-                                <span>{format(dataVencimento, 'dd/MM/yyyy')}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="font-medium text-muted-foreground">Status:</span>
-                                <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
-                            </div>
-                        </div>
-                        <div className="flex justify-between items-center text-lg font-bold text-primary pt-2 mt-2 border-t">
-                            <div className="flex items-center">
-                                Total:
-                                {hasNotes && <AccordionTrigger className="p-0 pl-2 hover:no-underline [&>svg]:h-4 [&>svg]:w-4"/>}
-                            </div>
-                            <div className="flex items-center">
-                              {formatCurrency(o.totalVenda)}
-                              <AdjustmentBadge orcamento={o} />
-                            </div>
-                        </div>
+                      <div className="space-y-2 text-sm">
+                          <div className="flex justify-between items-center">
+                              <span className="font-medium text-muted-foreground">Data:</span>
+                              <span>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</span>
+                          </div>
+                           <div className="flex justify-between items-center">
+                              <span className="font-medium text-muted-foreground">Vencimento:</span>
+                              <span>{format(dataVencimento, 'dd/MM/yyyy')}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                              <span className="font-medium text-muted-foreground">Status:</span>
+                              <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
+                          </div>
+                      </div>
+
+                      <div className="flex justify-between items-center text-lg font-bold text-primary pt-2 mt-2 border-t">
+                          <div className="flex items-center">
+                              Total:
+                              {hasNotes && <AccordionTrigger className="p-0 pl-2 hover:no-underline [&>svg]:h-4 [&>svg]:w-4"/>}
+                          </div>
+                          <div className="flex items-center">
+                            {formatCurrency(o.totalVenda)}
+                            <AdjustmentBadge orcamento={o} />
+                          </div>
                       </div>
                     </div>
+
                     {hasNotes && (
                       <AccordionContent className="px-4 pb-4 text-sm space-y-2">
                         {o.observacoes && (<div><strong className="text-muted-foreground">Obs. Cliente:</strong> {o.observacoes}</div>)}
@@ -351,69 +351,65 @@ export function BudgetList({
             </TableRow>
           </TableHeader>
           <TableBody>
-            <Accordion type="multiple">
               {budgets.map(o => {
                   const hasNotes = !!(o.observacoes || o.observacoesInternas);
+                  const dataVencimento = addDays(parseISO(o.dataCriacao), Number(o.validadeDias));
                   return (
-                    <AccordionItem value={o.id} key={o.id} asChild>
-                       <React.Fragment>
-                          <TableRow className="hover:bg-muted/50 data-[state=open]:bg-muted/50">
-                            <TableCell className="font-medium">
-                               <AccordionTrigger disabled={!hasNotes} className="p-0 font-medium hover:no-underline [&>svg]:h-4 [&>svg]:w-4">
-                                {o.numeroOrcamento}
-                               </AccordionTrigger>
-                            </TableCell>
-                            <TableCell>{o.cliente.nome}</TableCell>
-                            <TableCell>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</TableCell>
-                            <TableCell>{format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</TableCell>
-                            <TableCell><Badge variant={getStatusVariant(o.status)}>{o.status}</Badge></TableCell>
-                            <TableCell className="text-right font-semibold">
-                              <div className="flex justify-end items-center">{formatCurrency(o.totalVenda)}<AdjustmentBadge orcamento={o} /></div>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="h-5 w-5" /></Button></DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => onEdit(o)}><Pencil className="mr-2 h-4 w-4" /> Editar</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => sendWhatsApp(o)}><MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp</DropdownMenuItem>
-                                  <DropdownMenuSub>
-                                    <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" /> Gerar PDF</DropdownMenuSubTrigger>
-                                    <DropdownMenuPortal><DropdownMenuSubContent>
-                                      <DropdownMenuItem onClick={() => onGeneratePDF(o, 'client')}>PDF do Cliente</DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => onGeneratePDF(o, 'internal')}>PDF Interno</DropdownMenuItem>
-                                    </DropdownMenuSubContent></DropdownMenuPortal>
-                                  </DropdownMenuSub>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuSub>
-                                    <DropdownMenuSubTrigger disabled={o.status !== 'Pendente'}><FileSignature className="mr-2 h-4 w-4" /> Alterar Status</DropdownMenuSubTrigger>
-                                    <DropdownMenuPortal><DropdownMenuSubContent>
-                                      <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Aceito')}><CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Aceito</DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Recusado')}><XCircle className="mr-2 h-4 w-4 text-red-500" /> Recusado</DropdownMenuItem>
-                                    </DropdownMenuSubContent></DropdownMenuPortal>
-                                  </DropdownMenuSub>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setBudgetToDelete(o)}><Trash2 className="mr-2 h-4 w-4" /> Excluir</DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                          {hasNotes && (
-                            <TableRow>
-                              <TableCell colSpan={7} className="p-0">
-                                <AccordionContent>
-                                  <div className="p-4 text-sm space-y-2 bg-muted/30">
-                                    {o.observacoes && <div className='mb-2'><strong className="font-medium text-muted-foreground">Obs. Cliente:</strong><p className="whitespace-pre-wrap">{o.observacoes}</p></div>}
-                                    {o.observacoesInternas && <div><strong className="font-medium text-muted-foreground">Anotações Internas:</strong><p className="whitespace-pre-wrap">{o.observacoesInternas}</p></div>}
+                      <TableRow key={o.id} className="hover:bg-muted/50">
+                        <TableCell className="font-medium">{o.numeroOrcamento}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span>{o.cliente.nome}</span>
+                            {hasNotes && (
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <Info size={14} className="text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="p-1 max-w-xs space-y-2">
+                                    {o.observacoes && <div><strong className="font-medium">Obs. Cliente:</strong><p className="text-xs">{o.observacoes}</p></div>}
+                                    {o.observacoesInternas && <div><strong className="font-medium">Anotações Internas:</strong><p className="text-xs">{o.observacoesInternas}</p></div>}
                                   </div>
-                                </AccordionContent>
-                              </TableCell>
-                            </TableRow>
-                          )}
-                       </React.Fragment>
-                    </AccordionItem>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</TableCell>
+                        <TableCell>{format(dataVencimento, 'dd/MM/yyyy')}</TableCell>
+                        <TableCell><Badge variant={getStatusVariant(o.status)}>{o.status}</Badge></TableCell>
+                        <TableCell className="text-right font-semibold">
+                          <div className="flex justify-end items-center">{formatCurrency(o.totalVenda)}<AdjustmentBadge orcamento={o} /></div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="h-5 w-5" /></Button></DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => onEdit(o)}><Pencil className="mr-2 h-4 w-4" /> Editar</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => sendWhatsApp(o)}><MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp</DropdownMenuItem>
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" /> Gerar PDF</DropdownMenuSubTrigger>
+                                <DropdownMenuPortal><DropdownMenuSubContent>
+                                  <DropdownMenuItem onClick={() => onGeneratePDF(o, 'client')}>PDF do Cliente</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onGeneratePDF(o, 'internal')}>PDF Interno</DropdownMenuItem>
+                                </DropdownMenuSubContent></DropdownMenuPortal>
+                              </DropdownMenuSub>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger disabled={o.status !== 'Pendente'}><FileSignature className="mr-2 h-4 w-4" /> Alterar Status</DropdownMenuSubTrigger>
+                                <DropdownMenuPortal><DropdownMenuSubContent>
+                                  <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Aceito')}><CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Aceito</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Recusado')}><XCircle className="mr-2 h-4 w-4 text-red-500" /> Recusado</DropdownMenuItem>
+                                </DropdownMenuSubContent></DropdownMenuPortal>
+                              </DropdownMenuSub>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setBudgetToDelete(o)}><Trash2 className="mr-2 h-4 w-4" /> Excluir</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
                   )
               })}
-            </Accordion>
           </TableBody>
         </Table>
       </Card>
