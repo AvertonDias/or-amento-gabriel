@@ -276,6 +276,14 @@ export default function OrcamentoPage() {
     orcamento.itens.forEach(i => {
       text += `- ${i.materialNome} (${formatNumber(i.quantidade, 2)} ${i.unidade})\n`;
     });
+     text += "\n";
+    
+    if (orcamento.observacoes) {
+        text += `*Observações do Cliente:*\n${orcamento.observacoes}\n\n`;
+    }
+    if (orcamento.observacoesInternas) {
+        text += `*Anotações Internas:*\n${orcamento.observacoesInternas}\n\n`;
+    }
 
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
