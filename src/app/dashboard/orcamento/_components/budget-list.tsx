@@ -84,7 +84,12 @@ const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
           <span className="font-bold">
             {formatCurrency(orcamento.totalVenda)}
           </span>
-          <span className="text-xs text-muted-foreground">
+          <span
+            className={cn(
+              'text-xs text-muted-foreground',
+              diff < 0 ? 'text-destructive' : 'text-green-600'
+            )}
+          >
             {diff > 0 ? 'Acréscimo' : 'Desconto'} ({percentage.toFixed(1)}%)
           </span>
         </div>
@@ -373,7 +378,7 @@ export function BudgetList({
                             <div className="shrink-0">{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</div>
                             <div className="shrink-0">{format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</div>
                             <div className="shrink-0"><Badge variant={getStatusVariant(o.status)}>{o.status}</Badge></div>
-                            <div className="text-right font-semibold flex justify-end items-center">
+                            <div className="font-semibold flex justify-end items-center">
                                 <AdjustmentBadge orcamento={o} />
                             </div>
                             <div className="shrink-0 text-center flex justify-center items-center">
