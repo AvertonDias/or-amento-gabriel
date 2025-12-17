@@ -254,7 +254,7 @@ export function BudgetEditDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto pr-2 -mr-6 pl-6 space-y-6">
+          <div className="flex-1 overflow-y-auto pr-4 space-y-6">
             <Card>
               <CardContent className="p-4 grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
