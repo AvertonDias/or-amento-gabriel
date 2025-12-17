@@ -27,6 +27,7 @@ import {
 import { Capacitor } from '@capacitor/core';
 import { Lock, Unlock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 /* =========================
    TIPOS
@@ -68,7 +69,15 @@ export function EditItemModal({
     [editingItem.unidade]
   );
 
-  const [isPriceUnlocked, setIsPriceUnlocked] = useState(isAvulso);
+  const [isCostUnlocked, setIsCostUnlocked] = useState(isAvulso);
+  const [isSalePriceUnlocked, setIsSalePriceUnlocked] = useState(false);
+
+  const originalCost = useMemo(() => item.precoUnitario, [item]);
+
+  const costHasChanged = useMemo(
+    () => Math.abs(editingItem.precoUnitario - originalCost) > 0.001,
+    [editingItem.precoUnitario, originalCost]
+  );
 
   /* =========================
      SINCRONIZA ITEM AO ABRIR
@@ -81,12 +90,13 @@ export function EditItemModal({
 
     setQuantidadeStr(String(item.quantidade).replace('.', ','));
     setMargemLucroStr(
-      item.margemLucro > 0 ? String(item.margemLucro).replace('.', ',') : ''
+      item.margemLucro > 0 ? String(item.margemLucro.toFixed(2)).replace('.', ',') : ''
     );
     setPrecoUnitarioStr(maskCurrency(item.precoUnitario.toFixed(2)));
     setPrecoVendaStr(maskCurrency(item.precoVenda.toFixed(2)));
 
-    setIsPriceUnlocked(item.materialId.startsWith('avulso-'));
+    setIsCostUnlocked(item.materialId.startsWith('avulso-'));
+    setIsSalePriceUnlocked(false);
   }, [item]);
 
   /* =========================
@@ -120,12 +130,15 @@ export function EditItemModal({
         break;
       case 'margemLucro':
         newMargemStr = maskDecimal(value);
+        setIsSalePriceUnlocked(false); // Bloqueia o preço de venda ao mudar a margem
         break;
       case 'precoUnitario':
         newPrecoUnitStr = maskCurrency(value);
+        setIsSalePriceUnlocked(false); // Bloqueia o preço de venda ao mudar o custo
         break;
       case 'precoVenda':
         newPrecoVendaStr = maskCurrency(value);
+        setIsSalePriceUnlocked(true); // Desbloqueia ao editar manualmente
         break;
     }
 
@@ -138,8 +151,8 @@ export function EditItemModal({
       parseFloat(newPrecoVendaStr.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
 
     // Recalcula os valores dependentes
-    if (name === 'precoVenda') {
-      // Se o PREÇO DE VENDA foi alterado, recalcula a MARGEM
+    if (isSalePriceUnlocked) {
+      // Se o PREÇO DE VENDA está desbloqueado (foi alterado), recalcula a MARGEM
       const totalCusto = precoUnitario * quantidade;
       newItem.precoVenda = precoVenda;
       if (totalCusto > 0) {
@@ -207,6 +220,7 @@ export function EditItemModal({
               name="materialNome"
               value={editingItem.materialNome}
               onChange={e => handleChange('materialNome', e.target.value)}
+              disabled={!isAvulso}
             />
           </div>
 
@@ -239,41 +253,52 @@ export function EditItemModal({
                   name="precoUnitario"
                   value={precoUnitarioStr}
                   onChange={e => handleChange('precoUnitario', e.target.value)}
-                  disabled={!isPriceUnlocked}
-                  className={cn(!isPriceUnlocked && 'pr-10')}
+                  disabled={!isCostUnlocked}
+                  className={cn(!isCostUnlocked && 'pr-10')}
                 />
-
-                {!isAvulso && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-1 top-1/2 -translate-y-1/2"
-                    onClick={() => setIsPriceUnlocked(v => !v)}
-                  >
-                    {isPriceUnlocked ? (
-                      <Unlock size={16} />
-                    ) : (
-                      <Lock size={16} />
-                    )}
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2"
+                  onClick={() => setIsCostUnlocked(v => !v)}
+                >
+                  {isCostUnlocked ? <Unlock size={16} /> : <Lock size={16} />}
+                </Button>
               </div>
 
-              {!isAvulso && !isPriceUnlocked && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Preço do catálogo. Clique no cadeado para editar.
+              {costHasChanged && !isAvulso && (
+                 <p className="text-xs text-muted-foreground mt-1">
+                  Custo original: {formatCurrency(originalCost)}
                 </p>
               )}
             </div>
 
             <div>
               <Label>Preço Final de Venda (R$)</Label>
-               <Input
-                name="precoVenda"
-                value={precoVendaStr}
-                onChange={e => handleChange('precoVenda', e.target.value)}
-              />
+               <div className="relative">
+                <Input
+                  name="precoVenda"
+                  value={precoVendaStr}
+                  onChange={e => handleChange('precoVenda', e.target.value)}
+                  disabled={!isSalePriceUnlocked}
+                  className={cn(!isSalePriceUnlocked && 'pr-10')}
+                />
+                 <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2"
+                    onClick={() => setIsSalePriceUnlocked(v => !v)}
+                  >
+                    {isSalePriceUnlocked ? <Unlock size={16} /> : <Lock size={16} />}
+                  </Button>
+               </div>
+               {isSalePriceUnlocked && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Preço de venda definido manualmente.
+                  </p>
+               )}
             </div>
           </div>
 
@@ -290,3 +315,4 @@ export function EditItemModal({
     </Dialog>
   );
 }
+
