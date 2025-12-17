@@ -75,11 +75,16 @@ const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
     <Tooltip>
       <TooltipTrigger asChild>
         <Badge
-          variant={diff < 0 ? 'destructive' : 'default'}
+          variant="outline"
           className="ml-2 h-auto"
         >
           <div className="flex flex-col items-center py-1">
-             <span className="font-bold">{formatCurrency(orcamento.totalVenda)}</span>
+             <span className={cn(
+               "font-bold",
+               diff > 0 ? "text-green-600" : "text-destructive"
+             )}>
+              {formatCurrency(orcamento.totalVenda)}
+            </span>
              <span className="text-xs">
                 {diff < 0 ? 'Desconto' : 'Acréscimo'} ({percentage.toFixed(1)}%)
              </span>
