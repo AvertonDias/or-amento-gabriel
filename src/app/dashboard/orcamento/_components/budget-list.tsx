@@ -30,7 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   FileText, Pencil, MessageCircle,
   CheckCircle2, XCircle, Trash2,
-  MoreVertical, FileSignature, Info
+  MoreVertical, FileSignature
 } from 'lucide-react';
 import { addDays, format, parseISO } from 'date-fns';
 import { formatCurrency, formatNumber } from '@/lib/utils';
@@ -123,8 +123,8 @@ export function BudgetList({
   const [phoneDialog, setPhoneDialog] = useState<{
     open: boolean;
     phones: Telefone[];
-    onConfirm: (phone: string) => void;
-  }>({ open: false, phones: [], onConfirm: () => {} });
+    orcamento: Orcamento | null;
+  }>({ open: false, phones: [], orcamento: null });
 
   const getStatusVariant = (
     status: Orcamento['status']
@@ -136,26 +136,6 @@ export function BudgetList({
   };
 
   /* ---------------- WHATSAPP ---------------- */
-  const sendWhatsApp = (orcamento: Orcamento) => {
-    const phones = orcamento.cliente.telefones ?? [];
-
-    if (phones.length === 0) {
-      toast({ title: 'Cliente sem telefone.', variant: 'destructive' });
-      return;
-    }
-
-    if (phones.length > 1) {
-      setSelectedPhone(phones.find(p => p.principal)?.numero ?? phones[0].numero);
-      setPhoneDialog({
-        open: true,
-        phones,
-        onConfirm: (phone) => openWhatsApp(orcamento, phone),
-      });
-    } else {
-      openWhatsApp(orcamento, phones[0].numero);
-    }
-  };
-
   const openWhatsApp = (orcamento: Orcamento, phone: string) => {
     const cleanPhone = `55${phone.replace(/\D/g, '')}`;
 
@@ -181,6 +161,34 @@ export function BudgetList({
 
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
+  
+  const sendWhatsApp = (orcamento: Orcamento) => {
+    const phones = orcamento.cliente.telefones ?? [];
+
+    if (phones.length === 0) {
+      toast({ title: 'Cliente sem telefone.', variant: 'destructive' });
+      return;
+    }
+
+    if (phones.length > 1) {
+      setSelectedPhone(phones.find(p => p.principal)?.numero ?? phones[0].numero);
+      setPhoneDialog({
+        open: true,
+        phones,
+        orcamento: orcamento,
+      });
+    } else {
+      openWhatsApp(orcamento, phones[0].numero);
+    }
+  };
+
+  const handleConfirmPhone = () => {
+      if (phoneDialog.orcamento && selectedPhone) {
+          openWhatsApp(phoneDialog.orcamento, selectedPhone);
+          setPhoneDialog({ open: false, phones: [], orcamento: null });
+      }
+  }
+
 
   const handleDeleteConfirm = () => {
     if (budgetToDelete) {
@@ -236,7 +244,7 @@ export function BudgetList({
           </RadioGroup>
 
           <DialogFooter>
-            <Button onClick={() => phoneDialog.onConfirm(selectedPhone)}>Confirmar</Button>
+            <Button onClick={handleConfirmPhone}>Confirmar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
