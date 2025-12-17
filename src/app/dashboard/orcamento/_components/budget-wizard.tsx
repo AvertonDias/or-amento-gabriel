@@ -33,7 +33,7 @@ import {
 
 import {
   Loader2, PlusCircle, Trash2, Pencil, ArrowLeft, ArrowRight,
-  FileText, ArrowRightLeft, ChevronsUpDown, Check
+  FileText, ArrowRightLeft, ChevronsUpDown, Check, Lock, Unlock, RotateCcw
 } from 'lucide-react';
 
 import { useToast } from '@/hooks/use-toast';
@@ -47,6 +47,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Capacitor } from '@capacitor/core';
 import { EditItemModal } from './edit-item-modal';
+import { Badge } from '@/components/ui/badge';
 
 /* =========================
    CONSTANTES
@@ -147,6 +148,10 @@ export function BudgetWizard({
   const [isClientPopoverOpen, setIsClientPopoverOpen] = useState(false);
   const [isMaterialPopoverOpen, setIsMaterialPopoverOpen] = useState(false);
 
+  const [isTotalLocked, setIsTotalLocked] = useState(true);
+  const [manualTotal, setManualTotal] = useState<number | null>(null);
+  const [manualTotalStr, setManualTotalStr] = useState('');
+
   /* ---------- MEMOS ---------- */
 
   const selectedMaterial = useMemo(
@@ -161,10 +166,18 @@ export function BudgetWizard({
       : false;
   }, [isAddingAvulso, itemAvulso.unidade, selectedMaterial]);
 
-  const totalVenda = useMemo(
+  const calculatedTotal = useMemo(
     () => orcamentoItens.reduce((sum, i) => sum + i.precoVenda, 0),
     [orcamentoItens]
   );
+
+  const finalTotal = manualTotal ?? calculatedTotal;
+  const isTotalEdited = manualTotal !== null;
+
+  const adjustmentPercentage = useMemo(() => {
+    if (!isTotalEdited || calculatedTotal === 0) return 0;
+    return ((finalTotal - calculatedTotal) / calculatedTotal) * 100;
+  }, [isTotalEdited, finalTotal, calculatedTotal]);
 
   /* ---------- FUNÇÕES PRINCIPAIS ---------- */
 
@@ -189,6 +202,9 @@ export function BudgetWizard({
     setItemAvulso({ descricao: '', quantidade: '', unidade: 'un', precoFinal: '' });
     setItemAvulsoPrecoStr('');
     setIsAddingAvulso(false);
+    setIsTotalLocked(true);
+    setManualTotal(null);
+    setManualTotalStr('');
   };
   
   const handleOpenChange = (open: boolean) => {
@@ -287,6 +303,21 @@ export function BudgetWizard({
     setEditingItem(null);
   };
 
+  const handleManualTotalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const masked = maskCurrency(e.target.value);
+    setManualTotalStr(masked.replace('R$ ', ''));
+
+    const numeric = parseFloat(masked.replace(/[^\d,]/g, '').replace(',', '.'));
+    setManualTotal(Number.isFinite(numeric) ? numeric : null);
+  };
+
+  const resetManualTotal = () => {
+    setManualTotal(null);
+    setManualTotalStr('');
+    setIsTotalLocked(true);
+  };
+
+
   const handleFinalSave = async (saveClient: boolean = false) => {
     setIsSubmitting(true);
     try {
@@ -295,11 +326,11 @@ export function BudgetWizard({
         numeroOrcamento: '',
         cliente: {
           ...clienteData,
-          id: clienteData.id, // ID será undefined se for novo e não salvo
+          id: clienteData.id, 
           telefones: clienteData.telefones.filter(t => t.numero)
         } as ClienteData,
         itens: orcamentoItens,
-        totalVenda,
+        totalVenda: finalTotal,
         dataCriacao: new Date().toISOString(),
         status: 'Pendente',
         validadeDias,
@@ -452,12 +483,12 @@ export function BudgetWizard({
                     <div className="space-y-2">
                       <Input placeholder="Descrição do item" value={itemAvulso.descricao} onChange={e => setItemAvulso({ ...itemAvulso, descricao: e.target.value })} />
                       <div className="grid grid-cols-3 gap-2">
-                         <Input 
+                        <Input 
                           placeholder="Qtd" 
                           value={itemAvulso.quantidade} 
                           onChange={e => setItemAvulso({ ...itemAvulso, quantidade: isCurrentUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value) })}
                         />
-                        <Select value={itemAvulso.unidade} onValueChange={v => setItemAvulso({ ...itemAvulso, unidade: v })}>
+                         <Select value={itemAvulso.unidade} onValueChange={v => setItemAvulso({ ...itemAvulso, unidade: v })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {unidadesDeMedida.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
@@ -540,9 +571,46 @@ export function BudgetWizard({
                     </TableBody>
                     {orcamentoItens.length > 0 && (
                       <TableFooter>
-                        <TableRow>
-                          <TableCell colSpan={2} className="text-right font-bold">Total</TableCell>
-                          <TableCell className="text-right font-bold text-primary">{formatCurrency(totalVenda)}</TableCell>
+                         <TableRow>
+                            <TableCell colSpan={2} className="text-right font-bold">Subtotal</TableCell>
+                            <TableCell className="text-right font-bold">{formatCurrency(calculatedTotal)}</TableCell>
+                        </TableRow>
+                        <TableRow className="bg-muted/50">
+                            <TableCell colSpan={2} className="text-right align-middle">
+                              <div className='flex justify-end items-center gap-2'>
+                                {isTotalEdited && (
+                                  <Badge variant={adjustmentPercentage < 0 ? 'destructive' : 'default'}>
+                                    Ajuste: {adjustmentPercentage.toFixed(2)}%
+                                  </Badge>
+                                )}
+                                <Label htmlFor="manualTotal" className="text-base font-bold">Total Final</Label>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right font-bold text-primary">
+                               <div className="relative">
+                                  <Input
+                                    id="manualTotal"
+                                    className="text-right text-base font-bold h-9 pr-10"
+                                    value={isTotalLocked ? formatCurrency(calculatedTotal, false) : manualTotalStr}
+                                    onChange={handleManualTotalChange}
+                                    disabled={isTotalLocked}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                                    onClick={() => setIsTotalLocked(v => !v)}
+                                  >
+                                    {isTotalLocked ? <Lock size={16} /> : <Unlock size={16}/>}
+                                  </Button>
+                               </div>
+                                {isTotalEdited && !isTotalLocked && (
+                                  <Button type="button" size="xs" variant="link" className="h-auto p-0 mt-1" onClick={resetManualTotal}>
+                                      <RotateCcw className="mr-1 h-3 w-3"/> Usar total calculado
+                                  </Button>
+                                )}
+                            </TableCell>
                         </TableRow>
                       </TableFooter>
                     )}
@@ -572,9 +640,16 @@ export function BudgetWizard({
                       </li>
                     ))}
                   </ul>
-                  <div className="flex justify-between font-bold text-lg mt-2 pt-2 border-t">
-                    <span>Total</span>
-                    <span>{formatCurrency(totalVenda)}</span>
+                   <div className="flex justify-between font-bold text-lg mt-4 pt-4 border-t">
+                    <span>Total Final</span>
+                     <div className='flex items-center gap-2'>
+                        {isTotalEdited && (
+                          <Badge variant={adjustmentPercentage < 0 ? 'destructive' : 'default'}>
+                            Ajuste: {adjustmentPercentage.toFixed(2)}%
+                          </Badge>
+                        )}
+                        <span>{formatCurrency(finalTotal)}</span>
+                    </div>
                   </div>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -609,7 +684,7 @@ export function BudgetWizard({
             {wizardStep === 3 && (
               <Button
                 onClick={() => {
-                  if (!clienteData.id) {
+                  if (clientSelectionType === 'novo' && !clienteData.id) {
                     setIsConfirmSaveClientOpen(true);
                   } else {
                     handleFinalSave(false);
