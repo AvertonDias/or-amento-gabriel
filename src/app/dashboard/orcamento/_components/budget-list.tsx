@@ -69,7 +69,6 @@ const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
   if (Math.abs(calculated - orcamento.totalVenda) < 0.01) return null;
 
   const diff = orcamento.totalVenda - calculated;
-  const percent = calculated ? (diff / calculated) * 100 : 0;
 
   return (
     <Tooltip>
@@ -79,9 +78,9 @@ const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
           className="ml-2 h-auto"
         >
           <div className="flex flex-col items-center py-1">
-             <span className="font-bold">{formatCurrency(diff)}</span>
+             <span className="font-bold">{formatCurrency(orcamento.totalVenda)}</span>
              <span className="text-xs">
-                {diff < 0 ? 'Desconto' : 'Acréscimo'}: {Math.abs(percent).toFixed(1)}%
+                {diff < 0 ? 'Desconto' : 'Acréscimo'}
              </span>
           </div>
         </Badge>
@@ -236,6 +235,8 @@ export function BudgetList({
       <div className="md:hidden space-y-4">
         {budgets.map(o => {
             const hasNotes = !!(o.observacoes || o.observacoesInternas);
+            const calculatedTotal = o.itens.reduce((acc, item) => acc + item.precoVenda, 0);
+
             return (
               <Card key={o.id} className="overflow-hidden">
                 <Accordion type="single" collapsible={hasNotes} className="w-full">
@@ -308,15 +309,16 @@ export function BudgetList({
                       <div className="px-4 flex justify-between items-center text-lg font-bold text-primary pt-2 mt-2 border-t">
                           Total:
                           <div className="flex items-center">
-                            {formatCurrency(o.totalVenda)}
+                            {formatCurrency(calculatedTotal)}
                             <AdjustmentBadge orcamento={o} />
                           </div>
                       </div>
 
                        {hasNotes && (
                          <div className="pb-2">
-                           <AccordionTrigger className="px-4 text-sm text-muted-foreground hover:no-underline">
-                              Ver Observações
+                           <AccordionTrigger className="px-4 text-sm text-muted-foreground hover:no-underline flex items-center gap-1">
+                              <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                              Observações
                            </AccordionTrigger>
                            <AccordionContent className="px-4 pb-2 text-sm space-y-2">
                              {o.observacoes && (<div><strong className="text-muted-foreground">Obs. Cliente:</strong> {o.observacoes}</div>)}
@@ -348,21 +350,28 @@ export function BudgetList({
          <Accordion type="multiple" className="w-full">
             {budgets.map(o => {
                 const hasNotes = !!(o.observacoes || o.observacoesInternas);
+                const calculatedTotal = o.itens.reduce((acc, item) => acc + item.precoVenda, 0);
                 return (
                     <AccordionItem value={o.id} key={o.id} className="border-b">
-                        <AccordionTrigger
-                            className={cn("grid grid-cols-[80px_1fr_100px_100px_110px_1fr_100px] items-center px-4 py-3 text-sm hover:bg-muted/50 hover:no-underline", !hasNotes && "pointer-events-none")}
-                            disabled={!hasNotes}
+                        <div
+                            className={cn("grid grid-cols-[80px_1fr_100px_100px_110px_1fr_100px] items-center px-4 py-3 text-sm hover:bg-muted/50")}
                         >
                             <div className="shrink-0 font-medium">{o.numeroOrcamento}</div>
                             <div className="flex items-center text-left">
-                              <span>{o.cliente.nome}</span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="link" className="text-current p-0 h-auto font-normal text-left" onClick={() => onEdit(o)}>
+                                    {o.cliente.nome}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Editar Orçamento</p></TooltipContent>
+                              </Tooltip>
                             </div>
                             <div className="shrink-0">{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</div>
                             <div className="shrink-0">{format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</div>
                             <div className="shrink-0"><Badge variant={getStatusVariant(o.status)}>{o.status}</Badge></div>
                             <div className="text-right font-semibold flex justify-end items-center">
-                                {formatCurrency(o.totalVenda)}<AdjustmentBadge orcamento={o} />
+                                {formatCurrency(calculatedTotal)}<AdjustmentBadge orcamento={o} />
                             </div>
                             <div className="shrink-0 text-center flex justify-center items-center">
                                 <DropdownMenu>
@@ -393,11 +402,18 @@ export function BudgetList({
                                         <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setBudgetToDelete(o)}><Trash2 className="mr-2 h-4 w-4" /> Excluir</DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
+                                 {hasNotes && (
+                                    <AccordionTrigger hideChevron>
+                                      <div className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground">
+                                        <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                      </div>
+                                    </AccordionTrigger>
+                                )}
                             </div>
-                        </AccordionTrigger>
+                        </div>
                         {hasNotes && (
                             <AccordionContent>
-                              <div className="bg-muted/30 text-sm space-y-2 p-4">
+                              <div className="bg-muted/30 text-sm space-y-2 p-4 col-span-7">
                                   {o.observacoes && (<div><strong className="text-muted-foreground">Obs. Cliente:</strong> {o.observacoes}</div>)}
                                   {o.observacoesInternas && (<div><strong className="text-muted-foreground">Obs. Interna:</strong> {o.observacoesInternas}</div>)}
                               </div>
@@ -428,6 +444,3 @@ export function BudgetList({
     </>
   );
 }
-
-
-    
