@@ -324,22 +324,24 @@ export default function OrcamentoPage() {
               : 'Crie e gerencie seus orçamentos, mesmo offline.'}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-2">
+        <CardContent className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <Button
               onClick={() => setIsWizardOpen(true)}
               disabled={isLoading}
+              className="w-full sm:w-auto"
             >
               <PlusCircle className="mr-2 h-4 w-4" />
               Novo Orçamento
             </Button>
-
-            <BudgetHeader
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              showClearFilter={!!clienteFiltrado}
-              onClearFilter={handleClearFilter}
-            />
+            <div className="flex-grow">
+              <BudgetHeader
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                showClearFilter={!!clienteFiltrado}
+                onClearFilter={handleClearFilter}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
