@@ -206,12 +206,28 @@ export default function ClientForm({
           <FormLabel>Telefones</FormLabel>
 
           {fields.map((field, index) => (
-            <div key={field.id} className="flex gap-2">
+            <div key={field.id} className="grid grid-cols-[1fr_2fr_auto] gap-2 items-start">
+              <FormField
+                control={control}
+                name={`telefones.${index}.nome`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input
+                        placeholder="Ex: Principal"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
               <FormField
                 control={control}
                 name={`telefones.${index}.numero`}
                 render={({ field }) => (
-                  <FormItem className="flex-1">
+                  <FormItem>
                     <FormControl>
                       <Input
                         placeholder="(DD) XXXXX-XXXX"
