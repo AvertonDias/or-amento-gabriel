@@ -675,7 +675,11 @@ export function BudgetWizard({
                   <h3 className="font-semibold">Resumo do Cliente</h3>
                   <p><strong>Nome:</strong> {clienteData.nome}</p>
                   {clienteData.cpfCnpj && <p><strong>CPF/CNPJ:</strong> {clienteData.cpfCnpj}</p>}
-                  {clienteData.telefones[0]?.numero && <p><strong>Telefone:</strong> {clienteData.telefones[0].numero}</p>}
+                   {clienteData.telefones?.map((tel, index) => (
+                      <p key={index}>
+                        <strong>{tel.nome || `Telefone ${index + 1}`}:</strong> {tel.numero}
+                      </p>
+                    ))}
                   {clienteData.email && <p><strong>Email:</strong> {clienteData.email}</p>}
                   {clienteData.endereco && <p><strong>Endereço:</strong> {clienteData.endereco}</p>}
                 </div>
