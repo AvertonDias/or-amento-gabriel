@@ -72,12 +72,20 @@ export function EditItemModal({
   const [isCostUnlocked, setIsCostUnlocked] = useState(isAvulso);
   const [isSalePriceUnlocked, setIsSalePriceUnlocked] = useState(false);
 
+  // Valores Originais
   const originalCost = useMemo(() => item.precoUnitario, [item]);
-
+  const originalSalePrice = useMemo(() => item.precoVenda, [item]);
+  
   const costHasChanged = useMemo(
     () => Math.abs(editingItem.precoUnitario - originalCost) > 0.001,
     [editingItem.precoUnitario, originalCost]
   );
+
+  const salePriceHasChanged = useMemo(
+    () => Math.abs(editingItem.precoVenda - originalSalePrice) > 0.001,
+    [editingItem.precoVenda, originalSalePrice]
+  );
+
 
   /* =========================
      SINCRONIZA ITEM AO ABRIR
@@ -269,7 +277,7 @@ export function EditItemModal({
                 </Button>
               </div>
 
-              {costHasChanged && !isAvulso && (
+              {costHasChanged && (
                  <p className="text-xs text-muted-foreground mt-1">
                   Custo original: {formatCurrency(originalCost)}
                 </p>
@@ -296,9 +304,9 @@ export function EditItemModal({
                     {isSalePriceUnlocked ? <Unlock size={16} /> : <Lock size={16} />}
                   </Button>
                </div>
-               {isSalePriceUnlocked && (
+               {salePriceHasChanged && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Preço de venda definido manualmente.
+                    Venda original: {formatCurrency(originalSalePrice)}
                   </p>
                )}
             </div>
