@@ -115,6 +115,7 @@ export default function OrcamentoPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingBudget, setEditingBudget] =
     useState<Orcamento | null>(null);
+  const [statusFilter, setStatusFilter] = useState('todos');
 
   const budgetPdfRef = useRef<{
     gerarPDF: (
@@ -216,6 +217,10 @@ export default function OrcamentoPage() {
         o => o.cliente.id === clienteIdParam
       );
     }
+    
+    if (statusFilter !== 'todos') {
+      list = list.filter(o => o.status === statusFilter);
+    }
 
     if (searchTerm) {
       const s = searchTerm.toLowerCase();
@@ -227,7 +232,7 @@ export default function OrcamentoPage() {
     }
 
     return list;
-  }, [orcamentosSalvos, searchTerm, clienteIdParam]);
+  }, [orcamentosSalvos, searchTerm, clienteIdParam, statusFilter]);
 
   // =========================
   // HANDLERS
@@ -329,6 +334,7 @@ export default function OrcamentoPage() {
   const handleClearFilter = () => {
     router.push('/dashboard/orcamento');
     setSearchTerm('');
+    setStatusFilter('todos');
   };
 
   // =========================
@@ -350,7 +356,7 @@ export default function OrcamentoPage() {
             <Button
               onClick={() => setIsWizardOpen(true)}
               disabled={isLoading}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto flex-shrink-0"
             >
               <PlusCircle className="mr-2 h-4 w-4" />
               Novo Orçamento
@@ -359,7 +365,9 @@ export default function OrcamentoPage() {
               <BudgetHeader
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
-                showClearFilter={!!clienteFiltrado}
+                statusFilter={statusFilter}
+                setStatusFilter={setStatusFilter}
+                showClearFilter={!!clienteFiltrado || statusFilter !== 'todos'}
                 onClearFilter={handleClearFilter}
               />
             </div>

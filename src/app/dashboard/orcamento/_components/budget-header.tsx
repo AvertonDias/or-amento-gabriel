@@ -1,12 +1,23 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, FilterX, XCircle } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import type { Orcamento } from '@/lib/types';
 
 interface BudgetHeaderProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
+  statusFilter: string;
+  setStatusFilter: (status: string) => void;
   showClearFilter: boolean;
   onClearFilter: () => void;
 }
@@ -14,13 +25,15 @@ interface BudgetHeaderProps {
 export function BudgetHeader({
   searchTerm,
   setSearchTerm,
+  statusFilter,
+  setStatusFilter,
   showClearFilter,
   onClearFilter,
 }: BudgetHeaderProps) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col sm:flex-row items-center gap-2">
       {/* Campo de busca */}
-      <div className="relative flex-grow">
+      <div className="relative flex-grow w-full">
         <Search
           className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground"
           aria-hidden="true"
@@ -48,19 +61,49 @@ export function BudgetHeader({
         )}
       </div>
 
-      {/* Limpar filtros */}
-      {showClearFilter && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onClearFilter}
-          aria-label="Limpar filtros"
-        >
-          <FilterX className="mr-2 h-4 w-4" />
-          Limpar
-        </Button>
-      )}
+      {/* Filtro de Status */}
+      <div className="flex items-center gap-2 w-full sm:w-auto">
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filtrar por status">
+            <SelectValue placeholder="Filtrar status..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os Status</SelectItem>
+            <SelectItem value="Pendente">Pendente</SelectItem>
+            <SelectItem value="Aceito">Aceito</SelectItem>
+            <SelectItem value="Recusado">Recusado</SelectItem>
+            <SelectItem value="Vencido">Vencido</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Limpar filtros */}
+        {showClearFilter && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onClearFilter}
+            aria-label="Limpar filtros"
+            className="hidden sm:inline-flex"
+          >
+            <FilterX className="mr-2 h-4 w-4" />
+            Limpar
+          </Button>
+        )}
+      </div>
+       {showClearFilter && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onClearFilter}
+            aria-label="Limpar filtros"
+            className="w-full sm:hidden"
+          >
+            <FilterX className="mr-2 h-4 w-4" />
+            Limpar Filtros
+          </Button>
+        )}
     </div>
   );
 }
