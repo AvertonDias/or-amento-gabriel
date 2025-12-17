@@ -35,7 +35,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   FileText, Pencil, MessageCircle,
   CheckCircle2, XCircle, Trash2,
-  MoreVertical, FileSignature
+  MoreVertical, FileSignature, Info
 } from 'lucide-react';
 import { addDays, format, parseISO } from 'date-fns';
 import { formatCurrency, formatNumber } from '@/lib/utils';
@@ -46,6 +46,11 @@ import {
   Dialog, DialogContent, DialogDescription,
   DialogFooter, DialogHeader, DialogTitle
 } from '@/components/ui/dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
@@ -223,8 +228,8 @@ export function BudgetList({
             return (
               <AccordionItem value={o.id} key={o.id}>
                 <div className="flex items-start w-full group">
-                  <AccordionTrigger className="flex-1 text-left py-3 px-2 rounded-t-lg data-[state=open]:bg-muted/50 hover:no-underline hover:bg-muted/30 transition-colors [&>svg]:mt-1">
-                    <div className="flex flex-col gap-2 w-full">
+                   <AccordionTrigger className="flex-1 text-left py-3 px-2 rounded-t-lg data-[state=open]:bg-muted/50 hover:no-underline hover:bg-muted/30 transition-colors [&>svg]:mt-1">
+                     <div className="flex flex-col gap-2 w-full">
                       {/* Cabeçalho */}
                       <div className="flex justify-between items-start">
                           <div className="flex flex-col gap-1">
@@ -328,21 +333,30 @@ export function BudgetList({
               <TableHead className="text-center w-[100px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
-          <Accordion type="multiple" asChild>
-            <TableBody>
+          <TableBody>
               {budgets.map(o => {
                 const hasNotes = !!(o.observacoes || o.observacoesInternas);
                 return (
-                  <React.Fragment key={o.id}>
-                    <TableRow className={cn(hasNotes && 'cursor-pointer border-b-0', 'align-top')}>
-                      <TableCell className="font-medium">
-                        {hasNotes ? (
-                           <AccordionTrigger className="p-0 hover:no-underline [&>svg]:ml-2">{o.numeroOrcamento}</AccordionTrigger>
-                        ) : (
-                          o.numeroOrcamento
-                        )}
+                  <TableRow key={o.id}>
+                      <TableCell className="font-medium">{o.numeroOrcamento}</TableCell>
+                      <TableCell>
+                        <div className='flex items-center gap-2'>
+                          {o.cliente.nome}
+                          {hasNotes && (
+                             <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs text-sm">
+                                <div className="space-y-2 p-2">
+                                  {o.observacoes && <p><strong className='font-medium'>Obs. Cliente:</strong> {o.observacoes}</p>}
+                                  {o.observacoesInternas && <p><strong className='font-medium'>Obs. Interna:</strong> {o.observacoesInternas}</p>}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
                       </TableCell>
-                      <TableCell>{o.cliente.nome}</TableCell>
                       <TableCell>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</TableCell>
                       <TableCell>
                         <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
@@ -397,24 +411,10 @@ export function BudgetList({
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
-                    </TableRow>
-                    {hasNotes && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="p-0">
-                           <AccordionContent>
-                            <div className="px-4 py-2 text-sm space-y-2 bg-muted/50">
-                              {o.observacoes && (<p><strong className="text-muted-foreground">Obs. Cliente:</strong> {o.observacoes}</p>)}
-                              {o.observacoesInternas && (<p><strong className="text-muted-foreground">Obs. Interna:</strong> {o.observacoesInternas}</p>)}
-                            </div>
-                           </AccordionContent>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </React.Fragment>
+                  </TableRow>
                 );
               })}
-            </TableBody>
-          </Accordion>
+          </TableBody>
         </Table>
       </div>
 
