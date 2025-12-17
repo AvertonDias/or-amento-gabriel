@@ -129,20 +129,19 @@ export const maskCurrency = (value: string): string => {
 };
 
 export const maskDecimal = (value: string): string => {
-  if (!value) return "";
+  if (!value) return '';
 
-  let v = value.replace(/[^0-9,]/g, "");
-  const parts = v.split(",");
+  let v = value.replace(/\D/g, ''); // Remove tudo que não é dígito
+  v = v.replace(/^0+/, ''); // Remove zeros à esquerda
 
-  if (parts.length > 2) {
-    v = `${parts[0]},${parts.slice(1).join('')}`;
-  }
-
-  if (parts[1]?.length > 2) {
-    v = `${parts[0]},${parts[1].slice(0, 2)}`;
-  }
-
-  return v;
+  if (v.length === 0) return '0,00';
+  if (v.length === 1) return `0,0${v}`;
+  if (v.length === 2) return `0,${v}`;
+  
+  const integerPart = v.slice(0, -2);
+  const decimalPart = v.slice(-2);
+  
+  return `${integerPart},${decimalPart}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 };
 
 export const maskDecimalWithAutoComma = (value: string): string => {
