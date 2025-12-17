@@ -242,7 +242,7 @@ export function BudgetEditDialog({
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent
-          className="max-w-4xl max-h-[90vh] flex flex-col"
+          className="max-w-4xl w-[95vw] h-[90vh] flex flex-col"
           onPointerDownOutside={e => {
             if (Capacitor.isNativePlatform()) e.preventDefault();
           }}
@@ -270,7 +270,7 @@ export function BudgetEditDialog({
 
             <div className="border rounded-md">
                 <Table>
-                    <TableHeader>
+                    <TableHeader className="hidden sm:table-header-group">
                         <TableRow>
                             <TableHead>Item</TableHead>
                             <TableHead className="text-right">Valor Final</TableHead>
@@ -279,19 +279,28 @@ export function BudgetEditDialog({
                     </TableHeader>
                     <TableBody>
                         {editingBudgetItens.map(item => (
-                            <TableRow key={item.id}>
-                                <TableCell>
-                                    <p className="font-medium">{item.materialNome}</p>
-                                    <p className="text-xs text-muted-foreground">{formatNumber(item.quantidade, 2)} {item.unidade} x {formatCurrency(item.precoUnitario)}</p>
+                            <TableRow key={item.id} className="flex flex-col sm:table-row">
+                                <TableCell className="flex justify-between items-center sm:table-cell font-medium">
+                                    <span className="sm:hidden text-muted-foreground">Item:</span>
+                                    <div>
+                                      <p className="font-medium">{item.materialNome}</p>
+                                      <p className="text-xs text-muted-foreground">{formatNumber(item.quantidade, 2)} {item.unidade} x {formatCurrency(item.precoUnitario)}</p>
+                                    </div>
                                 </TableCell>
-                                <TableCell className="text-right font-semibold">{formatCurrency(item.precoVenda)}</TableCell>
-                                <TableCell className="text-center">
-                                    <Button variant="ghost" size="icon" onClick={() => setItemToEdit(item)}>
-                                        <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => setEditingBudgetItens(prev => prev.filter(i => i.id !== item.id))}>
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
+                                <TableCell className="flex justify-between items-center sm:table-cell text-right font-semibold">
+                                     <span className="sm:hidden text-muted-foreground">Valor:</span>
+                                    {formatCurrency(item.precoVenda)}
+                                </TableCell>
+                                <TableCell className="flex justify-between items-center sm:table-cell sm:text-center">
+                                     <span className="sm:hidden text-muted-foreground">Ações:</span>
+                                    <div>
+                                      <Button variant="ghost" size="icon" onClick={() => setItemToEdit(item)}>
+                                          <Pencil className="h-4 w-4" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" onClick={() => setEditingBudgetItens(prev => prev.filter(i => i.id !== item.id))}>
+                                          <Trash2 className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -358,11 +367,11 @@ export function BudgetEditDialog({
 
           </div>
 
-          <DialogFooter className="pt-4 border-t">
+          <DialogFooter className="pt-4 border-t flex-col sm:flex-row sm:space-x-2 w-full">
             <DialogClose asChild>
-              <Button variant="outline">Cancelar</Button>
+              <Button variant="outline" className="w-full">Cancelar</Button>
             </DialogClose>
-            <Button onClick={handleUpdateBudget} disabled={isSubmitting}>
+            <Button onClick={handleUpdateBudget} disabled={isSubmitting} className="w-full">
               {isSubmitting && <Loader2 className="animate-spin mr-2" />}
               Salvar Alterações
             </Button>
