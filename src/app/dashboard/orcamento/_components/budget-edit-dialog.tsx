@@ -342,6 +342,83 @@ export function BudgetEditDialog({
               </CardContent>
             </Card>
 
+            {/* Adicionar Itens */}
+            <div className="border p-4 rounded-md space-y-4">
+              <h3 className="font-semibold">Adicionar Novo Item</h3>
+              <RadioGroup value={isAddingAvulso ? 'avulso' : 'catalogo'} onValueChange={v => setIsAddingAvulso(v === 'avulso')}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="catalogo" id="r-edit-catalogo" />
+                  <Label htmlFor="r-edit-catalogo">Item do Catálogo</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="avulso" id="r-edit-avulso" />
+                  <Label htmlFor="r-edit-avulso">Item Avulso</Label>
+                </div>
+              </RadioGroup>
+
+              {isAddingAvulso ? (
+                <div className="space-y-2">
+                  <Input placeholder="Descrição do item" value={itemAvulso.descricao} onChange={e => setItemAvulso({ ...itemAvulso, descricao: e.target.value })} />
+                  <div className="grid grid-cols-3 gap-2">
+                    <Input 
+                      placeholder="Qtd" 
+                      value={itemAvulso.quantidade} 
+                      onChange={e => setItemAvulso({ ...itemAvulso, quantidade: isCurrentUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value) })}
+                    />
+                      <Select value={itemAvulso.unidade} onValueChange={v => setItemAvulso({ ...itemAvulso, unidade: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {unidadesDeMedida.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Input placeholder="Preço Final" value={itemAvulsoPrecoStr} onChange={e => setItemAvulsoPrecoStr(maskCurrency(e.target.value))} />
+                  </div>
+                  <Button onClick={handleAddAvulso} className="w-full">Adicionar Item Avulso</Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Popover open={isMaterialPopoverOpen} onOpenChange={setIsMaterialPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" aria-expanded={isMaterialPopoverOpen} className="w-full justify-between">
+                        {selectedMaterial?.descricao || "Selecione um item..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <Command>
+                        <CommandInput placeholder="Buscar item..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
+                          <CommandGroup>
+                            {materiais.map(m => (
+                              <CommandItem key={m.id} value={m.descricao} onSelect={() => {
+                                setNewItem({ ...newItem, materialId: m.id });
+                                setIsMaterialPopoverOpen(false);
+                                setTimeout(() => quantidadeInputRef.current?.focus(), 100);
+                              }}>
+                                <Check className={cn("mr-2 h-4 w-4", newItem.materialId === m.id ? "opacity-100" : "opacity-0")} />
+                                {m.descricao} ({formatCurrency(m.precoUnitario)}/{m.unidade})
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      ref={quantidadeInputRef}
+                      placeholder={`Qtd (${selectedMaterial?.unidade || 'un'})`}
+                      value={quantidadeStr}
+                      onChange={(e) => setQuantidadeStr(isCurrentUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value))}
+                    />
+                    <Input placeholder="Acréscimo % (Opcional)" value={margemLucroStr} onChange={e => setMargemLucroStr(maskDecimal(e.target.value))} />
+                  </div>
+                  <Button onClick={handleAddItem} className="w-full" disabled={!selectedMaterial}>Adicionar ao Orçamento</Button>
+                </div>
+              )}
+            </div>
+
             <div className="border rounded-md">
                 <Table>
                     <TableHeader className="hidden sm:table-header-group">
@@ -428,83 +505,6 @@ export function BudgetEditDialog({
                 </Table>
             </div>
             
-             {/* Adicionar Itens */}
-            <div className="border p-4 rounded-md space-y-4">
-              <h3 className="font-semibold">Adicionar Novo Item</h3>
-              <RadioGroup value={isAddingAvulso ? 'avulso' : 'catalogo'} onValueChange={v => setIsAddingAvulso(v === 'avulso')}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="catalogo" id="r-edit-catalogo" />
-                  <Label htmlFor="r-edit-catalogo">Item do Catálogo</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="avulso" id="r-edit-avulso" />
-                  <Label htmlFor="r-edit-avulso">Item Avulso</Label>
-                </div>
-              </RadioGroup>
-
-              {isAddingAvulso ? (
-                <div className="space-y-2">
-                  <Input placeholder="Descrição do item" value={itemAvulso.descricao} onChange={e => setItemAvulso({ ...itemAvulso, descricao: e.target.value })} />
-                  <div className="grid grid-cols-3 gap-2">
-                    <Input 
-                      placeholder="Qtd" 
-                      value={itemAvulso.quantidade} 
-                      onChange={e => setItemAvulso({ ...itemAvulso, quantidade: isCurrentUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value) })}
-                    />
-                      <Select value={itemAvulso.unidade} onValueChange={v => setItemAvulso({ ...itemAvulso, unidade: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {unidadesDeMedida.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Input placeholder="Preço Final" value={itemAvulsoPrecoStr} onChange={e => setItemAvulsoPrecoStr(maskCurrency(e.target.value))} />
-                  </div>
-                  <Button onClick={handleAddAvulso} className="w-full">Adicionar Item Avulso</Button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Popover open={isMaterialPopoverOpen} onOpenChange={setIsMaterialPopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" role="combobox" aria-expanded={isMaterialPopoverOpen} className="w-full justify-between">
-                        {selectedMaterial?.descricao || "Selecione um item..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
-                        <CommandInput placeholder="Buscar item..." />
-                        <CommandList>
-                          <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
-                          <CommandGroup>
-                            {materiais.map(m => (
-                              <CommandItem key={m.id} value={m.descricao} onSelect={() => {
-                                setNewItem({ ...newItem, materialId: m.id });
-                                setIsMaterialPopoverOpen(false);
-                                setTimeout(() => quantidadeInputRef.current?.focus(), 100);
-                              }}>
-                                <Check className={cn("mr-2 h-4 w-4", newItem.materialId === m.id ? "opacity-100" : "opacity-0")} />
-                                {m.descricao} ({formatCurrency(m.precoUnitario)}/{m.unidade})
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      ref={quantidadeInputRef}
-                      placeholder={`Qtd (${selectedMaterial?.unidade || 'un'})`}
-                      value={quantidadeStr}
-                      onChange={(e) => setQuantidadeStr(isCurrentUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value))}
-                    />
-                    <Input placeholder="Acréscimo % (Opcional)" value={margemLucroStr} onChange={e => setMargemLucroStr(maskDecimal(e.target.value))} />
-                  </div>
-                  <Button onClick={handleAddItem} className="w-full" disabled={!selectedMaterial}>Adicionar ao Orçamento</Button>
-                </div>
-              )}
-            </div>
-
             <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label>Observações (visível para o cliente)</Label>
@@ -546,3 +546,5 @@ export function BudgetEditDialog({
     </>
   );
 }
+
+    
