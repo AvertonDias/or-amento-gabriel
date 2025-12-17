@@ -83,9 +83,7 @@ const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
     <Tooltip>
       <TooltipTrigger asChild>
         <div className="flex flex-col items-center">
-          <span className="font-bold">
-            {formatCurrency(orcamento.totalVenda)}
-          </span>
+          <span className="font-bold">{formatCurrency(orcamento.totalVenda)}</span>
           <span
             className={cn(
               'text-xs',
@@ -347,11 +345,11 @@ export function BudgetList({
       <div className="hidden md:block border rounded-md">
         <div className="bg-muted/50">
           <div className="grid grid-cols-[80px_1fr_100px_100px_110px_1fr_100px] items-center px-4 py-2 font-medium text-muted-foreground text-sm">
-              <div className="shrink-0">Nº</div>
+              <div className="shrink-0 text-center">Nº</div>
               <div className="flex-1">Cliente</div>
-              <div className="shrink-0">Criação</div>
-              <div className="shrink-0">Vencimento</div>
-              <div className="shrink-0">Status</div>
+              <div className="shrink-0 text-center">Criação</div>
+              <div className="shrink-0 text-center">Vencimento</div>
+              <div className="shrink-0 text-center">Status</div>
               <div className="text-center">Valor</div>
               <div className="shrink-0 text-center">Ações</div>
           </div>
@@ -364,7 +362,7 @@ export function BudgetList({
                         <div
                             className={cn("grid grid-cols-[80px_1fr_100px_100px_110px_1fr_100px] items-center px-4 py-3 text-sm hover:bg-muted/50")}
                         >
-                            <div className="shrink-0 font-medium">{o.numeroOrcamento}</div>
+                            <div className="shrink-0 font-medium text-center">{o.numeroOrcamento}</div>
                             <div className="flex items-center text-left">
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -375,9 +373,9 @@ export function BudgetList({
                                 <TooltipContent><p>Editar Orçamento</p></TooltipContent>
                               </Tooltip>
                             </div>
-                            <div className="shrink-0">{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</div>
-                            <div className="shrink-0">{format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</div>
-                            <div className="shrink-0"><Badge variant={getStatusVariant(o.status)}>{o.status}</Badge></div>
+                            <div className="shrink-0 text-center">{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</div>
+                            <div className="shrink-0 text-center">{format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</div>
+                            <div className="shrink-0 flex justify-center"><Badge variant={getStatusVariant(o.status)}>{o.status}</Badge></div>
                             <div className="font-semibold flex justify-center items-center">
                                 <AdjustmentBadge orcamento={o} />
                             </div>
