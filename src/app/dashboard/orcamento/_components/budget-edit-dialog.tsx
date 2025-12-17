@@ -191,25 +191,42 @@ export function BudgetEditDialog({
      Handlers
   =========================== */
 
-  const handleClienteTelefoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleClienteTelefoneChange = (index: number, field: 'nome' | 'numero', value: string) => {
     if (!editingBudget) return;
-
-    const masked = maskTelefone(e.target.value);
-
+  
     setEditingBudget(prev => {
       if (!prev) return null;
-      const telefones = prev.cliente.telefones?.length
-        ? [...prev.cliente.telefones]
-        : [{ nome: 'Principal', numero: '' }];
-
-      telefones[0] = { ...telefones[0], numero: masked };
-
+  
+      const telefones = [...prev.cliente.telefones];
+      if (!telefones[index]) return prev;
+  
+      const newValue = field === 'numero' ? maskTelefone(value) : value;
+      telefones[index] = { ...telefones[index], [field]: newValue };
+  
       return {
         ...prev,
         cliente: { ...prev.cliente, telefones },
       };
     });
   };
+
+  const addTelefoneField = () => {
+    if (!editingBudget) return;
+    setEditingBudget(prev => {
+      if (!prev) return null;
+      const telefones = [...(prev.cliente.telefones || []), { nome: 'Novo', numero: '' }];
+      return { ...prev, cliente: { ...prev.cliente, telefones } };
+    });
+  };
+
+  const removeTelefoneField = (index: number) => {
+    if (!editingBudget || editingBudget.cliente.telefones.length <= 1) return;
+    setEditingBudget(prev => {
+      if (!prev) return null;
+      const telefones = prev.cliente.telefones.filter((_, i) => i !== index);
+      return { ...prev, cliente: { ...prev.cliente, telefones } };
+    });
+  }
 
   const handleManualTotalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const masked = maskCurrency(e.target.value);
@@ -335,9 +352,28 @@ export function BudgetEditDialog({
                   <Label>Nome do Cliente</Label>
                   <Input value={editingBudget.cliente.nome} onChange={(e) => setEditingBudget({...editingBudget, cliente: {...editingBudget.cliente, nome: e.target.value}})}/>
                 </div>
-                 <div className="space-y-2">
-                  <Label>Telefone</Label>
-                  <Input value={editingBudget.cliente.telefones?.[0]?.numero ?? ''} onChange={handleClienteTelefoneChange} />
+                 <div className="space-y-4">
+                  <Label>Telefones</Label>
+                  {editingBudget.cliente.telefones?.map((tel, index) => (
+                    <div key={index} className="grid grid-cols-[1fr_2fr_auto] gap-2 items-start">
+                       <Input 
+                         value={tel.nome || ''} 
+                         onChange={(e) => handleClienteTelefoneChange(index, 'nome', e.target.value)}
+                         placeholder="Ex: Principal"
+                       />
+                       <Input 
+                         value={tel.numero} 
+                         onChange={(e) => handleClienteTelefoneChange(index, 'numero', e.target.value)}
+                         placeholder="(DD) XXXXX-XXXX"
+                       />
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeTelefoneField(index)} disabled={editingBudget.cliente.telefones.length <= 1}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" onClick={addTelefoneField}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Telefone
+                  </Button>
                 </div>
               </CardContent>
             </Card>
