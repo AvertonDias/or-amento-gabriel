@@ -145,12 +145,13 @@ export function BudgetList({
     
     const empresaPrincipalPhone = empresa?.telefones?.find(t => t.principal)?.numero;
 
-    let text = `Olá *${orcamento.cliente.nome}*!\n\nSegue seu orçamento:\n\n`;
-
-    text += `*${empresa?.nome || 'Orçamento'}*\n`;
-    if(empresaPrincipalPhone) {
-        text += `(${empresaPrincipalPhone})\n\n`;
+    let text = `*${empresa?.nome || 'Orçamento'}*\n`;
+    if (empresaPrincipalPhone) {
+      text += `(${empresaPrincipalPhone})\n\n`;
     }
+
+    text += `Olá *${orcamento.cliente.nome}*!\n\n`;
+    text += 'Segue seu orçamento:\n\n';
     
     text += `*ORÇAMENTO Nº ${orcamento.numeroOrcamento}*\n\n`;
 
