@@ -39,6 +39,7 @@ import {
   addDays,
   parseISO,
   differenceInHours,
+  isPast,
 } from 'date-fns';
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -160,46 +161,47 @@ export default function OrcamentoPage() {
   }, []);
 
   // =========================
-  // NOTIFICAÇÃO DE VENCIMENTO
+  // NOTIFICAÇÃO E STATUS DE VENCIMENTO
   // =========================
   useEffect(() => {
-    if (!orcamentosSalvos || !Capacitor.isNativePlatform())
-      return;
-
+    if (!orcamentosSalvos || !user) return;
+  
     const now = new Date();
-
+  
     orcamentosSalvos.forEach(async orc => {
-      if (
-        orc.status !== 'Pendente' ||
-        orc.notificacaoVencimentoEnviada
-      )
-        return;
-
+      if (orc.status !== 'Pendente') return;
+  
       const validade = Number(orc.validadeDias);
       if (!validade) return;
-
+  
       const dataCriacao = parseISO(orc.dataCriacao);
       const dataValidade = addDays(dataCriacao, validade);
-      const horas = differenceInHours(dataValidade, now);
-
-      if (horas > 0 && horas <= 24) {
-        await LocalNotifications.schedule({
-          notifications: [
-            {
-              id: Date.now(),
-              title: 'Orçamento quase vencendo',
-              body: `Orçamento #${orc.numeroOrcamento} - ${orc.cliente.nome}`,
-              schedule: { at: new Date(Date.now() + 1000) },
-            },
-          ],
-        });
-
-        await updateOrcamento(orc.id, {
-          notificacaoVencimentoEnviada: true,
-        });
+      
+      // Atualiza para "Vencido" se a data já passou
+      if (isPast(dataValidade)) {
+        await updateOrcamentoStatus(orc.id, 'Vencido', {});
+        return; // Pula para o próximo
+      }
+  
+      // Envia notificação se estiver a 24h de vencer (e se for app nativo)
+      if (Capacitor.isNativePlatform() && !orc.notificacaoVencimentoEnviada) {
+        const horas = differenceInHours(dataValidade, now);
+        if (horas > 0 && horas <= 24) {
+          await LocalNotifications.schedule({
+            notifications: [
+              {
+                id: Date.now(),
+                title: 'Orçamento quase vencendo',
+                body: `Orçamento #${orc.numeroOrcamento} - ${orc.cliente.nome}`,
+                schedule: { at: new Date(Date.now() + 1000) },
+              },
+            ],
+          });
+          await updateOrcamento(orc.id, { notificacaoVencimentoEnviada: true });
+        }
       }
     });
-  }, [orcamentosSalvos]);
+  }, [orcamentosSalvos, user]);
 
   // =========================
   // FILTRO LISTA
