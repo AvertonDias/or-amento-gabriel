@@ -166,7 +166,10 @@ export function BudgetList({
     text += `*TOTAL:* ${formatCurrency(total)}\n\n`;
     if (orcamento.observacoes) text += `*Observações:*\n${orcamento.observacoes}\n\n`;
 
-    text += `*Validade:* ${format(addDays(parseISO(orcamento.dataCriacao), Number(orcamento.validadeDias)), 'dd/MM/yyyy')}`;
+    text += `*Validade:* ${format(addDays(parseISO(orcamento.dataCriacao), Number(orcamento.validadeDias)), 'dd/MM/yyyy')}\n\n`;
+
+    text += "Qualquer dúvida, estou à disposição. Aguardo seu retorno para darmos o próximo passo!";
+
 
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
