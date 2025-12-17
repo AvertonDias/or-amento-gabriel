@@ -30,7 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   FileText, Pencil, MessageCircle,
   CheckCircle2, XCircle, Trash2,
-  MoreVertical, FileSignature
+  MoreVertical, FileSignature, ChevronDown
 } from 'lucide-react';
 import { addDays, format, parseISO } from 'date-fns';
 import { formatCurrency, formatNumber } from '@/lib/utils';
@@ -163,10 +163,10 @@ export function BudgetList({
   };
   
   const sendWhatsApp = (orcamento: Orcamento) => {
-    const phones = orcamento.cliente.telefones ?? [];
+    const phones = orcamento.cliente.telefones?.filter(t => t.numero) ?? [];
 
     if (phones.length === 0) {
-      toast({ title: 'Cliente sem telefone.', variant: 'destructive' });
+      toast({ title: 'Cliente sem telefone cadastrado.', variant: 'destructive' });
       return;
     }
 
@@ -231,20 +231,24 @@ export function BudgetList({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Escolha o telefone</DialogTitle>
-            <DialogDescription>Selecione o número para envio</DialogDescription>
+            <DialogDescription>O cliente possui múltiplos números. Selecione para qual deseja enviar.</DialogDescription>
           </DialogHeader>
 
-          <RadioGroup value={selectedPhone} onValueChange={setSelectedPhone} className="space-y-3">
+          <RadioGroup value={selectedPhone} onValueChange={setSelectedPhone} className="space-y-3 my-4">
             {phoneDialog.phones.map((p, i) => (
-              <div key={i} className="flex items-center gap-2">
+              <div key={i} className="flex items-center gap-3 border p-3 rounded-md">
                 <RadioGroupItem value={p.numero} id={`phone-${i}`} />
-                <Label htmlFor={`phone-${i}`}>{p.nome} — {p.numero}</Label>
+                <Label htmlFor={`phone-${i}`} className="flex flex-col cursor-pointer">
+                  <span className="font-semibold">{p.nome || `Telefone ${i + 1}`}</span>
+                  <span className="text-muted-foreground">{p.numero}</span>
+                </Label>
               </div>
             ))}
           </RadioGroup>
 
           <DialogFooter>
-            <Button onClick={handleConfirmPhone}>Confirmar</Button>
+            <Button variant="outline" onClick={() => setPhoneDialog({ open: false, phones: [], orcamento: null })}>Cancelar</Button>
+            <Button onClick={handleConfirmPhone}>Confirmar Envio</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -415,19 +419,17 @@ export function BudgetList({
                                         <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setBudgetToDelete(o)}><Trash2 className="mr-2 h-4 w-4" /> Excluir</DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
-                                 {hasNotes ? (
+                                {hasNotes ? (
                                     <AccordionTrigger className="p-2 -mr-2" hideChevron>
                                       <div className="p-0 rounded-md hover:bg-accent hover:text-accent-foreground flex items-center gap-1 text-muted-foreground hover:text-accent-foreground text-xs">
                                         Obs.
                                       </div>
                                     </AccordionTrigger>
-                                 ) : (
-                                    <div className="p-2 -mr-2 invisible">
-                                        <div className="p-0 rounded-md flex items-center gap-1 text-xs">
-                                            Obs.
-                                        </div>
-                                    </div>
-                                 )}
+                                ) : (
+                                  <div className="p-2 -mr-2 invisible">
+                                    <div className="p-0 rounded-md flex items-center gap-1 text-xs">Obs.</div>
+                                  </div>
+                                )}
                             </div>
                         </div>
                         {hasNotes && (
