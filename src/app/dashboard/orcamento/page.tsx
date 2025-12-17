@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -363,17 +364,22 @@ export default function OrcamentoPage() {
           </div>
         </CardContent>
       </Card>
+      
+      <Card>
+        <CardContent className="p-0">
+          <BudgetList
+            isLoading={isLoading}
+            budgets={filteredOrcamentos}
+            empresa={empresa || null}
+            onGeneratePDF={handleGerarPDF}
+            onEdit={setEditingBudget}
+            onDelete={deleteOrcamento}
+            onUpdateStatus={handleUpdateStatus}
+            clienteFiltrado={clienteFiltrado}
+          />
+        </CardContent>
+      </Card>
 
-      <BudgetList
-        isLoading={isLoading}
-        budgets={filteredOrcamentos}
-        empresa={empresa || null}
-        onGeneratePDF={handleGerarPDF}
-        onEdit={setEditingBudget}
-        onDelete={deleteOrcamento}
-        onUpdateStatus={handleUpdateStatus}
-        clienteFiltrado={clienteFiltrado}
-      />
 
       {isWizardOpen && clientes && materiais && (
         <BudgetWizard

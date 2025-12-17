@@ -194,11 +194,11 @@ export function BudgetList({
   /* ---------------- EMPTY ---------------- */
   if (!budgets.length) {
     return (
-      <p className="text-center text-muted-foreground py-6">
+      <div className="p-6 text-center text-muted-foreground">
         {clienteFiltrado
           ? `Nenhum orçamento encontrado para ${clienteFiltrado.nome}.`
           : 'Nenhum orçamento encontrado.'}
-      </p>
+      </div>
     );
   }
 
@@ -229,53 +229,23 @@ export function BudgetList({
       </Dialog>
       
       {/* Mobile - Accordion */}
-      <div className="md:hidden">
-        <Accordion type="multiple" className="w-full">
-          {budgets.map(o => {
+      <div className="md:hidden space-y-4">
+        {budgets.map(o => {
             const hasNotes = !!(o.observacoes || o.observacoesInternas);
             const dataVencimento = addDays(parseISO(o.dataCriacao), Number(o.validadeDias));
 
             return (
-              <AccordionItem value={o.id} key={o.id}>
-                <div className="flex items-start w-full group">
-                   <AccordionTrigger className="flex-1 text-left py-3 px-2 rounded-t-lg data-[state=open]:bg-muted/50 hover:no-underline hover:bg-muted/30 transition-colors [&>svg]:mt-1">
-                     <div className="flex flex-col gap-2 w-full">
-                      {/* Cabeçalho */}
-                      <div className="flex justify-between items-start">
-                          <div className="flex flex-col gap-1">
-                              <span className="font-medium text-base text-primary">{o.cliente.nome}</span>
-                              <span className="text-xs text-muted-foreground">Nº {o.numeroOrcamento}</span>
-                          </div>
-                      </div>
-                      {/* Infos Principais */}
-                      <div className="flex flex-col gap-2 text-sm pt-2 border-t">
-                           <div className="flex justify-between items-center">
-                              <span className="font-medium text-muted-foreground">Data:</span>
-                              <span>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                              <span className="font-medium text-muted-foreground">Vencimento:</span>
-                              <span>{format(dataVencimento, 'dd/MM/yyyy')}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                              <span className="font-medium text-muted-foreground">Status:</span>
-                              <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
-                          </div>
-                          <div className="flex justify-between items-center text-lg font-bold text-primary pt-2 mt-2 border-t">
-                              <span>Total:</span>
-                              <div className="flex items-center">
-                                {formatCurrency(o.totalVenda)}
-                                <AdjustmentBadge orcamento={o} />
-                              </div>
-                          </div>
-                      </div>
-                    </div>
-                  </AccordionTrigger>
-                  
-                  <div className="flex flex-col items-center gap-2 pr-2 py-3">
-                    <DropdownMenu>
+              <Card key={o.id} className="overflow-hidden">
+                <Accordion type="single" collapsible={hasNotes} className="w-full">
+                  <AccordionItem value={o.id} className="border-b-0">
+                    <CardHeader className="p-4 flex flex-row items-start justify-between space-y-0">
+                       <div className="space-y-1">
+                          <CardTitle>{o.cliente.nome}</CardTitle>
+                          <CardDescription>Nº {o.numeroOrcamento}</CardDescription>
+                       </div>
+                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" aria-label="Ações do orçamento" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" aria-label="Ações do orçamento" className="-mr-2 -mt-2 h-8 w-8" onClick={(e) => e.stopPropagation()}>
                             <MoreVertical className="h-5 w-5" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -319,19 +289,48 @@ export function BudgetList({
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
-                  </div>
-                </div>
+                    </CardHeader>
+                    <CardContent className="px-4 pb-4 space-y-4">
+                      <div className="space-y-2 text-sm">
+                           <div className="flex justify-between items-center">
+                              <span className="font-medium text-muted-foreground">Data:</span>
+                              <span>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                              <span className="font-medium text-muted-foreground">Vencimento:</span>
+                               {hasNotes ? (
+                                <AccordionTrigger className="p-0 hover:no-underline [&>svg]:ml-2">
+                                  {format(dataVencimento, 'dd/MM/yyyy')}
+                                </AccordionTrigger>
+                              ) : (
+                                <span>{format(dataVencimento, 'dd/MM/yyyy')}</span>
+                              )}
+                          </div>
+                          <div className="flex justify-between items-center">
+                              <span className="font-medium text-muted-foreground">Status:</span>
+                              <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
+                          </div>
+                      </div>
+                      <div className="flex justify-between items-center text-lg font-bold text-primary pt-2 mt-2 border-t">
+                          <span>Total:</span>
+                          <div className="flex items-center">
+                            {formatCurrency(o.totalVenda)}
+                            <AdjustmentBadge orcamento={o} />
+                          </div>
+                      </div>
+                    </CardContent>
 
-                {hasNotes && (
-                  <AccordionContent className="p-4 pt-0 text-sm space-y-2">
-                    {o.observacoes && (<div><strong className="text-muted-foreground">Obs. Cliente:</strong> {o.observacoes}</div>)}
-                    {o.observacoesInternas && (<div><strong className="text-muted-foreground">Obs. Interna:</strong> {o.observacoesInternas}</div>)}
-                  </AccordionContent>
-                )}
-              </AccordionItem>
+                    {hasNotes && (
+                      <AccordionContent className="px-4 pb-4 text-sm space-y-2">
+                        {o.observacoes && (<div><strong className="text-muted-foreground">Obs. Cliente:</strong> {o.observacoes}</div>)}
+                        {o.observacoesInternas && (<div><strong className="text-muted-foreground">Obs. Interna:</strong> {o.observacoesInternas}</div>)}
+                      </AccordionContent>
+                    )}
+                  </AccordionItem>
+                </Accordion>
+              </Card>
             )
           })}
-        </Accordion>
       </div>
 
       {/* Desktop */}
@@ -339,7 +338,7 @@ export function BudgetList({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nº</TableHead>
+              <TableHead className="w-[80px]">Nº</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Data</TableHead>
               <TableHead>Vencimento</TableHead>
@@ -349,18 +348,29 @@ export function BudgetList({
             </TableRow>
           </TableHeader>
           <TableBody>
-            <Accordion type="multiple" asChild>
-              <>
-                {budgets.map(o => (
-                  <React.Fragment key={o.id}>
-                    {(o.observacoes || o.observacoesInternas) ? (
+            <Accordion type="multiple">
+              {budgets.map(o => {
+                  const hasNotes = !!(o.observacoes || o.observacoesInternas);
+                  return (
+                    <React.Fragment key={o.id}>
                       <AccordionItem value={o.id} asChild>
-                        <React.Fragment>
-                          <TableRow className="hover:bg-muted/50">
-                            <TableCell className="font-medium">
-                              <AccordionTrigger className="p-0 hover:no-underline [&>svg]:ml-2">{o.numeroOrcamento}</AccordionTrigger>
+                          <TableRow className={cn("hover:bg-muted/50", hasNotes && "cursor-pointer")}>
+                            <TableCell className="font-medium">{o.numeroOrcamento}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                {o.cliente.nome}
+                                 {hasNotes && (
+                                   <Tooltip>
+                                      <TooltipTrigger asChild>
+                                          <AccordionTrigger className="p-0 hover:no-underline [&>svg]:h-4 [&>svg]:w-4"/>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Expandir para ver observações</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                 )}
+                              </div>
                             </TableCell>
-                            <TableCell>{o.cliente.nome}</TableCell>
                             <TableCell>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</TableCell>
                             <TableCell>{format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</TableCell>
                             <TableCell><Badge variant={getStatusVariant(o.status)}>{o.status}</Badge></TableCell>
@@ -394,57 +404,22 @@ export function BudgetList({
                               </DropdownMenu>
                             </TableCell>
                           </TableRow>
-                          <AccordionContent asChild>
-                            <tr className="bg-muted/30 hover:bg-muted/30">
-                              <td colSpan={7} className="p-4 text-sm">
+                      </AccordionItem>
+                      {hasNotes && (
+                        <TableRow className="bg-muted/30 hover:bg-muted/30">
+                          <TableCell colSpan={7} className="p-0">
+                            <AccordionContent>
+                               <div className="p-4 text-sm space-y-2">
                                 {o.observacoes && <div className='mb-2'><strong className="font-medium text-muted-foreground">Obs. Cliente:</strong><p className="whitespace-pre-wrap">{o.observacoes}</p></div>}
                                 {o.observacoesInternas && <div><strong className="font-medium text-muted-foreground">Anotações Internas:</strong><p className="whitespace-pre-wrap">{o.observacoesInternas}</p></div>}
-                              </td>
-                            </tr>
-                          </AccordionContent>
-                        </React.Fragment>
-                      </AccordionItem>
-                    ) : (
-                      <TableRow>
-                        <TableCell className="font-medium">{o.numeroOrcamento}</TableCell>
-                        <TableCell>{o.cliente.nome}</TableCell>
-                        <TableCell>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</TableCell>
-                        <TableCell>{format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</TableCell>
-                        <TableCell><Badge variant={getStatusVariant(o.status)}>{o.status}</Badge></TableCell>
-                        <TableCell className="text-right font-semibold">
-                          <div className="flex justify-end items-center">{formatCurrency(o.totalVenda)}<AdjustmentBadge orcamento={o} /></div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="h-5 w-5" /></Button></DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => onEdit(o)}><Pencil className="mr-2 h-4 w-4" /> Editar</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => sendWhatsApp(o)}><MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp</DropdownMenuItem>
-                              <DropdownMenuSub>
-                                <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" /> Gerar PDF</DropdownMenuSubTrigger>
-                                <DropdownMenuPortal><DropdownMenuSubContent>
-                                  <DropdownMenuItem onClick={() => onGeneratePDF(o, 'client')}>PDF do Cliente</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => onGeneratePDF(o, 'internal')}>PDF Interno</DropdownMenuItem>
-                                </DropdownMenuSubContent></DropdownMenuPortal>
-                              </DropdownMenuSub>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuSub>
-                                <DropdownMenuSubTrigger disabled={o.status !== 'Pendente'}><FileSignature className="mr-2 h-4 w-4" /> Alterar Status</DropdownMenuSubTrigger>
-                                <DropdownMenuPortal><DropdownMenuSubContent>
-                                  <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Aceito')}><CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Aceito</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Recusado')}><XCircle className="mr-2 h-4 w-4 text-red-500" /> Recusado</DropdownMenuItem>
-                                </DropdownMenuSubContent></DropdownMenuPortal>
-                              </DropdownMenuSub>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setBudgetToDelete(o)}><Trash2 className="mr-2 h-4 w-4" /> Excluir</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </React.Fragment>
-                ))}
-              </>
+                               </div>
+                            </AccordionContent>
+                          </TableCell>
+                        </TableRow>
+                       )}
+                    </React.Fragment>
+                  )
+              })}
             </Accordion>
           </TableBody>
         </Table>
