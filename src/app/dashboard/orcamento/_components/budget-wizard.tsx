@@ -483,17 +483,17 @@ export function BudgetWizard({
                     <div className="space-y-2">
                       <Input placeholder="Descrição do item" value={itemAvulso.descricao} onChange={e => setItemAvulso({ ...itemAvulso, descricao: e.target.value })} />
                       <div className="grid grid-cols-3 gap-2">
-                        <Input 
-                          placeholder="Qtd" 
-                          value={itemAvulso.quantidade} 
-                          onChange={e => setItemAvulso({ ...itemAvulso, quantidade: isCurrentUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value) })}
-                        />
-                         <Select value={itemAvulso.unidade} onValueChange={v => setItemAvulso({ ...itemAvulso, unidade: v })}>
+                        <Select value={itemAvulso.unidade} onValueChange={v => setItemAvulso({ ...itemAvulso, unidade: v })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {unidadesDeMedida.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
                           </SelectContent>
                         </Select>
+                        <Input 
+                          placeholder="Qtd" 
+                          value={itemAvulso.quantidade} 
+                          onChange={e => setItemAvulso({ ...itemAvulso, quantidade: isCurrentUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value) })}
+                        />
                         <Input placeholder="Preço Final" value={itemAvulsoPrecoStr} onChange={e => setItemAvulsoPrecoStr(maskCurrency(e.target.value))} />
                       </div>
                       <Button onClick={handleAddAvulso} className="w-full">Adicionar Item Avulso</Button>
