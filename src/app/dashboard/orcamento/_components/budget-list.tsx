@@ -65,7 +65,7 @@ interface BudgetListProps {
 /* ---------------- BADGE DE AJUSTE ---------------- */
 const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
   const calculated = orcamento.itens.reduce((s, i) => s + i.precoVenda, 0);
-  if (calculated.toFixed(2) === orcamento.totalVenda.toFixed(2)) return null;
+  if (Math.abs(calculated - orcamento.totalVenda) < 0.01) return null;
 
   const diff = orcamento.totalVenda - calculated;
   const percent = calculated ? (diff / calculated) * 100 : 0;
@@ -147,7 +147,7 @@ export function BudgetList({
 
     let text = `Olá, ${orcamento.cliente.nome}!\n\nOrçamento Nº ${orcamento.numeroOrcamento}\n\nItens:\n${items}\n\n`;
 
-    if (diff !== 0) {
+    if (Math.abs(diff) > 0.01) {
       text += `Subtotal: ${formatCurrency(subtotal)}\n`;
       text += `${diff < 0 ? 'Desconto' : 'Acréscimo'}: ${formatCurrency(diff)}\n`;
     }
@@ -328,15 +328,48 @@ export function BudgetList({
                   </div>
                 </TableCell>
                 <TableCell className="text-center">
-                  <Button variant="ghost" size="icon" aria-label="Enviar WhatsApp" onClick={() => sendWhatsApp(o)}>
-                    <MessageCircle className="h-5 w-5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" aria-label="Editar" onClick={() => onEdit(o)}>
-                    <Pencil className="h-5 w-5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" aria-label="Excluir" onClick={() => setBudgetToDelete(o)}>
-                    <Trash2 className="h-5 w-5 text-destructive" />
-                  </Button>
+                   <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" aria-label="Ações do orçamento" className="h-8 w-8">
+                          <MoreVertical className="h-5 w-5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => onEdit(o)}>
+                              <Pencil className="mr-2 h-4 w-4" /> Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => sendWhatsApp(o)}>
+                              <MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp
+                          </DropdownMenuItem>
+                          <DropdownMenuSub>
+                              <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" /> Gerar PDF</DropdownMenuSubTrigger>
+                              <DropdownMenuPortal>
+                                  <DropdownMenuSubContent>
+                                      <DropdownMenuItem onClick={() => onGeneratePDF(o, 'client')}>PDF do Cliente</DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => onGeneratePDF(o, 'internal')}>PDF Interno (custos)</DropdownMenuItem>
+                                  </DropdownMenuSubContent>
+                              </DropdownMenuPortal>
+                          </DropdownMenuSub>
+                          <DropdownMenuSeparator />
+                           <DropdownMenuSub>
+                            <DropdownMenuSubTrigger disabled={o.status !== 'Pendente'}><FileSignature className="mr-2 h-4 w-4" /> Alterar Status</DropdownMenuSubTrigger>
+                            <DropdownMenuPortal>
+                               <DropdownMenuSubContent>
+                                  <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Aceito')}>
+                                      <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Marcar como Aceito
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Recusado')}>
+                                      <XCircle className="mr-2 h-4 w-4 text-red-500" /> Marcar como Recusado
+                                  </DropdownMenuItem>
+                              </DropdownMenuSubContent>
+                            </DropdownMenuPortal>
+                          </DropdownMenuSub>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setBudgetToDelete(o)}>
+                              <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                          </DropdownMenuItem>
+                      </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}

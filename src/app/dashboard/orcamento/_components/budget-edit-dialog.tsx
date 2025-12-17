@@ -246,8 +246,123 @@ export function BudgetEditDialog({
             if (Capacitor.isNativePlatform()) e.preventDefault();
           }}
         >
-          {/* O restante do JSX permanece igual estruturalmente */}
-          {/* Nenhuma quebra funcional */}
+          <DialogHeader>
+            <DialogTitle>Editar Orçamento Nº {editingBudget.numeroOrcamento}</DialogTitle>
+            <DialogDescription>
+              Ajuste as informações do cliente, itens e valores do orçamento.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto pr-2 -mr-6 pl-6 space-y-6">
+            <Card>
+              <CardContent className="p-4 grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nome do Cliente</Label>
+                  <Input value={editingBudget.cliente.nome} onChange={(e) => setEditingBudget({...editingBudget, cliente: {...editingBudget.cliente, nome: e.target.value}})}/>
+                </div>
+                 <div className="space-y-2">
+                  <Label>Telefone</Label>
+                  <Input value={editingBudget.cliente.telefones?.[0]?.numero ?? ''} onChange={handleClienteTelefoneChange} />
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="border rounded-md">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Item</TableHead>
+                            <TableHead className="text-right">Valor Final</TableHead>
+                            <TableHead className="w-[100px] text-center">Ações</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {editingBudgetItens.map(item => (
+                            <TableRow key={item.id}>
+                                <TableCell>
+                                    <p className="font-medium">{item.materialNome}</p>
+                                    <p className="text-xs text-muted-foreground">{formatNumber(item.quantidade, 2)} {item.unidade} x {formatCurrency(item.precoUnitario)}</p>
+                                </TableCell>
+                                <TableCell className="text-right font-semibold">{formatCurrency(item.precoVenda)}</TableCell>
+                                <TableCell className="text-center">
+                                    <Button variant="ghost" size="icon" onClick={() => setItemToEdit(item)}>
+                                        <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" onClick={() => setEditingBudgetItens(prev => prev.filter(i => i.id !== item.id))}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                    <TableFooter>
+                        <TableRow>
+                            <TableCell colSpan={2} className="text-right font-bold">Subtotal Calculado</TableCell>
+                            <TableCell className="text-right font-bold">{formatCurrency(calculatedTotal)}</TableCell>
+                        </TableRow>
+                         <TableRow className="bg-muted/50">
+                            <TableCell colSpan={2} className="text-right align-middle">
+                              <div className='flex justify-end items-center gap-2'>
+                                {isTotalEdited && (
+                                  <Badge variant={adjustmentPercentage < 0 ? 'destructive' : 'default'}>
+                                    Ajuste: {adjustmentPercentage.toFixed(2)}%
+                                  </Badge>
+                                )}
+                                <Label htmlFor="manualTotal" className="text-base font-bold">Total Final</Label>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right font-bold text-primary">
+                               <div className="relative">
+                                  <Input
+                                    id="manualTotal"
+                                    className="text-right text-base font-bold h-9 pr-10"
+                                    value={isTotalLocked ? formatCurrency(calculatedTotal, false) : manualTotalStr}
+                                    onChange={handleManualTotalChange}
+                                    disabled={isTotalLocked}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                                    onClick={() => setIsTotalLocked(v => !v)}
+                                  >
+                                    {isTotalLocked ? <Lock size={16} /> : <Unlock size={16}/>}
+                                  </Button>
+                               </div>
+                                {isTotalEdited && !isTotalLocked && (
+                                  <Button type="button" size="xs" variant="link" className="h-auto p-0 mt-1" onClick={resetManualTotal}>
+                                      <RotateCcw className="mr-1 h-3 w-3"/> Usar total calculado
+                                  </Button>
+                                )}
+                            </TableCell>
+                        </TableRow>
+                    </TableFooter>
+                </Table>
+            </div>
+            
+            <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label>Observações (visível para o cliente)</Label>
+                    <Textarea value={editingBudget.observacoes} onChange={(e) => setEditingBudget({...editingBudget, observacoes: e.target.value})}/>
+                </div>
+                <div className="space-y-2">
+                    <Label>Anotações Internas (não visível)</Label>
+                    <Textarea value={editingBudget.observacoesInternas} onChange={(e) => setEditingBudget({...editingBudget, observacoesInternas: e.target.value})}/>
+                </div>
+            </div>
+
+          </div>
+
+          <DialogFooter className="pt-4 border-t">
+            <DialogClose asChild>
+              <Button variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button onClick={handleUpdateBudget} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="animate-spin mr-2" />}
+              Salvar Alterações
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

@@ -58,7 +58,7 @@ const BudgetPDFLayout = ({
   );
 
   const ajuste = orcamento.totalVenda - subtotal;
-  const totalEditado = subtotal.toFixed(2) !== orcamento.totalVenda.toFixed(2);
+  const totalEditado = Math.abs(subtotal - orcamento.totalVenda) > 0.01;
 
   return (
     <div className="p-8 bg-white text-black text-xs font-sans">
