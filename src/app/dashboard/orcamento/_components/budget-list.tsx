@@ -184,21 +184,29 @@ export function BudgetList({
   /* ---------------- LOADING ---------------- */
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-40 w-full" />
-      </div>
+      <Card>
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-40 w-full" />
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   /* ---------------- EMPTY ---------------- */
   if (!budgets.length) {
     return (
-      <div className="p-6 text-center text-muted-foreground">
-        {clienteFiltrado
-          ? `Nenhum orçamento encontrado para ${clienteFiltrado.nome}.`
-          : 'Nenhum orçamento encontrado.'}
-      </div>
+      <Card>
+        <CardContent>
+          <div className="p-6 text-center text-muted-foreground">
+            {clienteFiltrado
+              ? `Nenhum orçamento encontrado para ${clienteFiltrado.nome}.`
+              : 'Nenhum orçamento encontrado.'}
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -238,88 +246,83 @@ export function BudgetList({
               <Card key={o.id} className="overflow-hidden">
                 <Accordion type="single" collapsible={hasNotes} className="w-full">
                   <AccordionItem value={o.id} className="border-b-0">
-                    <CardHeader className="p-4 flex flex-row items-start justify-between space-y-0">
-                       <div className="space-y-1">
-                          <CardTitle>{o.cliente.nome}</CardTitle>
-                          <CardDescription>Nº {o.numeroOrcamento}</CardDescription>
-                       </div>
-                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" aria-label="Ações do orçamento" className="-mr-2 -mt-2 h-8 w-8" onClick={(e) => e.stopPropagation()}>
-                            <MoreVertical className="h-5 w-5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                            <DropdownMenuItem onClick={() => onEdit(o)}>
-                                <Pencil className="mr-2 h-4 w-4" /> Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => sendWhatsApp(o)}>
-                                <MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp
-                            </DropdownMenuItem>
-                            <DropdownMenuSub>
-                                <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" /> Gerar PDF</DropdownMenuSubTrigger>
+                    <div className="flex flex-col">
+                      <div className="p-4 flex flex-row items-start justify-between space-y-0">
+                        <div className="space-y-1">
+                            <CardTitle>{o.cliente.nome}</CardTitle>
+                            <CardDescription>Nº {o.numeroOrcamento}</CardDescription>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" aria-label="Ações do orçamento" className="-mr-2 -mt-2 h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                              <MoreVertical className="h-5 w-5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenuItem onClick={() => onEdit(o)}>
+                                  <Pencil className="mr-2 h-4 w-4" /> Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => sendWhatsApp(o)}>
+                                  <MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp
+                              </DropdownMenuItem>
+                              <DropdownMenuSub>
+                                  <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" /> Gerar PDF</DropdownMenuSubTrigger>
+                                  <DropdownMenuPortal>
+                                      <DropdownMenuSubContent>
+                                          <DropdownMenuItem onClick={() => onGeneratePDF(o, 'client')}>PDF do Cliente</DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => onGeneratePDF(o, 'internal')}>PDF Interno (custos)</DropdownMenuItem>
+                                      </DropdownMenuSubContent>
+                                  </DropdownMenuPortal>
+                              </DropdownMenuSub>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger disabled={o.status !== 'Pendente'}><FileSignature className="mr-2 h-4 w-4" /> Alterar Status</DropdownMenuSubTrigger>
                                 <DropdownMenuPortal>
-                                    <DropdownMenuSubContent>
-                                        <DropdownMenuItem onClick={() => onGeneratePDF(o, 'client')}>PDF do Cliente</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => onGeneratePDF(o, 'internal')}>PDF Interno (custos)</DropdownMenuItem>
-                                    </DropdownMenuSubContent>
+                                  <DropdownMenuSubContent>
+                                      <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Aceito')}>
+                                          <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Marcar como Aceito
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Recusado')}>
+                                          <XCircle className="mr-2 h-4 w-4 text-red-500" /> Marcar como Recusado
+                                      </DropdownMenuItem>
+                                  </DropdownMenuSubContent>
                                 </DropdownMenuPortal>
-                            </DropdownMenuSub>
+                              </DropdownMenuSub>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setBudgetToDelete(o)}>
+                                  <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                              </DropdownMenuItem>
+                          </DropdownMenuContent>
+                      </DropdownMenu>
+                      </div>
 
-                            <DropdownMenuSeparator />
-
-                            <DropdownMenuSub>
-                              <DropdownMenuSubTrigger disabled={o.status !== 'Pendente'}><FileSignature className="mr-2 h-4 w-4" /> Alterar Status</DropdownMenuSubTrigger>
-                              <DropdownMenuPortal>
-                                <DropdownMenuSubContent>
-                                    <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Aceito')}>
-                                        <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Marcar como Aceito
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Recusado')}>
-                                        <XCircle className="mr-2 h-4 w-4 text-red-500" /> Marcar como Recusado
-                                    </DropdownMenuItem>
-                                </DropdownMenuSubContent>
-                              </DropdownMenuPortal>
-                            </DropdownMenuSub>
-                            
-                            <DropdownMenuSeparator />
-
-                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setBudgetToDelete(o)}>
-                                <Trash2 className="mr-2 h-4 w-4" /> Excluir
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    </CardHeader>
-                    <CardContent className="px-4 pb-4 space-y-4">
-                      <div className="space-y-2 text-sm">
-                           <div className="flex justify-between items-center">
-                              <span className="font-medium text-muted-foreground">Data:</span>
-                              <span>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                              <span className="font-medium text-muted-foreground">Vencimento:</span>
-                               {hasNotes ? (
-                                <AccordionTrigger className="p-0 hover:no-underline [&>svg]:ml-2">
-                                  {format(dataVencimento, 'dd/MM/yyyy')}
-                                </AccordionTrigger>
-                              ) : (
+                      <div className="px-4 pb-4 space-y-4">
+                        <div className="space-y-2 text-sm">
+                            <div className="flex justify-between items-center">
+                                <span className="font-medium text-muted-foreground">Data:</span>
+                                <span>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</span>
+                            </div>
+                             <div className="flex justify-between items-center">
+                                <span className="font-medium text-muted-foreground">Vencimento:</span>
                                 <span>{format(dataVencimento, 'dd/MM/yyyy')}</span>
-                              )}
-                          </div>
-                          <div className="flex justify-between items-center">
-                              <span className="font-medium text-muted-foreground">Status:</span>
-                              <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
-                          </div>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="font-medium text-muted-foreground">Status:</span>
+                                <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
+                            </div>
+                        </div>
+                        <div className="flex justify-between items-center text-lg font-bold text-primary pt-2 mt-2 border-t">
+                            <div className="flex items-center">
+                                Total:
+                                {hasNotes && <AccordionTrigger className="p-0 pl-2 hover:no-underline [&>svg]:h-4 [&>svg]:w-4"/>}
+                            </div>
+                            <div className="flex items-center">
+                              {formatCurrency(o.totalVenda)}
+                              <AdjustmentBadge orcamento={o} />
+                            </div>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center text-lg font-bold text-primary pt-2 mt-2 border-t">
-                          <span>Total:</span>
-                          <div className="flex items-center">
-                            {formatCurrency(o.totalVenda)}
-                            <AdjustmentBadge orcamento={o} />
-                          </div>
-                      </div>
-                    </CardContent>
-
+                    </div>
                     {hasNotes && (
                       <AccordionContent className="px-4 pb-4 text-sm space-y-2">
                         {o.observacoes && (<div><strong className="text-muted-foreground">Obs. Cliente:</strong> {o.observacoes}</div>)}
@@ -334,7 +337,7 @@ export function BudgetList({
       </div>
 
       {/* Desktop */}
-      <div className="hidden md:block border rounded-md">
+      <Card className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -352,25 +355,15 @@ export function BudgetList({
               {budgets.map(o => {
                   const hasNotes = !!(o.observacoes || o.observacoesInternas);
                   return (
-                    <React.Fragment key={o.id}>
-                      <AccordionItem value={o.id} asChild>
-                          <TableRow className={cn("hover:bg-muted/50", hasNotes && "cursor-pointer")}>
-                            <TableCell className="font-medium">{o.numeroOrcamento}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                {o.cliente.nome}
-                                 {hasNotes && (
-                                   <Tooltip>
-                                      <TooltipTrigger asChild>
-                                          <AccordionTrigger className="p-0 hover:no-underline [&>svg]:h-4 [&>svg]:w-4"/>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>Expandir para ver observações</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                 )}
-                              </div>
+                    <AccordionItem value={o.id} key={o.id} asChild>
+                       <React.Fragment>
+                          <TableRow className="hover:bg-muted/50 data-[state=open]:bg-muted/50">
+                            <TableCell className="font-medium">
+                               <AccordionTrigger disabled={!hasNotes} className="p-0 font-medium hover:no-underline [&>svg]:h-4 [&>svg]:w-4">
+                                {o.numeroOrcamento}
+                               </AccordionTrigger>
                             </TableCell>
+                            <TableCell>{o.cliente.nome}</TableCell>
                             <TableCell>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</TableCell>
                             <TableCell>{format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</TableCell>
                             <TableCell><Badge variant={getStatusVariant(o.status)}>{o.status}</Badge></TableCell>
@@ -404,26 +397,26 @@ export function BudgetList({
                               </DropdownMenu>
                             </TableCell>
                           </TableRow>
-                      </AccordionItem>
-                      {hasNotes && (
-                        <TableRow className="bg-muted/30 hover:bg-muted/30">
-                          <TableCell colSpan={7} className="p-0">
-                            <AccordionContent>
-                               <div className="p-4 text-sm space-y-2">
-                                {o.observacoes && <div className='mb-2'><strong className="font-medium text-muted-foreground">Obs. Cliente:</strong><p className="whitespace-pre-wrap">{o.observacoes}</p></div>}
-                                {o.observacoesInternas && <div><strong className="font-medium text-muted-foreground">Anotações Internas:</strong><p className="whitespace-pre-wrap">{o.observacoesInternas}</p></div>}
-                               </div>
-                            </AccordionContent>
-                          </TableCell>
-                        </TableRow>
-                       )}
-                    </React.Fragment>
+                          {hasNotes && (
+                            <TableRow>
+                              <TableCell colSpan={7} className="p-0">
+                                <AccordionContent>
+                                  <div className="p-4 text-sm space-y-2 bg-muted/30">
+                                    {o.observacoes && <div className='mb-2'><strong className="font-medium text-muted-foreground">Obs. Cliente:</strong><p className="whitespace-pre-wrap">{o.observacoes}</p></div>}
+                                    {o.observacoesInternas && <div><strong className="font-medium text-muted-foreground">Anotações Internas:</strong><p className="whitespace-pre-wrap">{o.observacoesInternas}</p></div>}
+                                  </div>
+                                </AccordionContent>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                       </React.Fragment>
+                    </AccordionItem>
                   )
               })}
             </Accordion>
           </TableBody>
         </Table>
-      </div>
+      </Card>
 
       <AlertDialog open={!!budgetToDelete} onOpenChange={() => setBudgetToDelete(null)}>
         <AlertDialogContent>
