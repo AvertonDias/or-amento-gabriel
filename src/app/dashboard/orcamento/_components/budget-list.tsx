@@ -307,103 +307,109 @@ export function BudgetList({
 
       {/* Desktop */}
       <div className="hidden md:block border rounded-md">
-        <Accordion type="multiple" className="w-full">
-           <Table>
-            <TableHeader>
-                <TableRow>
-                <TableHead>Nº</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead className="text-center w-[100px]">Ações</TableHead>
-                </TableRow>
-            </TableHeader>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nº</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Data</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Valor</TableHead>
+              <TableHead className="text-center w-[100px]">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <Accordion type="multiple" asChild>
             <TableBody>
-              {budgets.map(o => (
-                <React.Fragment key={o.id}>
-                    <AccordionItem value={o.id} asChild>
-                        <TableRow className={cn((o.observacoes || o.observacoesInternas) && 'cursor-pointer', 'border-b-0')}>
-                            <TableCell className="font-medium">
-                                <AccordionTrigger disabled={!o.observacoes && !o.observacoesInternas} className="p-0 hover:no-underline [&>svg]:ml-2">
-                                  {o.numeroOrcamento}
-                                </AccordionTrigger>
-                            </TableCell>
-                            <TableCell>{o.cliente.nome}</TableCell>
-                            <TableCell>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</TableCell>
-                            <TableCell>
-                                <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
-                            </TableCell>
-                            <TableCell className="text-right font-semibold">
-                                <div className="flex justify-end items-center">
-                                    {formatCurrency(o.totalVenda)}
-                                    <AdjustmentBadge orcamento={o} />
-                                </div>
-                            </TableCell>
-                            <TableCell className="text-center">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" aria-label="Ações do orçamento" className="h-8 w-8">
-                                            <MoreVertical className="h-5 w-5" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => onEdit(o)}>
-                                            <Pencil className="mr-2 h-4 w-4" /> Editar
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => sendWhatsApp(o)}>
-                                            <MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSub>
-                                            <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" /> Gerar PDF</DropdownMenuSubTrigger>
-                                            <DropdownMenuPortal>
-                                                <DropdownMenuSubContent>
-                                                    <DropdownMenuItem onClick={() => onGeneratePDF(o, 'client')}>PDF do Cliente</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => onGeneratePDF(o, 'internal')}>PDF Interno (custos)</DropdownMenuItem>
-                                                </DropdownMenuSubContent>
-                                            </DropdownMenuPortal>
-                                        </DropdownMenuSub>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuSub>
-                                            <DropdownMenuSubTrigger disabled={o.status !== 'Pendente'}><FileSignature className="mr-2 h-4 w-4" /> Alterar Status</DropdownMenuSubTrigger>
-                                            <DropdownMenuPortal>
-                                            <DropdownMenuSubContent>
-                                                <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Aceito')}>
-                                                    <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Marcar como Aceito
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Recusado')}>
-                                                    <XCircle className="mr-2 h-4 w-4 text-red-500" /> Marcar como Recusado
-                                                </DropdownMenuItem>
-                                            </DropdownMenuSubContent>
-                                            </DropdownMenuPortal>
-                                        </DropdownMenuSub>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setBudgetToDelete(o)}>
-                                            <Trash2 className="mr-2 h-4 w-4" /> Excluir
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </TableCell>
+              {budgets.map(o => {
+                const hasNotes = !!(o.observacoes || o.observacoesInternas);
+                return (
+                  <AccordionItem value={o.id} key={o.id} asChild>
+                    <React.Fragment>
+                      <TableRow className={cn(hasNotes && 'cursor-pointer', 'border-b-0')}>
+                        <TableCell className="font-medium">
+                          {hasNotes ? (
+                            <AccordionTrigger className="p-0 hover:no-underline [&>svg]:ml-2">{o.numeroOrcamento}</AccordionTrigger>
+                          ) : (
+                            o.numeroOrcamento
+                          )}
+                        </TableCell>
+                        <TableCell>{o.cliente.nome}</TableCell>
+                        <TableCell>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">
+                          <div className="flex justify-end items-center">
+                            {formatCurrency(o.totalVenda)}
+                            <AdjustmentBadge orcamento={o} />
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" aria-label="Ações do orçamento" className="h-8 w-8">
+                                <MoreVertical className="h-5 w-5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => onEdit(o)}>
+                                <Pencil className="mr-2 h-4 w-4" /> Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => sendWhatsApp(o)}>
+                                <MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp
+                              </DropdownMenuItem>
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" /> Gerar PDF</DropdownMenuSubTrigger>
+                                <DropdownMenuPortal>
+                                  <DropdownMenuSubContent>
+                                    <DropdownMenuItem onClick={() => onGeneratePDF(o, 'client')}>PDF do Cliente</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => onGeneratePDF(o, 'internal')}>PDF Interno (custos)</DropdownMenuItem>
+                                  </DropdownMenuSubContent>
+                                </DropdownMenuPortal>
+                              </DropdownMenuSub>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger disabled={o.status !== 'Pendente'}><FileSignature className="mr-2 h-4 w-4" /> Alterar Status</DropdownMenuSubTrigger>
+                                <DropdownMenuPortal>
+                                  <DropdownMenuSubContent>
+                                    <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Aceito')}>
+                                      <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Marcar como Aceito
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Recusado')}>
+                                      <XCircle className="mr-2 h-4 w-4 text-red-500" /> Marcar como Recusado
+                                    </DropdownMenuItem>
+                                  </DropdownMenuSubContent>
+                                </DropdownMenuPortal>
+                              </DropdownMenuSub>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setBudgetToDelete(o)}>
+                                <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                      {hasNotes && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="p-0">
+                            <AccordionContent>
+                              <div className="px-4 py-2 text-sm space-y-2 bg-muted/50">
+                                {o.observacoes && (<p><strong className="text-muted-foreground">Obs. Cliente:</strong> {o.observacoes}</p>)}
+                                {o.observacoesInternas && (<p><strong className="text-muted-foreground">Obs. Interna:</strong> {o.observacoesInternas}</p>)}
+                              </div>
+                            </AccordionContent>
+                          </TableCell>
                         </TableRow>
-                    </AccordionItem>
-                    {(o.observacoes || o.observacoesInternas) && (
-                        <TableRow className='border-b'>
-                            <TableCell colSpan={6} className='p-0'>
-                                <AccordionContent>
-                                    <div className="px-4 py-2 text-sm space-y-2">
-                                        {o.observacoes && (<p><strong className="text-muted-foreground">Obs. Cliente:</strong> {o.observacoes}</p>)}
-                                        {o.observacoesInternas && (<p><strong className="text-muted-foreground">Obs. Interna:</strong> {o.observacoesInternas}</p>)}
-                                    </div>
-                                </AccordionContent>
-                            </TableCell>
-                        </TableRow>
-                    )}
-                </React.Fragment>
-              ))}
+                      )}
+                    </React.Fragment>
+                  </AccordionItem>
+                );
+              })}
             </TableBody>
-           </Table>
-        </Accordion>
+          </Accordion>
+        </Table>
       </div>
+
       <AlertDialog open={!!budgetToDelete} onOpenChange={() => setBudgetToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
