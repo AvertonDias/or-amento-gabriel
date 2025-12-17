@@ -516,9 +516,14 @@ export function BudgetEditDialog({
                     </Button>
                   </div>
                   {isTotalEdited && !isTotalLocked && (
-                    <Button type="button" size="xs" variant="link" className="h-auto p-0 mt-1" onClick={resetManualTotal}>
-                      <RotateCcw className="mr-1 h-3 w-3"/> Usar total calculado
-                    </Button>
+                    <div className='flex justify-between items-center text-xs mt-1 pr-2'>
+                        <Button type="button" size="xs" variant="link" className="h-auto p-0" onClick={resetManualTotal}>
+                          <RotateCcw className="mr-1 h-3 w-3"/> Usar calculado
+                        </Button>
+                         <p className="text-muted-foreground">
+                          Original: {formatCurrency(calculatedTotal)}
+                        </p>
+                    </div>
                   )}
                   {isTotalEdited && (
                     <div className="text-right pr-2">
