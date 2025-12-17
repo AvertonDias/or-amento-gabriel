@@ -133,8 +133,8 @@ export function BudgetWizard({
   const [isAddingAvulso, setIsAddingAvulso] = useState(false);
   const [itemAvulso, setItemAvulso] = useState({
     descricao: '',
-    quantidade: '',
     unidade: 'un',
+    quantidade: '',
     precoFinal: ''
   });
   const [itemAvulsoPrecoStr, setItemAvulsoPrecoStr] = useState('');
@@ -199,7 +199,7 @@ export function BudgetWizard({
     setNovoItem({ materialId: '', quantidade: '', margemLucro: '' });
     setQuantidadeStr('');
     setMargemLucroStr('');
-    setItemAvulso({ descricao: '', quantidade: '', unidade: 'un', precoFinal: '' });
+    setItemAvulso({ descricao: '', unidade: 'un', quantidade: '', precoFinal: '' });
     setItemAvulsoPrecoStr('');
     setIsAddingAvulso(false);
     setIsTotalLocked(true);
@@ -283,7 +283,7 @@ export function BudgetWizard({
     };
 
     setOrcamentoItens([...orcamentoItens, orcamentoItem]);
-    setItemAvulso({ descricao: '', quantidade: '', unidade: 'un', precoFinal: '' });
+    setItemAvulso({ descricao: '', unidade: 'un', quantidade: '', precoFinal: '' });
     setItemAvulsoPrecoStr('');
     setIsAddingAvulso(false);
   };
@@ -571,11 +571,7 @@ export function BudgetWizard({
                     </TableBody>
                     {orcamentoItens.length > 0 && (
                       <TableFooter>
-                         <TableRow>
-                            <TableCell colSpan={2} className="text-right font-bold">Subtotal</TableCell>
-                            <TableCell className="text-right font-bold">{formatCurrency(calculatedTotal)}</TableCell>
-                        </TableRow>
-                        <TableRow className="bg-muted/50">
+                         <TableRow className="bg-muted/50 font-bold">
                             <TableCell colSpan={2} className="text-right align-middle">
                               <div className='flex justify-end items-center gap-2'>
                                 {isTotalEdited && (
@@ -583,10 +579,10 @@ export function BudgetWizard({
                                     {adjustmentPercentage < 0 ? 'Desconto' : 'Acréscimo'}: {Math.abs(adjustmentPercentage).toFixed(2)}%
                                   </Badge>
                                 )}
-                                <Label htmlFor="manualTotal" className="text-base font-bold">Total Final</Label>
+                                <Label htmlFor="manualTotal" className="text-base">Total</Label>
                               </div>
                             </TableCell>
-                            <TableCell className="text-right font-bold text-primary">
+                            <TableCell className="text-right text-primary">
                                <div className="relative">
                                   <Input
                                     id="manualTotal"

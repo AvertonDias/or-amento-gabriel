@@ -297,11 +297,7 @@ export function BudgetEditDialog({
                         ))}
                     </TableBody>
                     <TableFooter>
-                        <TableRow>
-                            <TableCell colSpan={2} className="text-right font-bold">Subtotal Calculado</TableCell>
-                            <TableCell className="text-right font-bold">{formatCurrency(calculatedTotal)}</TableCell>
-                        </TableRow>
-                         <TableRow className="bg-muted/50">
+                         <TableRow className="bg-muted/50 font-bold">
                             <TableCell colSpan={2} className="text-right align-middle">
                               <div className='flex justify-end items-center gap-2'>
                                 {isTotalEdited && (
@@ -309,10 +305,10 @@ export function BudgetEditDialog({
                                     {adjustmentPercentage < 0 ? 'Desconto' : 'Acréscimo'}: {Math.abs(adjustmentPercentage).toFixed(2)}%
                                   </Badge>
                                 )}
-                                <Label htmlFor="manualTotal" className="text-base font-bold">Total Final</Label>
+                                <Label htmlFor="manualTotal" className="text-base">Total</Label>
                               </div>
                             </TableCell>
-                            <TableCell className="text-right font-bold text-primary">
+                            <TableCell className="text-right text-primary">
                                <div className="relative">
                                   <Input
                                     id="manualTotal"
