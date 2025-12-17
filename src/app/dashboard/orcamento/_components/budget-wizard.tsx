@@ -252,6 +252,19 @@ export function BudgetWizard({
       toast({ title: "Dados inválidos", description: "Selecione um item e informe a quantidade.", variant: "destructive" });
       return;
     }
+    
+    // Verifica estoque mínimo
+    if (selectedMaterial.tipo === 'item' && selectedMaterial.quantidade !== null && selectedMaterial.quantidadeMinima !== null) {
+      const novoEstoque = selectedMaterial.quantidade - quantidade;
+      if (novoEstoque < selectedMaterial.quantidadeMinima) {
+        toast({
+          title: "Aviso de Estoque Baixo",
+          description: `O item "${selectedMaterial.descricao}" atingiu o estoque mínimo.`,
+          variant: "destructive",
+          duration: 5000,
+        });
+      }
+    }
 
     const total = selectedMaterial.precoUnitario! * quantidade;
     const margem = parseFloat(margemLucroStr.replace(',', '.')) || 0;
