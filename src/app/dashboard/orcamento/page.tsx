@@ -65,7 +65,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatNumber } from '@/lib/utils';
 
 export default function OrcamentoPage() {
   const [user, loadingAuth] = useAuthState(auth);
@@ -259,7 +259,24 @@ export default function OrcamentoPage() {
 
   const openCompanyWhatsApp = (orcamento: Orcamento, phone: string) => {
     const cleanPhone = `55${phone.replace(/\D/g, '')}`;
-    const text = `✅ Orçamento Aceito!\n\n*Nº:* ${orcamento.numeroOrcamento}\n*Cliente:* ${orcamento.cliente.nome}\n*Valor:* ${formatCurrency(orcamento.totalVenda)}`;
+    
+    let text = `✅ *ORÇAMENTO ACEITO* ✅\n\n`;
+    text += `*Nº:* ${orcamento.numeroOrcamento}\n`;
+    text += `*Valor:* ${formatCurrency(orcamento.totalVenda)}\n\n`;
+
+    text += "*DADOS DO CLIENTE:*\n";
+    text += `*- Nome:* ${orcamento.cliente.nome}\n`;
+    if (orcamento.cliente.endereco) text += `*- Endereço:* ${orcamento.cliente.endereco}\n`;
+    orcamento.cliente.telefones.forEach(tel => {
+        if(tel.numero) text += `*- ${tel.nome || 'Telefone'}:* ${tel.numero}\n`;
+    });
+    text += "\n";
+
+    text += "*SERVIÇOS/ITENS:*\n";
+    orcamento.itens.forEach(i => {
+      text += `- ${i.materialNome} (${formatNumber(i.quantidade, 2)} ${i.unidade})\n`;
+    });
+
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
 

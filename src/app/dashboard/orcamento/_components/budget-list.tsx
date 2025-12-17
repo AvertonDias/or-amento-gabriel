@@ -30,7 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   FileText, Pencil, MessageCircle,
   CheckCircle2, XCircle, Trash2,
-  MoreVertical, FileSignature, ChevronDown
+  MoreVertical, FileSignature, Info
 } from 'lucide-react';
 import { addDays, format, parseISO } from 'date-fns';
 import { formatCurrency, formatNumber } from '@/lib/utils';
@@ -142,22 +142,41 @@ export function BudgetList({
     const subtotal = orcamento.itens.reduce((s, i) => s + i.precoVenda, 0);
     const total = orcamento.totalVenda;
     const diff = total - subtotal;
+    
+    const empresaPrincipalPhone = empresa?.telefones?.find(t => t.principal)?.numero;
 
-    const items = orcamento.itens
-      .map(i => `- ${i.materialNome} (${formatNumber(i.quantidade, 2)} ${i.unidade}): ${formatCurrency(i.precoVenda)}`)
-      .join('\n');
+    let text = `*${empresa?.nome || 'Orçamento'}*\n`;
+    if(empresaPrincipalPhone) {
+        text += `(${empresaPrincipalPhone})\n\n`;
+    }
+    
+    text += `*ORÇAMENTO Nº ${orcamento.numeroOrcamento}*\n\n`;
 
-    let text = `Olá, ${orcamento.cliente.nome}!\n\nOrçamento Nº ${orcamento.numeroOrcamento}\n\nItens:\n${items}\n\n`;
+    text += "*DADOS DO CLIENTE:*\n";
+    text += `*- Nome:* ${orcamento.cliente.nome}\n`;
+    if (orcamento.cliente.cpfCnpj) text += `*- CPF/CNPJ:* ${orcamento.cliente.cpfCnpj}\n`;
+    if (orcamento.cliente.endereco) text += `*- Endereço:* ${orcamento.cliente.endereco}\n`;
+    orcamento.cliente.telefones.forEach(tel => {
+        if(tel.numero) text += `*- ${tel.nome || 'Telefone'}:* ${tel.numero}\n`;
+    });
+    if (orcamento.cliente.email) text += `*- Email:* ${orcamento.cliente.email}\n`;
+    text += "\n";
+
+    text += "*ITENS:*\n";
+    orcamento.itens.forEach(i => {
+      text += `- ${i.materialNome} (${formatNumber(i.quantidade, 2)} ${i.unidade}): ${formatCurrency(i.precoVenda)}\n`;
+    });
+    text += "\n";
 
     if (Math.abs(diff) > 0.01) {
-      text += `Subtotal: ${formatCurrency(subtotal)}\n`;
-      text += `${diff < 0 ? 'Desconto' : 'Acréscimo'}: ${formatCurrency(diff)}\n`;
+      text += `*Subtotal:* ${formatCurrency(subtotal)}\n`;
+      text += `*${diff < 0 ? 'Desconto' : 'Acréscimo'}:* ${formatCurrency(diff)}\n`;
     }
 
-    text += `Total: ${formatCurrency(total)}\n\n`;
-    if (orcamento.observacoes) text += `Obs:\n${orcamento.observacoes}\n\n`;
+    text += `*TOTAL:* ${formatCurrency(total)}\n\n`;
+    if (orcamento.observacoes) text += `*Observações:*\n${orcamento.observacoes}\n\n`;
 
-    text += `Válido até ${format(addDays(parseISO(orcamento.dataCriacao), Number(orcamento.validadeDias)), 'dd/MM/yyyy')}`;
+    text += `*Validade:* ${format(addDays(parseISO(orcamento.dataCriacao), Number(orcamento.validadeDias)), 'dd/MM/yyyy')}`;
 
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
