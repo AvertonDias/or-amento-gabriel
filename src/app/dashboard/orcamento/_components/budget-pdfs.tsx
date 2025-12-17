@@ -10,7 +10,7 @@ import React, {
 
 import type { Orcamento, EmpresaData } from '@/lib/types';
 import { addDays, format, parseISO } from 'date-fns';
-import { formatCurrency, formatNumber } from '@/lib/utils';
+import { formatCurrency, formatNumber, cn } from '@/lib/utils';
 
 import { Capacitor } from '@capacitor/core';
 import jsPDF from 'jspdf';
@@ -300,7 +300,10 @@ const InternalBudgetPDFLayout = ({
             <span>{formatCurrency(orcamento.totalVenda)}</span>
           </div>
 
-          <div className="flex justify-between font-bold pt-2 border-t text-green-700">
+          <div className={cn(
+              "flex justify-between font-bold pt-2 border-t",
+              lucroBruto >= 0 ? 'text-green-700' : 'text-red-700'
+            )}>
             <span>Lucro Bruto:</span>
             <span>{formatCurrency(lucroBruto)}</span>
           </div>
