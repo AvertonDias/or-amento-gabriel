@@ -351,90 +351,112 @@ export function BudgetList({
           <TableBody>
             {budgets.map(o => (
               <React.Fragment key={o.id}>
-                <TableRow className={cn('hover:bg-muted/50')}>
-                  <TableCell className="font-medium">{o.numeroOrcamento}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                       {o.cliente.nome}
-                      {(o.observacoes || o.observacoesInternas) && (
-                         <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs space-y-2" side="top" align="start">
-                             {o.observacoes && (
-                              <div>
-                                <strong className="font-medium">Observações para o Cliente:</strong>
-                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{o.observacoes}</p>
-                              </div>
-                            )}
-                             {o.observacoesInternas && (
-                              <div>
-                                <strong className="font-medium">Anotações Internas:</strong>
-                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{o.observacoesInternas}</p>
-                              </div>
-                            )}
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</TableCell>
-                  <TableCell>{format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-semibold">
-                    <div className="flex justify-end items-center">
-                      {formatCurrency(o.totalVenda)}
-                      <AdjustmentBadge orcamento={o} />
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" aria-label="Ações do orçamento" className="h-8 w-8" onClick={e => e.stopPropagation()}>
-                          <MoreVertical className="h-5 w-5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" onClick={e => e.stopPropagation()}>
-                        <DropdownMenuItem onClick={() => onEdit(o)}>
-                          <Pencil className="mr-2 h-4 w-4" /> Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => sendWhatsApp(o)}>
-                          <MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp
-                        </DropdownMenuItem>
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" /> Gerar PDF</DropdownMenuSubTrigger>
-                          <DropdownMenuPortal>
-                            <DropdownMenuSubContent>
-                              <DropdownMenuItem onClick={() => onGeneratePDF(o, 'client')}>PDF do Cliente</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => onGeneratePDF(o, 'internal')}>PDF Interno (custos)</DropdownMenuItem>
-                            </DropdownMenuSubContent>
-                          </DropdownMenuPortal>
-                        </DropdownMenuSub>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger disabled={o.status !== 'Pendente'}><FileSignature className="mr-2 h-4 w-4" /> Alterar Status</DropdownMenuSubTrigger>
-                          <DropdownMenuPortal>
-                            <DropdownMenuSubContent>
-                              <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Aceito')}>
-                                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Marcar como Aceito
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Recusado')}>
-                                <XCircle className="mr-2 h-4 w-4 text-red-500" /> Marcar como Recusado
-                              </DropdownMenuItem>
-                            </DropdownMenuSubContent>
-                          </DropdownMenuPortal>
-                        </DropdownMenuSub>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setBudgetToDelete(o)}>
-                          <Trash2 className="mr-2 h-4 w-4" /> Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
+                <AccordionItem value={o.id} asChild>
+                  <TableRow className={cn('hover:bg-muted/50')}>
+                    <TableCell className="font-medium">{o.numeroOrcamento}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                         {o.cliente.nome}
+                        {(o.observacoes || o.observacoesInternas) && (
+                           <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs space-y-2" side="top" align="start">
+                               {o.observacoes && (
+                                <div>
+                                  <strong className="font-medium">Observações para o Cliente:</strong>
+                                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{o.observacoes}</p>
+                                </div>
+                              )}
+                               {o.observacoesInternas && (
+                                <div>
+                                  <strong className="font-medium">Anotações Internas:</strong>
+                                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{o.observacoesInternas}</p>
+                                </div>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</TableCell>
+                    <TableCell>{format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">
+                      <div className="flex justify-end items-center">
+                        {formatCurrency(o.totalVenda)}
+                        <AdjustmentBadge orcamento={o} />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" aria-label="Ações do orçamento" className="h-8 w-8" onClick={e => e.stopPropagation()}>
+                            <MoreVertical className="h-5 w-5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" onClick={e => e.stopPropagation()}>
+                          <DropdownMenuItem onClick={() => onEdit(o)}>
+                            <Pencil className="mr-2 h-4 w-4" /> Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => sendWhatsApp(o)}>
+                            <MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp
+                          </DropdownMenuItem>
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" /> Gerar PDF</DropdownMenuSubTrigger>
+                            <DropdownMenuPortal>
+                              <DropdownMenuSubContent>
+                                <DropdownMenuItem onClick={() => onGeneratePDF(o, 'client')}>PDF do Cliente</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onGeneratePDF(o, 'internal')}>PDF Interno (custos)</DropdownMenuItem>
+                              </DropdownMenuSubContent>
+                            </DropdownMenuPortal>
+                          </DropdownMenuSub>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger disabled={o.status !== 'Pendente'}><FileSignature className="mr-2 h-4 w-4" /> Alterar Status</DropdownMenuSubTrigger>
+                            <DropdownMenuPortal>
+                              <DropdownMenuSubContent>
+                                <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Aceito')}>
+                                  <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Marcar como Aceito
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Recusado')}>
+                                  <XCircle className="mr-2 h-4 w-4 text-red-500" /> Marcar como Recusado
+                                </DropdownMenuItem>
+                              </DropdownMenuSubContent>
+                            </DropdownMenuPortal>
+                          </DropdownMenuSub>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setBudgetToDelete(o)}>
+                            <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                </AccordionItem>
+                {(o.observacoes || o.observacoesInternas) && (
+                  <AccordionContent asChild>
+                     <tr className="bg-muted/30 hover:bg-muted/30">
+                        <TableCell colSpan={7} className="p-4 text-sm">
+                           {o.observacoes && (
+                            <div className='mb-2'>
+                              <strong className="font-medium text-muted-foreground">Observações para o Cliente:</strong>
+                              <p className="whitespace-pre-wrap">{o.observacoes}</p>
+                            </div>
+                          )}
+                           {o.observacoesInternas && (
+                            <div>
+                              <strong className="font-medium text-muted-foreground">Anotações Internas:</strong>
+                              <p className="whitespace-pre-wrap">{o.observacoesInternas}</p>
+                            </div>
+                          )}
+                        </TableCell>
+                     </tr>
+                  </AccordionContent>
+                )}
               </React.Fragment>
             ))}
           </TableBody>
