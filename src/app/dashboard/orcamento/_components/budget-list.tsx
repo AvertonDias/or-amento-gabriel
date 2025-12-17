@@ -8,10 +8,6 @@ import {
   CardDescription, CardFooter
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Table, TableBody, TableCell,
-  TableHead, TableHeader, TableRow
-} from '@/components/ui/table';
 import { Badge, badgeVariants } from '@/components/ui/badge';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -245,10 +241,13 @@ export function BudgetList({
                     
                       <div className="p-4 flex flex-col">
                         <div className="flex flex-row items-start justify-between space-y-0 mb-4">
-                          <div className="space-y-1">
-                              <CardTitle>{o.cliente.nome}</CardTitle>
-                              <CardDescription>Nº {o.numeroOrcamento}</CardDescription>
+                          <div>
+                             <AccordionTrigger className={cn("text-left p-0 hover:no-underline [&>svg]:h-5 [&>svg]:w-5", !hasNotes && "pointer-events-none")}>
+                                <CardTitle>{o.cliente.nome}</CardTitle>
+                             </AccordionTrigger>
+                             <CardDescription>Nº {o.numeroOrcamento}</CardDescription>
                           </div>
+
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" aria-label="Ações do orçamento" className="-mr-2 -mt-2 h-8 w-8" onClick={(e) => e.stopPropagation()}>
@@ -309,10 +308,7 @@ export function BudgetList({
                         </div>
 
                         <div className="flex justify-between items-center text-lg font-bold text-primary pt-2 mt-2 border-t">
-                            <div className="flex items-center">
-                                Total:
-                                {hasNotes && <AccordionTrigger className="p-0 pl-2 hover:no-underline [&>svg]:h-4 [&>svg]:w-4"/>}
-                            </div>
+                            Total:
                             <div className="flex items-center">
                               {formatCurrency(o.totalVenda)}
                               <AdjustmentBadge orcamento={o} />
@@ -336,67 +332,73 @@ export function BudgetList({
 
       {/* Desktop */}
       <Card className="hidden md:block">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[80px]">Nº</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Criação</TableHead>
-              <TableHead>Vencimento</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Valor</TableHead>
-              <TableHead className="text-center w-[100px]">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-              {budgets.map(o => {
-                  const dataVencimento = addDays(parseISO(o.dataCriacao), Number(o.validadeDias));
-                  return (
-                      <TableRow key={o.id} className="hover:bg-muted/50">
-                        <TableCell className="font-medium">{o.numeroOrcamento}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span>{o.cliente.nome}</span>
-                            <InfoTrigger orcamento={o} />
-                          </div>
-                        </TableCell>
-                        <TableCell>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</TableCell>
-                        <TableCell>{format(dataVencimento, 'dd/MM/yyyy')}</TableCell>
-                        <TableCell><Badge variant={getStatusVariant(o.status)}>{o.status}</Badge></TableCell>
-                        <TableCell className="text-right font-semibold">
-                          <div className="flex justify-end items-center">{formatCurrency(o.totalVenda)}<AdjustmentBadge orcamento={o} /></div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="h-5 w-5" /></Button></DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => onEdit(o)}><Pencil className="mr-2 h-4 w-4" /> Editar</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => sendWhatsApp(o)}><MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp</DropdownMenuItem>
-                              <DropdownMenuSub>
-                                <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" /> Gerar PDF</DropdownMenuSubTrigger>
-                                <DropdownMenuPortal><DropdownMenuSubContent>
-                                  <DropdownMenuItem onClick={() => onGeneratePDF(o, 'client')}>PDF do Cliente</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => onGeneratePDF(o, 'internal')}>PDF Interno</DropdownMenuItem>
-                                </DropdownMenuSubContent></DropdownMenuPortal>
-                              </DropdownMenuSub>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuSub>
-                                <DropdownMenuSubTrigger disabled={o.status !== 'Pendente'}><FileSignature className="mr-2 h-4 w-4" /> Alterar Status</DropdownMenuSubTrigger>
-                                <DropdownMenuPortal><DropdownMenuSubContent>
-                                  <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Aceito')}><CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Aceito</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Recusado')}><XCircle className="mr-2 h-4 w-4 text-red-500" /> Recusado</DropdownMenuItem>
-                                </DropdownMenuSubContent></DropdownMenuPortal>
-                              </DropdownMenuSub>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setBudgetToDelete(o)}><Trash2 className="mr-2 h-4 w-4" /> Excluir</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                  )
-              })}
-          </TableBody>
-        </Table>
+        <Accordion type="multiple" className="w-full">
+          {/* Cabeçalho Fixo */}
+          <div className="flex items-center border-b px-4 py-2 font-medium text-muted-foreground text-sm">
+              <div className="w-[80px] shrink-0">Nº</div>
+              <div className="flex-1">Cliente</div>
+              <div className="w-28 shrink-0">Criação</div>
+              <div className="w-28 shrink-0">Vencimento</div>
+              <div className="w-32 shrink-0">Status</div>
+              <div className="w-40 shrink-0 text-right">Valor</div>
+              <div className="w-[100px] shrink-0 text-center">Ações</div>
+          </div>
+          
+          {budgets.map(o => {
+              const dataVencimento = addDays(parseISO(o.dataCriacao), Number(o.validadeDias));
+              const hasNotes = !!(o.observacoes || o.observacoesInternas);
+              return (
+                  <AccordionItem value={o.id} key={o.id}>
+                    <AccordionTrigger className="flex items-center px-4 py-3 text-sm hover:bg-muted/50 hover:no-underline data-[state=open]:bg-muted/50">
+                        <div className="w-[80px] shrink-0 font-medium">{o.numeroOrcamento}</div>
+                        <div className="flex-1 text-left">{o.cliente.nome}</div>
+                        <div className="w-28 shrink-0">{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</div>
+                        <div className="w-28 shrink-0">{format(dataVencimento, 'dd/MM/yyyy')}</div>
+                        <div className="w-32 shrink-0"><Badge variant={getStatusVariant(o.status)}>{o.status}</Badge></div>
+                        <div className="w-40 shrink-0 text-right font-semibold flex justify-end items-center">
+                            {formatCurrency(o.totalVenda)}<AdjustmentBadge orcamento={o} />
+                        </div>
+                        <div className="w-[100px] shrink-0 text-center flex justify-center items-center">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                                        <MoreVertical className="h-5 w-5" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => onEdit(o)}><Pencil className="mr-2 h-4 w-4" /> Editar</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => sendWhatsApp(o)}><MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp</DropdownMenuItem>
+                                    <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" /> Gerar PDF</DropdownMenuSubTrigger>
+                                        <DropdownMenuPortal><DropdownMenuSubContent>
+                                        <DropdownMenuItem onClick={() => onGeneratePDF(o, 'client')}>PDF do Cliente</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => onGeneratePDF(o, 'internal')}>PDF Interno</DropdownMenuItem>
+                                        </DropdownMenuSubContent></DropdownMenuPortal>
+                                    </DropdownMenuSub>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger disabled={o.status !== 'Pendente'}><FileSignature className="mr-2 h-4 w-4" /> Alterar Status</DropdownMenuSubTrigger>
+                                        <DropdownMenuPortal><DropdownMenuSubContent>
+                                        <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Aceito')}><CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Aceito</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Recusado')}><XCircle className="mr-2 h-4 w-4 text-red-500" /> Recusado</DropdownMenuItem>
+                                        </DropdownMenuSubContent></DropdownMenuPortal>
+                                    </DropdownMenuSub>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setBudgetToDelete(o)}><Trash2 className="mr-2 h-4 w-4" /> Excluir</DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </AccordionTrigger>
+                    {hasNotes && (
+                        <AccordionContent className="p-4 bg-muted/30 text-sm space-y-2">
+                           {o.observacoes && (<div><strong className="text-muted-foreground">Obs. Cliente:</strong> {o.observacoes}</div>)}
+                           {o.observacoesInternas && (<div><strong className="text-muted-foreground">Obs. Interna:</strong> {o.observacoesInternas}</div>)}
+                        </AccordionContent>
+                    )}
+                  </AccordionItem>
+              )
+          })}
+        </Accordion>
       </Card>
 
       <AlertDialog open={!!budgetToDelete} onOpenChange={() => setBudgetToDelete(null)}>
@@ -416,37 +418,5 @@ export function BudgetList({
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
-}
-
-
-function InfoTrigger({ orcamento }: { orcamento: Orcamento }) {
-  const hasNotes = !!(orcamento.observacoes || orcamento.observacoesInternas);
-  if (!hasNotes) return null;
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-6 w-6 cursor-default">
-          <Info size={14} className="text-muted-foreground" />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>
-        <div className="p-1 max-w-xs space-y-2">
-          {orcamento.observacoes && (
-            <div>
-              <strong className="font-medium">Obs. Cliente:</strong>
-              <p className="text-xs">{orcamento.observacoes}</p>
-            </div>
-          )}
-          {orcamento.observacoesInternas && (
-            <div>
-              <strong className="font-medium">Anotações Internas:</strong>
-              <p className="text-xs">{orcamento.observacoesInternas}</p>
-            </div>
-          )}
-        </div>
-      </TooltipContent>
-    </Tooltip>
   );
 }
