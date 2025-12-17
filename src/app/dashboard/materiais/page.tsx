@@ -213,8 +213,9 @@ export default function MateriaisPage() {
     try {
       await deleteMaterial(materialId);
       toast({ title: 'Item removido com sucesso', variant: 'destructive' });
-    } catch {
-      toast({ title: 'Erro ao remover item', variant: 'destructive' });
+    } catch (error) {
+      console.error("Erro ao remover item:", error);
+      toast({ title: 'Erro ao remover item', description: 'Não foi possível remover o item. Tente novamente.', variant: 'destructive' });
     }
   };
 
