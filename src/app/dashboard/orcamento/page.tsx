@@ -8,7 +8,7 @@ import React, {
   useRef,
 } from 'react';
 
-import type { ClienteData, Orcamento } from '@/lib/types';
+import type { ClienteData, Orcamento, Telefone } from '@/lib/types';
 
 import {
   Card,
@@ -55,6 +55,17 @@ import { BudgetList } from './_components/budget-list';
 import { BudgetWizard } from './_components/budget-wizard';
 import { BudgetEditDialog } from './_components/budget-edit-dialog';
 import { BudgetPDFs } from './_components/budget-pdfs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { formatCurrency } from '@/lib/utils';
 
 export default function OrcamentoPage() {
   const [user, loadingAuth] = useAuthState(auth);
@@ -116,6 +127,13 @@ export default function OrcamentoPage() {
   const [editingBudget, setEditingBudget] =
     useState<Orcamento | null>(null);
   const [statusFilter, setStatusFilter] = useState('todos');
+
+  const [companyPhoneDialog, setCompanyPhoneDialog] = useState<{
+    open: boolean;
+    phones: Telefone[];
+    orcamento: Orcamento | null;
+  }>({ open: false, phones: [], orcamento: null });
+  const [selectedCompanyPhone, setSelectedCompanyPhone] = useState('');
 
   const budgetPdfRef = useRef<{
     gerarPDF: (
@@ -234,9 +252,24 @@ export default function OrcamentoPage() {
     return list;
   }, [orcamentosSalvos, searchTerm, clienteIdParam, statusFilter]);
 
+
   // =========================
   // HANDLERS
   // =========================
+
+  const openCompanyWhatsApp = (orcamento: Orcamento, phone: string) => {
+    const cleanPhone = `55${phone.replace(/\D/g, '')}`;
+    const text = `✅ Orçamento Aceito!\n\n*Nº:* ${orcamento.numeroOrcamento}\n*Cliente:* ${orcamento.cliente.nome}\n*Valor:* ${formatCurrency(orcamento.totalVenda)}`;
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const handleConfirmCompanyPhone = () => {
+    if (companyPhoneDialog.orcamento && selectedCompanyPhone) {
+      openCompanyWhatsApp(companyPhoneDialog.orcamento, selectedCompanyPhone);
+    }
+    setCompanyPhoneDialog({ open: false, phones: [], orcamento: null });
+  };
+  
   const handleSaveBudget = async (
     data: Omit<Orcamento, 'id'>,
     saveNewClient: boolean
@@ -285,40 +318,39 @@ export default function OrcamentoPage() {
     status: 'Aceito' | 'Recusado'
   ) => {
     if (!user) return;
-
+  
     const now = new Date().toISOString();
-
+  
     await updateOrcamentoStatus(budgetId, status, {
       ...(status === 'Aceito'
         ? { dataAceite: now }
         : { dataRecusa: now }),
     });
-
-    if (status === 'Aceito') {
-      const budget = orcamentosSalvos?.find(
-        o => o.id === budgetId
-      );
-
-      if (budget) {
-        for (const item of budget.itens) {
-          if (!item.materialId.startsWith('avulso-')) {
-            try {
-              await updateEstoque(
-                user.uid,
-                item.materialId,
-                item.quantidade
-              );
-            } catch (err) {
-              console.error(
-                'Erro ao atualizar estoque:',
-                err
-              );
-            }
+  
+    const budget = orcamentosSalvos?.find(o => o.id === budgetId);
+  
+    if (status === 'Aceito' && budget) {
+      // Atualiza estoque
+      for (const item of budget.itens) {
+        if (!item.materialId.startsWith('avulso-')) {
+          try {
+            await updateEstoque(user.uid, item.materialId, item.quantidade);
+          } catch (err) {
+            console.error('Erro ao atualizar estoque:', err);
           }
         }
       }
+  
+      // Envia notificação para a empresa
+      const companyPhones = empresa?.telefones?.filter(t => t.numero) ?? [];
+      if (companyPhones.length === 1) {
+        openCompanyWhatsApp(budget, companyPhones[0].numero);
+      } else if (companyPhones.length > 1) {
+        setSelectedCompanyPhone(companyPhones.find(p => p.principal)?.numero || companyPhones[0].numero);
+        setCompanyPhoneDialog({ open: true, phones: companyPhones, orcamento: budget });
+      }
     }
-
+  
     toast({
       title: `Orçamento ${status.toLowerCase()}`,
     });
@@ -412,6 +444,30 @@ export default function OrcamentoPage() {
         ref={budgetPdfRef}
         empresa={empresa || null}
       />
+
+      <Dialog open={companyPhoneDialog.open} onOpenChange={(o) => setCompanyPhoneDialog(p => ({ ...p, open: o }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Notificar Empresa</DialogTitle>
+            <DialogDescription>Para qual número da sua empresa deseja enviar a notificação de orçamento aceito?</DialogDescription>
+          </DialogHeader>
+          <RadioGroup value={selectedCompanyPhone} onValueChange={setSelectedCompanyPhone} className="space-y-3 my-4">
+            {companyPhoneDialog.phones.map((p, i) => (
+              <div key={i} className="flex items-center gap-3 border p-3 rounded-md">
+                <RadioGroupItem value={p.numero} id={`company-phone-${i}`} />
+                <Label htmlFor={`company-phone-${i}`} className="flex flex-col cursor-pointer">
+                  <span className="font-semibold">{p.nome || `Telefone ${i + 1}`}</span>
+                  <span className="text-muted-foreground">{p.numero}</span>
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCompanyPhoneDialog({ open: false, phones: [], orcamento: null })}>Cancelar</Button>
+            <Button onClick={handleConfirmCompanyPhone}>Confirmar Envio</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
