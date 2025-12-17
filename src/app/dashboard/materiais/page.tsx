@@ -231,8 +231,8 @@ export default function MateriaisPage() {
     setEditingPrecoUnitarioStr(material.precoUnitario ? maskCurrency(material.precoUnitario.toFixed(2)) : '');
     
     const isInteger = integerUnits.includes(material.unidade);
-    setEditingQuantidadeStr(material.quantidade !== null ? (isInteger ? String(material.quantidade) : formatNumber(material.quantidade, 2)) : '');
-    setEditingQuantidadeMinimaStr(material.quantidadeMinima !== null ? (isInteger ? String(material.quantidadeMinima) : formatNumber(material.quantidadeMinima, 2)) : '');
+    setEditingQuantidadeStr(material.quantidade !== null ? (isInteger ? maskInteger(String(material.quantidade)) : formatNumber(material.quantidade, 2)) : '');
+    setEditingQuantidadeMinimaStr(material.quantidadeMinima !== null ? (isInteger ? maskInteger(String(material.quantidadeMinima)) : formatNumber(material.quantidadeMinima, 2)) : '');
 
     setIsEditModalOpen(true);
   };
