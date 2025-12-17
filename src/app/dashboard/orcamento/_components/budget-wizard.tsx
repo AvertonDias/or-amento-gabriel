@@ -41,7 +41,7 @@ import {
   formatCurrency, formatNumber,
   maskCpfCnpj, maskTelefone,
   maskCurrency, maskDecimal,
-  maskInteger, maskDecimalWithAutoComma
+  maskInteger
 } from '@/lib/utils';
 
 import { cn } from '@/lib/utils';
@@ -395,7 +395,7 @@ export function BudgetWizard({
                       <div className="border rounded-md p-4 space-y-2 bg-muted/50 text-sm">
                         <h3 className="font-semibold text-base mb-2">Dados do Cliente</h3>
                         <p><strong>Nome:</strong> {clienteData.nome}</p>
-                        {clienteData.telefones[0]?.numero && <p><strong>Telefone:</strong> {clienteData.telefones[0].numero}</p>}
+                        {clienteData.telefones && clienteData.telefones[0]?.numero && <p><strong>Telefone:</strong> {clienteData.telefones[0].numero}</p>}
                         {clienteData.email && <p><strong>Email:</strong> {clienteData.email}</p>}
                         {clienteData.endereco && <p><strong>Endereço:</strong> {clienteData.endereco}</p>}
                       </div>
@@ -497,7 +497,7 @@ export function BudgetWizard({
                           ref={quantidadeInputRef}
                           placeholder={`Qtd (${selectedMaterial?.unidade || 'un'})`}
                           value={quantidadeStr}
-                          onChange={e => setQuantidadeStr(isCurrentUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value))}
+                          onChange={(e) => setQuantidadeStr(isCurrentUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value))}
                         />
                         <Input placeholder="Acréscimo % (Opcional)" value={margemLucroStr} onChange={e => setMargemLucroStr(maskDecimal(e.target.value))} />
                       </div>

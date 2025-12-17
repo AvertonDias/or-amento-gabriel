@@ -134,6 +134,10 @@ export const maskDecimal = (value: string): string => {
   let v = value.replace(/[^0-9,]/g, "");
   const parts = v.split(",");
 
+  if (parts.length > 2) {
+    v = `${parts[0]},${parts.slice(1).join('')}`;
+  }
+
   if (parts[1]?.length > 2) {
     v = `${parts[0]},${parts[1].slice(0, 2)}`;
   }

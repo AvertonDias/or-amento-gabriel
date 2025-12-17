@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, FormEvent, useMemo } from 'react';
@@ -78,11 +79,7 @@ export function EditItemModal({
 
     setEditingItem({ ...item });
 
-    setQuantidadeStr(
-      isCurrentUnitInteger
-        ? String(item.quantidade)
-        : String(item.quantidade).replace('.', ',')
-    );
+    setQuantidadeStr(maskDecimalWithAutoComma(String(item.quantidade)));
 
     setMargemLucroStr(
       item.margemLucro > 0
@@ -95,7 +92,7 @@ export function EditItemModal({
     );
 
     setIsPriceUnlocked(item.materialId.startsWith('avulso-'));
-  }, [item, isCurrentUnitInteger]);
+  }, [item]);
 
   /* =========================
      HANDLER DE ALTERAÇÃO
@@ -116,7 +113,7 @@ export function EditItemModal({
     if (name === 'quantidade') {
       newQuantidadeStr = isCurrentUnitInteger
         ? maskInteger(value)
-        : maskDecimalWithAutoComma(value);
+        : maskDecimal(value);
     }
 
     if (name === 'margemLucro') {
