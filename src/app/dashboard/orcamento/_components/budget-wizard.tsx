@@ -559,8 +559,20 @@ export function BudgetWizard({
                     <div className="space-y-2">
                       <Popover open={isMaterialPopoverOpen} onOpenChange={setIsMaterialPopoverOpen}>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" role="combobox" aria-expanded={isMaterialPopoverOpen} className="w-full justify-between">
-                            {selectedMaterial?.descricao || "Selecione um item..."}
+                          <Button variant="outline" role="combobox" aria-expanded={isMaterialPopoverOpen} className="w-full justify-between text-left h-auto">
+                           <span className="flex flex-col">
+                              {selectedMaterial?.descricao ? (
+                                <>
+                                  <span>{selectedMaterial.descricao}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatCurrency(selectedMaterial.precoUnitario)}/{selectedMaterial.unidade}
+                                    {selectedMaterial.tipo === 'item' && selectedMaterial.quantidade !== null && (
+                                      ` (Estoque: ${formatNumber(selectedMaterial.quantidade, integerUnits.includes(selectedMaterial.unidade) ? 0 : 2)})`
+                                    )}
+                                  </span>
+                                </>
+                              ) : "Selecione um item..."}
+                            </span>
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
@@ -577,7 +589,15 @@ export function BudgetWizard({
                                     setTimeout(() => quantidadeInputRef.current?.focus(), 100);
                                   }}>
                                     <Check className={cn("mr-2 h-4 w-4", novoItem.materialId === m.id ? "opacity-100" : "opacity-0")} />
-                                    {m.descricao} ({formatCurrency(m.precoUnitario)}/{m.unidade})
+                                     <div className="flex flex-col">
+                                      <span>{m.descricao}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {formatCurrency(m.precoUnitario)}/{m.unidade}
+                                        {m.tipo === 'item' && m.quantidade !== null && (
+                                          ` (Estoque: ${formatNumber(m.quantidade, integerUnits.includes(m.unidade) ? 0 : 2)})`
+                                        )}
+                                      </span>
+                                    </div>
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
