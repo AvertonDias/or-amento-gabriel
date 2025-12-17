@@ -152,16 +152,6 @@ export function BudgetList({
     
     text += `*ORÇAMENTO Nº ${orcamento.numeroOrcamento}*\n\n`;
 
-    text += "*DADOS DO CLIENTE:*\n";
-    text += `*- Nome:* ${orcamento.cliente.nome}\n`;
-    if (orcamento.cliente.cpfCnpj) text += `*- CPF/CNPJ:* ${orcamento.cliente.cpfCnpj}\n`;
-    if (orcamento.cliente.endereco) text += `*- Endereço:* ${orcamento.cliente.endereco}\n`;
-    orcamento.cliente.telefones.forEach(tel => {
-        if(tel.numero) text += `*- ${tel.nome || 'Telefone'}:* ${tel.numero}\n`;
-    });
-    if (orcamento.cliente.email) text += `*- Email:* ${orcamento.cliente.email}\n`;
-    text += "\n";
-
     text += "*ITENS:*\n";
     orcamento.itens.forEach(i => {
       text += `- ${i.materialNome} (${formatNumber(i.quantidade, 2)} ${i.unidade}): ${formatCurrency(i.precoVenda)}\n`;
@@ -204,8 +194,8 @@ export function BudgetList({
   const handleConfirmPhone = () => {
       if (phoneDialog.orcamento && selectedPhone) {
           openWhatsApp(phoneDialog.orcamento, selectedPhone);
-          setPhoneDialog({ open: false, phones: [], orcamento: null });
       }
+      setPhoneDialog({ open: false, phones: [], orcamento: null });
   }
 
 
