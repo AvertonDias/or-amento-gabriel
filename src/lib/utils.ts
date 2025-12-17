@@ -235,10 +235,10 @@ export function validateCpfCnpj(
    Checagem de cliente duplicado
 ================================= */
 
-const normalizePhone = (value: string) =>
+export const normalizePhone = (value: string) =>
   value.replace(/\D/g, '').replace(/^55/, '');
 
-const normalizeEmail = (value: string) =>
+export const normalizeEmail = (value: string) =>
   value.trim().toLowerCase();
 
 export function findDuplicateClient(
