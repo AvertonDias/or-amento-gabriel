@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Orcamento } from '@/lib/types';
+import { Label } from '@/components/ui/label';
 
 interface BudgetHeaderProps {
   searchTerm: string;
@@ -63,8 +63,9 @@ export function BudgetHeader({
 
       {/* Filtro de Status */}
       <div className="flex items-center gap-2 w-full sm:w-auto">
+        <Label htmlFor="status-filter" className="text-sm">Status:</Label>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filtrar por status">
+          <SelectTrigger id="status-filter" className="w-full sm:w-[180px]" aria-label="Filtrar por status">
             <SelectValue placeholder="Filtrar status..." />
           </SelectTrigger>
           <SelectContent>
