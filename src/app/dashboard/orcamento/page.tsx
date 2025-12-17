@@ -352,16 +352,16 @@ export default function OrcamentoPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4">
+           <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
             <Button
               onClick={() => setIsWizardOpen(true)}
               disabled={isLoading}
-              className="w-full sm:w-auto flex-shrink-0"
+              className="w-full sm:w-auto"
             >
               <PlusCircle className="mr-2 h-4 w-4" />
               Novo Orçamento
             </Button>
-            <div className="flex-grow">
+            <div className="w-full sm:w-auto sm:max-w-md flex-grow">
               <BudgetHeader
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
