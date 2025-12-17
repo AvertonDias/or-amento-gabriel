@@ -68,7 +68,7 @@ const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
   const calculated = orcamento.itens.reduce((s, i) => s + i.precoVenda, 0);
   if (Math.abs(calculated - orcamento.totalVenda) < 0.01) {
     return (
-      <div className="flex flex-col items-center p-1">
+      <div className="flex flex-col items-end">
         <span className="font-bold">{formatCurrency(orcamento.totalVenda)}</span>
       </div>
     )
@@ -80,13 +80,13 @@ const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="flex flex-col items-center p-1">
+        <div className="flex flex-col items-end">
           <span className="font-bold">
             {formatCurrency(orcamento.totalVenda)}
           </span>
           <span
             className={cn(
-              'text-xs text-muted-foreground',
+              'text-xs',
               diff < 0 ? 'text-destructive' : 'text-green-600'
             )}
           >
@@ -244,8 +244,6 @@ export function BudgetList({
       <div className="md:hidden space-y-4">
         {budgets.map(o => {
             const hasNotes = !!(o.observacoes || o.observacoesInternas);
-            const calculatedTotal = o.itens.reduce((acc, item) => acc + item.precoVenda, 0);
-
             return (
               <Card key={o.id} className="overflow-hidden">
                 <Accordion type="single" collapsible={hasNotes} className="w-full">
@@ -317,7 +315,7 @@ export function BudgetList({
 
                       <div className="px-4 flex justify-between items-center text-lg font-bold text-primary pt-2 mt-2 border-t">
                           Total:
-                          <div className="flex items-center">
+                          <div className="flex justify-end items-center">
                             <AdjustmentBadge orcamento={o} />
                           </div>
                       </div>
@@ -358,7 +356,6 @@ export function BudgetList({
          <Accordion type="multiple" className="w-full">
             {budgets.map(o => {
                 const hasNotes = !!(o.observacoes || o.observacoesInternas);
-                const calculatedTotal = o.itens.reduce((acc, item) => acc + item.precoVenda, 0);
                 return (
                     <AccordionItem value={o.id} key={o.id} className="border-b">
                         <div
