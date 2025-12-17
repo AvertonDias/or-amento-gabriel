@@ -210,17 +210,15 @@ export function BudgetEditDialog({
     });
   };
 
-  const addTelefoneField = () => {
-    if (!editingBudget) return;
-    setEditingBudget(prev => {
-      if (!prev) return null;
-      const telefones = [...(prev.cliente.telefones || []), { nome: 'Novo', numero: '' }];
-      return { ...prev, cliente: { ...prev.cliente, telefones } };
-    });
-  };
-
   const removeTelefoneField = (index: number) => {
-    if (!editingBudget || editingBudget.cliente.telefones.length <= 1) return;
+    if (!editingBudget || editingBudget.cliente.telefones.length <= 1) {
+      toast({
+        title: 'Ação não permitida',
+        description: 'O cliente deve ter pelo menos um telefone.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setEditingBudget(prev => {
       if (!prev) return null;
       const telefones = prev.cliente.telefones.filter((_, i) => i !== index);
@@ -371,9 +369,6 @@ export function BudgetEditDialog({
                         </Button>
                     </div>
                   ))}
-                  <Button type="button" variant="outline" size="sm" onClick={addTelefoneField}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Telefone
-                  </Button>
                 </div>
               </CardContent>
             </Card>
