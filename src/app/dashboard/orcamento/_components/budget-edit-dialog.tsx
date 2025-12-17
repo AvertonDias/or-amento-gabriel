@@ -313,7 +313,7 @@ export function BudgetEditDialog({
                                   <Input
                                     id="manualTotal"
                                     className="text-right text-base font-bold h-9 pr-10"
-                                    value={isTotalLocked ? formatCurrency(calculatedTotal, false) : manualTotalStr}
+                                    value={isTotalLocked ? formatCurrency(finalTotal, false) : manualTotalStr}
                                     onChange={handleManualTotalChange}
                                     disabled={isTotalLocked}
                                   />

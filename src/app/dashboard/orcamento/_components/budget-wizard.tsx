@@ -572,7 +572,7 @@ export function BudgetWizard({
                     {orcamentoItens.length > 0 && (
                       <TableFooter>
                          <TableRow className="bg-muted/50 font-bold">
-                            <TableCell colSpan={2} className="text-right align-middle">
+                           <TableCell colSpan={2} className="text-right align-middle">
                               <div className='flex justify-end items-center gap-2'>
                                 {isTotalEdited && (
                                   <Badge variant={adjustmentPercentage < 0 ? 'destructive' : 'default'}>
@@ -587,7 +587,7 @@ export function BudgetWizard({
                                   <Input
                                     id="manualTotal"
                                     className="text-right text-base font-bold h-9 pr-10"
-                                    value={isTotalLocked ? formatCurrency(calculatedTotal, false) : manualTotalStr}
+                                    value={isTotalLocked ? formatCurrency(finalTotal, false) : manualTotalStr}
                                     onChange={handleManualTotalChange}
                                     disabled={isTotalLocked}
                                   />
