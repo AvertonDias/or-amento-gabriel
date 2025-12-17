@@ -66,7 +66,13 @@ interface BudgetListProps {
 /* ---------------- BADGE DE AJUSTE ---------------- */
 const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
   const calculated = orcamento.itens.reduce((s, i) => s + i.precoVenda, 0);
-  if (Math.abs(calculated - orcamento.totalVenda) < 0.01) return null;
+  if (Math.abs(calculated - orcamento.totalVenda) < 0.01) {
+    return (
+      <div className="flex flex-col items-center p-1">
+        <span className="font-bold">{formatCurrency(orcamento.totalVenda)}</span>
+      </div>
+    )
+  };
 
   const diff = orcamento.totalVenda - calculated;
   const percentage = calculated !== 0 ? (diff / calculated) * 100 : 0;
@@ -75,14 +81,11 @@ const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
     <Tooltip>
       <TooltipTrigger asChild>
         <div className="flex flex-col items-center p-1">
-          <span className={cn(
-            "font-bold",
-            diff > 0 ? "text-green-600" : "text-destructive"
-          )}>
+          <span className="font-bold">
             {formatCurrency(orcamento.totalVenda)}
           </span>
           <span className="text-xs text-muted-foreground">
-            {diff < 0 ? 'Desconto' : 'Acréscimo'} ({percentage.toFixed(1)}%)
+            {diff > 0 ? 'Acréscimo' : 'Desconto'} ({percentage.toFixed(1)}%)
           </span>
         </div>
       </TooltipTrigger>
@@ -310,10 +313,7 @@ export function BudgetList({
                       <div className="px-4 flex justify-between items-center text-lg font-bold text-primary pt-2 mt-2 border-t">
                           Total:
                           <div className="flex items-center">
-                            {Math.abs(calculatedTotal - o.totalVenda) < 0.01 
-                              ? (<span className="font-semibold text-right text-base">{formatCurrency(o.totalVenda)}</span>)
-                              : <AdjustmentBadge orcamento={o} />
-                            }
+                            <AdjustmentBadge orcamento={o} />
                           </div>
                       </div>
 
@@ -374,10 +374,7 @@ export function BudgetList({
                             <div className="shrink-0">{format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</div>
                             <div className="shrink-0"><Badge variant={getStatusVariant(o.status)}>{o.status}</Badge></div>
                             <div className="text-right font-semibold flex justify-end items-center">
-                                {Math.abs(calculatedTotal - o.totalVenda) < 0.01 
-                                  ? (<span className="font-semibold text-right">{formatCurrency(o.totalVenda)}</span>)
-                                  : <AdjustmentBadge orcamento={o} />
-                                }
+                                <AdjustmentBadge orcamento={o} />
                             </div>
                             <div className="shrink-0 text-center flex justify-center items-center">
                                 <DropdownMenu>
@@ -422,7 +419,7 @@ export function BudgetList({
                             <AccordionContent>
                               <div className="bg-muted/30 text-sm space-y-2 p-4 col-span-7">
                                   {o.observacoes && (<div><strong className="text-muted-foreground">Obs. Cliente:</strong> {o.observacoes}</div>)}
-                                  {o.observacoesInternas && (<div><strong className="text-muted-foreground">Obs. Interna:</strong> {o.observacoesInternas}</div>)}
+                                  {o.observacoesInternas && (<div><strong className="text-muted-foreground">Obs. Internas:</strong> {o.observacoesInternas}</div>)}
                               </div>
                             </AccordionContent>
                         )}
