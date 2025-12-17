@@ -274,7 +274,7 @@ export function BudgetEditDialog({
                         <TableRow>
                             <TableHead>Item</TableHead>
                             <TableHead className="text-right">Valor Final</TableHead>
-                            <TableHead className="w-[100px] text-center">Ações</TableHead>
+                            <TableHead className="w-[120px] text-center">Ações</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
