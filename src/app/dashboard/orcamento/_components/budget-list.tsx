@@ -310,8 +310,10 @@ export function BudgetList({
                       <div className="px-4 flex justify-between items-center text-lg font-bold text-primary pt-2 mt-2 border-t">
                           Total:
                           <div className="flex items-center">
-                            {formatCurrency(calculatedTotal)}
-                            <AdjustmentBadge orcamento={o} />
+                            {Math.abs(calculatedTotal - o.totalVenda) < 0.01 
+                              ? formatCurrency(o.totalVenda)
+                              : <AdjustmentBadge orcamento={o} />
+                            }
                           </div>
                       </div>
 
@@ -372,7 +374,10 @@ export function BudgetList({
                             <div className="shrink-0">{format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</div>
                             <div className="shrink-0"><Badge variant={getStatusVariant(o.status)}>{o.status}</Badge></div>
                             <div className="text-right font-semibold flex justify-end items-center">
-                                {formatCurrency(calculatedTotal)}<AdjustmentBadge orcamento={o} />
+                                {Math.abs(calculatedTotal - o.totalVenda) < 0.01 
+                                  ? formatCurrency(o.totalVenda)
+                                  : <AdjustmentBadge orcamento={o} />
+                                }
                             </div>
                             <div className="shrink-0 text-center flex justify-center items-center">
                                 <DropdownMenu>
@@ -404,7 +409,7 @@ export function BudgetList({
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                                  {hasNotes && (
-                                    <AccordionTrigger hideChevron>
+                                    <AccordionTrigger>
                                       <div className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground flex items-center gap-1 text-muted-foreground hover:text-accent-foreground text-xs">
                                         <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                         <span>Obs.</span>
