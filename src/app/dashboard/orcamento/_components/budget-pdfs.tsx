@@ -216,18 +216,32 @@ const InternalBudgetPDFLayout = ({
   
   const ajuste = orcamento.totalVenda - totalVendaCalculado;
   const totalEditado = Math.abs(totalVendaCalculado - orcamento.totalVenda) > 0.01;
+  const telEmpresa =
+    empresa?.telefones?.find(t => t.principal) ||
+    empresa?.telefones?.[0];
 
   return (
     <div className="p-8 bg-white text-black text-xs font-sans">
       {/* CABEÇALHO */}
       <header className="flex justify-between border-b-2 pb-4 mb-4">
-        <div>
-          <h1 className="text-xl font-bold">{empresa?.nome}</h1>
-          <p className="font-semibold">Relatório Interno de Custos e Lucro</p>
+        <div className="flex gap-4">
+          {empresa?.logo && (
+            <img
+              src={empresa.logo}
+              alt="Logo"
+              className="w-20 h-20 object-contain"
+            />
+          )}
+          <div>
+            <h1 className="text-xl font-bold">{empresa?.nome}</h1>
+            <p>{empresa?.endereco}</p>
+            {telEmpresa && <p>{telEmpresa.numero}</p>}
+            <p>{empresa?.cnpj}</p>
+          </div>
         </div>
         <div className="text-right">
           <h2 className="text-lg font-semibold">
-            Orçamento #{orcamento.numeroOrcamento}
+            Relatório Interno - Orçamento #{orcamento.numeroOrcamento}
           </h2>
           <p>Cliente: {orcamento.cliente.nome}</p>
           <p>Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
