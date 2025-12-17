@@ -589,7 +589,7 @@ export function BudgetWizard({
                       <TableRow>
                         <TableHead>Item</TableHead>
                         <TableHead className="text-right">Valor</TableHead>
-                        <TableHead className="text-center">Ações</TableHead>
+                        <TableHead className="w-[100px] text-center">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -611,18 +611,18 @@ export function BudgetWizard({
                     </TableBody>
                     {orcamentoItens.length > 0 && (
                       <TableFooter>
-                         <TableRow className="bg-muted/50 font-bold">
-                           <TableCell colSpan={2} className="text-right align-middle">
+                         <TableRow className="bg-muted/50 font-bold flex flex-col sm:table-row p-4 sm:p-0">
+                           <TableCell colSpan={2} className="text-right align-middle p-0 sm:p-4">
                               <div className='flex justify-end items-center gap-2'>
                                 {isTotalEdited && (
                                   <Badge variant={adjustmentPercentage < 0 ? 'destructive' : 'default'}>
                                     {adjustmentPercentage < 0 ? 'Desconto' : 'Acréscimo'}: {Math.abs(adjustmentPercentage).toFixed(2)}%
                                   </Badge>
                                 )}
-                                <Label htmlFor="manualTotal" className="text-base">Total</Label>
+                                <Label htmlFor="manualTotal" className="text-base shrink-0">Total</Label>
                               </div>
                             </TableCell>
-                            <TableCell className="text-right text-primary">
+                            <TableCell className="text-right text-primary p-0 sm:p-4">
                                <div className="relative">
                                   <Input
                                     id="manualTotal"
