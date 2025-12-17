@@ -366,10 +366,10 @@ export function BudgetWizard({
     <>
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogContent
-          className="max-w-4xl max-h-[90vh] flex flex-col"
+          className="max-w-4xl max-h-[90vh] flex flex-col p-0"
           onPointerDownOutside={(e) => { if (Capacitor.isNativePlatform()) e.preventDefault(); }}
         >
-          <DialogHeader>
+          <DialogHeader className="p-6 pb-4">
             <DialogTitle>Novo Orçamento (Passo {wizardStep}/3)</DialogTitle>
             <DialogDescription>
               {wizardStep === 1 && "Selecione um cliente existente ou cadastre um novo."}
@@ -378,7 +378,7 @@ export function BudgetWizard({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto pr-2 -mr-6 pl-6">
+          <div className="flex-1 overflow-y-auto px-6">
             {/* Passo 1: Cliente */}
             {wizardStep === 1 && (
               <div className="space-y-4">
@@ -673,7 +673,7 @@ export function BudgetWizard({
             )}
           </div>
 
-          <DialogFooter className="pt-4 border-t">
+          <DialogFooter className="p-6 pt-4 border-t">
             {wizardStep > 1 && (
               <Button variant="outline" onClick={() => setWizardStep(s => s - 1)}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
