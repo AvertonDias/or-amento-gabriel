@@ -407,14 +407,16 @@ export function BudgetList({
                                         <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setBudgetToDelete(o)}><Trash2 className="mr-2 h-4 w-4" /> Excluir</DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
-                                 {hasNotes && (
+                                 {hasNotes ? (
                                     <AccordionTrigger className="p-2 -mr-2">
                                       <div className="p-0 rounded-md hover:bg-accent hover:text-accent-foreground flex items-center gap-1 text-muted-foreground hover:text-accent-foreground text-xs">
                                         Obs.
                                         <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
                                       </div>
                                     </AccordionTrigger>
-                                )}
+                                 ) : (
+                                    <div className="w-[52px]" />
+                                 )}
                             </div>
                         </div>
                         {hasNotes && (
