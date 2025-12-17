@@ -74,22 +74,17 @@ const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Badge
-          variant="outline"
-          className="ml-2 h-auto"
-        >
-          <div className="flex flex-col items-center py-1">
-             <span className={cn(
-               "font-bold",
-               diff > 0 ? "text-green-600" : "text-destructive"
-             )}>
-              {formatCurrency(orcamento.totalVenda)}
-            </span>
-             <span className="text-xs">
-                {diff < 0 ? 'Desconto' : 'Acréscimo'} ({percentage.toFixed(1)}%)
-             </span>
-          </div>
-        </Badge>
+        <div className="flex flex-col items-center p-1">
+          <span className={cn(
+            "font-bold",
+            diff > 0 ? "text-green-600" : "text-destructive"
+          )}>
+            {formatCurrency(orcamento.totalVenda)}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {diff < 0 ? 'Desconto' : 'Acréscimo'} ({percentage.toFixed(1)}%)
+          </span>
+        </div>
       </TooltipTrigger>
       <TooltipContent>
         <p>Total calculado: {formatCurrency(calculated)}</p>
@@ -316,7 +311,7 @@ export function BudgetList({
                           Total:
                           <div className="flex items-center">
                             {Math.abs(calculatedTotal - o.totalVenda) < 0.01 
-                              ? formatCurrency(o.totalVenda)
+                              ? (<span className="font-semibold text-right text-base">{formatCurrency(o.totalVenda)}</span>)
                               : <AdjustmentBadge orcamento={o} />
                             }
                           </div>
@@ -380,7 +375,7 @@ export function BudgetList({
                             <div className="shrink-0"><Badge variant={getStatusVariant(o.status)}>{o.status}</Badge></div>
                             <div className="text-right font-semibold flex justify-end items-center">
                                 {Math.abs(calculatedTotal - o.totalVenda) < 0.01 
-                                  ? formatCurrency(o.totalVenda)
+                                  ? (<span className="font-semibold text-right">{formatCurrency(o.totalVenda)}</span>)
                                   : <AdjustmentBadge orcamento={o} />
                                 }
                             </div>
@@ -414,8 +409,8 @@ export function BudgetList({
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                                  {hasNotes && (
-                                    <AccordionTrigger>
-                                      <div className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground flex items-center gap-1 text-muted-foreground hover:text-accent-foreground text-xs">
+                                    <AccordionTrigger className="p-2 -mr-2" hideChevron>
+                                      <div className="p-0 rounded-md hover:bg-accent hover:text-accent-foreground flex items-center gap-1 text-muted-foreground hover:text-accent-foreground text-xs">
                                         <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                         <span>Obs.</span>
                                       </div>
