@@ -42,6 +42,8 @@ import {
   RotateCcw,
   Lock,
   Unlock,
+  ChevronsUpDown,
+  Check,
 } from 'lucide-react';
 import {
   formatCurrency,
@@ -49,7 +51,6 @@ import {
   maskCurrency,
   maskDecimal,
   maskInteger,
-  maskDecimalWithAutoComma,
   maskTelefone,
 } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -57,6 +58,20 @@ import { Capacitor } from '@capacitor/core';
 import { EditItemModal } from './edit-item-modal';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 /* ===========================
    Helpers
@@ -98,22 +113,23 @@ export function BudgetEditDialog({
   const [editingBudgetItens, setEditingBudgetItens] = useState<OrcamentoItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [newItemForEdit, setNewItemForEdit] = useState({
+  // States for adding new item
+  const [newItem, setNewItem] = useState({
     materialId: '',
     quantidade: '',
     margemLucro: '',
   });
-
-  const [newItemQtyStr, setNewItemQtyStr] = useState('');
-  const [newItemMarginStr, setNewItemMarginStr] = useState('');
-
-  const [isAddingAvulsoInEdit, setIsAddingAvulsoInEdit] = useState(false);
-  const [itemAvulsoInEdit, setItemAvulsoInEdit] = useState({
+  const [quantidadeStr, setQuantidadeStr] = useState('');
+  const [margemLucroStr, setMargemLucroStr] = useState('');
+  const [isAddingAvulso, setIsAddingAvulso] = useState(false);
+  const [itemAvulso, setItemAvulso] = useState({
     descricao: '',
-    quantidade: '',
     unidade: 'un',
+    quantidade: '',
+    precoFinal: '',
   });
   const [itemAvulsoPrecoStr, setItemAvulsoPrecoStr] = useState('');
+  const [isMaterialPopoverOpen, setIsMaterialPopoverOpen] = useState(false);
 
   const [itemToEdit, setItemToEdit] = useState<OrcamentoItem | null>(null);
 
@@ -146,17 +162,17 @@ export function BudgetEditDialog({
   /* ===========================
      Memos
   =========================== */
-  const selectedMaterialForEdit = useMemo(
-    () => materiais.find(m => m.id === newItemForEdit.materialId),
-    [materiais, newItemForEdit.materialId]
+  const selectedMaterial = useMemo(
+    () => materiais.find(m => m.id === newItem.materialId),
+    [materiais, newItem.materialId]
   );
 
-  const isEditUnitInteger = useMemo(() => {
-    if (isAddingAvulsoInEdit) return integerUnits.includes(itemAvulsoInEdit.unidade);
-    return selectedMaterialForEdit
-      ? integerUnits.includes(selectedMaterialForEdit.unidade)
+  const isCurrentUnitInteger = useMemo(() => {
+    if (isAddingAvulso) return integerUnits.includes(itemAvulso.unidade);
+    return selectedMaterial
+      ? integerUnits.includes(selectedMaterial.unidade)
       : false;
-  }, [isAddingAvulsoInEdit, itemAvulsoInEdit.unidade, selectedMaterialForEdit]);
+  }, [isAddingAvulso, itemAvulso.unidade, selectedMaterial]);
 
   const calculatedTotal = useMemo(
     () => editingBudgetItens.reduce((s, i) => s + i.precoVenda, 0),
@@ -221,7 +237,6 @@ export function BudgetEditDialog({
         totalVenda: finalTotal,
       });
 
-      // O toast de sucesso agora é responsabilidade da página.
       onOpenChange(false);
     } catch {
       toast({
@@ -233,6 +248,65 @@ export function BudgetEditDialog({
     }
   };
 
+  const handleAddItem = () => {
+    const quantidade = parseFloat(quantidadeStr.replace(',', '.'));
+    if (!selectedMaterial || !quantidade || quantidade <= 0) {
+      toast({ title: "Dados inválidos", description: "Selecione um item e informe a quantidade.", variant: "destructive" });
+      return;
+    }
+
+    const total = selectedMaterial.precoUnitario! * quantidade;
+    const margem = parseFloat(margemLucroStr.replace(',', '.')) || 0;
+    const precoVenda = total * (1 + margem / 100);
+
+    const orcamentoItem: OrcamentoItem = {
+      id: generateId(),
+      materialId: selectedMaterial.id,
+      materialNome: selectedMaterial.descricao,
+      unidade: selectedMaterial.unidade,
+      quantidade,
+      precoUnitario: selectedMaterial.precoUnitario!,
+      total,
+      margemLucro: margem,
+      precoVenda,
+    };
+
+    setEditingBudgetItens([...editingBudgetItens, orcamentoItem]);
+    setNewItem({ materialId: '', quantidade: '', margemLucro: '' });
+    setQuantidadeStr('');
+    setMargemLucroStr('');
+  };
+
+  const handleAddAvulso = () => {
+    const quantidade = parseFloat(itemAvulso.quantidade.replace(',', '.'));
+    const precoVenda = parseFloat(itemAvulsoPrecoStr.replace(/[^\d,]/g, '').replace(',', '.'));
+
+    if (!itemAvulso.descricao || !quantidade || quantidade <= 0 || !precoVenda || precoVenda <= 0) {
+      toast({ title: "Dados inválidos", description: "Preencha todos os campos do item avulso.", variant: "destructive" });
+      return;
+    }
+
+    const precoUnitario = precoVenda / quantidade;
+
+    const orcamentoItem: OrcamentoItem = {
+      id: generateId(),
+      materialId: `avulso-${generateId()}`,
+      materialNome: itemAvulso.descricao,
+      unidade: itemAvulso.unidade,
+      quantidade,
+      precoUnitario,
+      total: precoVenda,
+      margemLucro: 0,
+      precoVenda,
+    };
+
+    setEditingBudgetItens([...editingBudgetItens, orcamentoItem]);
+    setItemAvulso({ descricao: '', unidade: 'un', quantidade: '', precoFinal: '' });
+    setItemAvulsoPrecoStr('');
+    setIsAddingAvulso(false);
+  };
+
+
   if (!editingBudget) return null;
 
   /* ===========================
@@ -242,19 +316,19 @@ export function BudgetEditDialog({
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent
-          className="max-w-4xl w-[95vw] h-[90vh] flex flex-col"
+          className="max-w-4xl w-[95vw] h-[90vh] flex flex-col p-0"
           onPointerDownOutside={e => {
             if (Capacitor.isNativePlatform()) e.preventDefault();
           }}
         >
-          <DialogHeader>
+          <DialogHeader className="p-6 pb-0">
             <DialogTitle>Editar Orçamento Nº {editingBudget.numeroOrcamento}</DialogTitle>
             <DialogDescription>
               Ajuste as informações do cliente, itens e valores do orçamento.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto pr-4 space-y-6">
+          <div className="flex-1 overflow-y-auto px-6 space-y-6">
             <Card>
               <CardContent className="p-4 grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -354,6 +428,83 @@ export function BudgetEditDialog({
                 </Table>
             </div>
             
+             {/* Adicionar Itens */}
+            <div className="border p-4 rounded-md space-y-4">
+              <h3 className="font-semibold">Adicionar Novo Item</h3>
+              <RadioGroup value={isAddingAvulso ? 'avulso' : 'catalogo'} onValueChange={v => setIsAddingAvulso(v === 'avulso')}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="catalogo" id="r-edit-catalogo" />
+                  <Label htmlFor="r-edit-catalogo">Item do Catálogo</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="avulso" id="r-edit-avulso" />
+                  <Label htmlFor="r-edit-avulso">Item Avulso</Label>
+                </div>
+              </RadioGroup>
+
+              {isAddingAvulso ? (
+                <div className="space-y-2">
+                  <Input placeholder="Descrição do item" value={itemAvulso.descricao} onChange={e => setItemAvulso({ ...itemAvulso, descricao: e.target.value })} />
+                  <div className="grid grid-cols-3 gap-2">
+                    <Input 
+                      placeholder="Qtd" 
+                      value={itemAvulso.quantidade} 
+                      onChange={e => setItemAvulso({ ...itemAvulso, quantidade: isCurrentUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value) })}
+                    />
+                      <Select value={itemAvulso.unidade} onValueChange={v => setItemAvulso({ ...itemAvulso, unidade: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {unidadesDeMedida.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Input placeholder="Preço Final" value={itemAvulsoPrecoStr} onChange={e => setItemAvulsoPrecoStr(maskCurrency(e.target.value))} />
+                  </div>
+                  <Button onClick={handleAddAvulso} className="w-full">Adicionar Item Avulso</Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Popover open={isMaterialPopoverOpen} onOpenChange={setIsMaterialPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" aria-expanded={isMaterialPopoverOpen} className="w-full justify-between">
+                        {selectedMaterial?.descricao || "Selecione um item..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <Command>
+                        <CommandInput placeholder="Buscar item..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
+                          <CommandGroup>
+                            {materiais.map(m => (
+                              <CommandItem key={m.id} value={m.descricao} onSelect={() => {
+                                setNewItem({ ...newItem, materialId: m.id });
+                                setIsMaterialPopoverOpen(false);
+                                setTimeout(() => quantidadeInputRef.current?.focus(), 100);
+                              }}>
+                                <Check className={cn("mr-2 h-4 w-4", newItem.materialId === m.id ? "opacity-100" : "opacity-0")} />
+                                {m.descricao} ({formatCurrency(m.precoUnitario)}/{m.unidade})
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      ref={quantidadeInputRef}
+                      placeholder={`Qtd (${selectedMaterial?.unidade || 'un'})`}
+                      value={quantidadeStr}
+                      onChange={(e) => setQuantidadeStr(isCurrentUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value))}
+                    />
+                    <Input placeholder="Acréscimo % (Opcional)" value={margemLucroStr} onChange={e => setMargemLucroStr(maskDecimal(e.target.value))} />
+                  </div>
+                  <Button onClick={handleAddItem} className="w-full" disabled={!selectedMaterial}>Adicionar ao Orçamento</Button>
+                </div>
+              )}
+            </div>
+
             <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label>Observações (visível para o cliente)</Label>
@@ -367,7 +518,7 @@ export function BudgetEditDialog({
 
           </div>
 
-          <DialogFooter className="pt-4 border-t flex-col sm:flex-row sm:space-x-2 w-full">
+          <DialogFooter className="p-6 pt-4 border-t flex-col sm:flex-row sm:space-x-2 w-full">
             <DialogClose asChild>
               <Button variant="outline" className="w-full">Cancelar</Button>
             </DialogClose>
