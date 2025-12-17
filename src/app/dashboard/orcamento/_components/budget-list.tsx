@@ -321,7 +321,7 @@ export function BudgetList({
                 <TableCell>
                   <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
                 </TableCell>
-                <TableCell className="text-right font-semibold text-primary">
+                <TableCell className="text-right font-semibold">
                   <div className="flex justify-end items-center">
                     {formatCurrency(o.totalVenda)}
                     <AdjustmentBadge orcamento={o} />
