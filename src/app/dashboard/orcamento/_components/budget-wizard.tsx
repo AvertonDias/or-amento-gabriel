@@ -611,48 +611,50 @@ export function BudgetWizard({
                     </TableBody>
                     {orcamentoItens.length > 0 && (
                       <TableFooter>
-                         <TableRow className="bg-muted/50 font-bold flex flex-col sm:table-row p-4 sm:p-0">
-                           <TableCell colSpan={2} className="text-right align-middle p-0 sm:p-4">
-                              <div className='flex justify-end items-center gap-2'>
-                                {isTotalEdited && (
-                                  <Badge variant={adjustmentPercentage < 0 ? 'destructive' : 'default'}>
-                                    {adjustmentPercentage < 0 ? 'Desconto' : 'Acréscimo'}: {Math.abs(adjustmentPercentage).toFixed(2)}%
-                                  </Badge>
-                                )}
-                                <Label htmlFor="manualTotal" className="text-base shrink-0">Total</Label>
+                         <TableRow className="bg-muted/50 font-bold">
+                           <TableCell colSpan={3} className="p-2 sm:p-4">
+                              <div className='flex justify-between items-center gap-2'>
+                                <div className="flex items-center gap-2">
+                                  <Label htmlFor="manualTotal" className="text-base shrink-0">Total</Label>
+                                  {isTotalEdited && (
+                                    <Badge variant={adjustmentPercentage < 0 ? 'destructive' : 'default'}>
+                                      {adjustmentPercentage < 0 ? 'Desc.' : 'Acrésc.'}: {Math.abs(adjustmentPercentage).toFixed(1)}%
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="relative max-w-[150px]">
+                                   <Input
+                                     id="manualTotal"
+                                     className="text-right text-base font-bold h-9 pr-10"
+                                     value={isTotalLocked ? formatCurrency(finalTotal, false) : manualTotalStr}
+                                     onChange={handleManualTotalChange}
+                                     disabled={isTotalLocked}
+                                   />
+                                   <Button
+                                     type="button"
+                                     variant="ghost"
+                                     size="icon"
+                                     className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                                     onClick={() => {
+                                       const newLockState = !isTotalLocked;
+                                       if (newLockState === false) { // Unlocking
+                                           setManualTotalStr(formatCurrency(calculatedTotal, false));
+                                           setManualTotal(calculatedTotal);
+                                       }
+                                       setIsTotalLocked(newLockState);
+                                     }}
+                                   >
+                                     {isTotalLocked ? <Lock size={16} /> : <Unlock size={16}/>}
+                                   </Button>
+                                </div>
                               </div>
-                            </TableCell>
-                            <TableCell className="text-right text-primary p-0 sm:p-4">
-                               <div className="relative">
-                                  <Input
-                                    id="manualTotal"
-                                    className="text-right text-base font-bold h-9 pr-10"
-                                    value={isTotalLocked ? formatCurrency(finalTotal, false) : manualTotalStr}
-                                    onChange={handleManualTotalChange}
-                                    disabled={isTotalLocked}
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                                    onClick={() => {
-                                      const newLockState = !isTotalLocked;
-                                      if (newLockState === false) { // Unlocking
-                                          setManualTotalStr(formatCurrency(calculatedTotal, false));
-                                          setManualTotal(calculatedTotal);
-                                      }
-                                      setIsTotalLocked(newLockState);
-                                    }}
-                                  >
-                                    {isTotalLocked ? <Lock size={16} /> : <Unlock size={16}/>}
-                                  </Button>
-                               </div>
-                                {isTotalEdited && !isTotalLocked && (
-                                  <Button type="button" size="xs" variant="link" className="h-auto p-0 mt-1" onClick={resetManualTotal}>
-                                      <RotateCcw className="mr-1 h-3 w-3"/> Usar total calculado
-                                  </Button>
-                                )}
+                               {isTotalEdited && !isTotalLocked && (
+                                 <div className="flex justify-end mt-1">
+                                    <Button type="button" size="xs" variant="link" className="h-auto p-0" onClick={resetManualTotal}>
+                                        <RotateCcw className="mr-1 h-3 w-3"/> Usar calculado
+                                    </Button>
+                                  </div>
+                               )}
                             </TableCell>
                         </TableRow>
                       </TableFooter>
