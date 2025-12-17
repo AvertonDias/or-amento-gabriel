@@ -355,16 +355,31 @@ export default function OrcamentoPage() {
     const budget = orcamentosSalvos?.find(o => o.id === budgetId);
   
     if (status === 'Aceito' && budget) {
-      // Atualiza estoque
+      // Atualiza estoque e coleta alertas
+      const lowStockAlerts: string[] = [];
       for (const item of budget.itens) {
         if (!item.materialId.startsWith('avulso-')) {
           try {
-            await updateEstoque(user.uid, item.materialId, item.quantidade);
+            const lowStockItemName = await updateEstoque(user.uid, item.materialId, item.quantidade);
+            if (lowStockItemName) {
+              lowStockAlerts.push(lowStockItemName);
+            }
           } catch (err) {
             console.error('Erro ao atualizar estoque:', err);
           }
         }
       }
+      
+      // Exibe alertas de estoque baixo
+      if (lowStockAlerts.length > 0) {
+        toast({
+          title: "Aviso de Estoque Baixo",
+          description: `Os itens: ${lowStockAlerts.join(', ')} atingiram o estoque mínimo.`,
+          variant: "destructive",
+          duration: 7000,
+        });
+      }
+
   
       // Envia notificação para a empresa
       const companyPhones = empresa?.telefones?.filter(t => t.numero) ?? [];

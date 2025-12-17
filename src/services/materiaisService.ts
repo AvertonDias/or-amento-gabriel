@@ -41,14 +41,14 @@ export const updateMaterial = async (userId: string, materialId: string, materia
   });
 };
 
-export const updateEstoque = async (userId: string, materialId: string, quantidadeUtilizada: number) => {
+export const updateEstoque = async (userId: string, materialId: string, quantidadeUtilizada: number): Promise<string | null> => {
     const existing = await dexieDB.materiais.get(materialId);
     if (!existing) throw new Error("Material não encontrado para atualização de estoque.");
 
     const materialData = existing.data;
     if (materialData.tipo !== 'item' || materialData.quantidade === null || materialData.quantidade === undefined) {
         console.log(`Material ${materialId} não é um item de estoque, pulando atualização.`);
-        return;
+        return null;
     }
     
     const novaQuantidade = materialData.quantidade - quantidadeUtilizada;
@@ -59,6 +59,13 @@ export const updateEstoque = async (userId: string, materialId: string, quantida
         data: updatedData,
         syncStatus: 'pending'
     });
+    
+    // Verifica se o estoque mínimo foi atingido
+    if (materialData.quantidadeMinima !== null && novaQuantidade <= materialData.quantidadeMinima) {
+        return materialData.descricao; // Retorna o nome do item
+    }
+
+    return null; // Nenhum alerta necessário
 };
 
 export const deleteMaterial = async (materialId: string) => {
