@@ -260,7 +260,7 @@ export default function OrcamentoPage() {
   const openCompanyWhatsApp = (orcamento: Orcamento, phone: string) => {
     const cleanPhone = `55${phone.replace(/\D/g, '')}`;
     
-    let text = `✅ *ORÇAMENTO ACEITO* ✅\n\n`;
+    let text = `✅ ORÇAMENTO ACEITO ✅\n\n`;
     text += `*Nº:* ${orcamento.numeroOrcamento}\n`;
     text += `*Valor:* ${formatCurrency(orcamento.totalVenda)}\n\n`;
 
