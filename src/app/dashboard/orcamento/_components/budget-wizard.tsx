@@ -580,7 +580,7 @@ export function BudgetWizard({
                               <div className='flex justify-end items-center gap-2'>
                                 {isTotalEdited && (
                                   <Badge variant={adjustmentPercentage < 0 ? 'destructive' : 'default'}>
-                                    Ajuste: {adjustmentPercentage.toFixed(2)}%
+                                    {adjustmentPercentage < 0 ? 'Desconto' : 'Acréscimo'}: {Math.abs(adjustmentPercentage).toFixed(2)}%
                                   </Badge>
                                 )}
                                 <Label htmlFor="manualTotal" className="text-base font-bold">Total Final</Label>
@@ -645,7 +645,7 @@ export function BudgetWizard({
                      <div className='flex items-center gap-2'>
                         {isTotalEdited && (
                           <Badge variant={adjustmentPercentage < 0 ? 'destructive' : 'default'}>
-                            Ajuste: {adjustmentPercentage.toFixed(2)}%
+                            {adjustmentPercentage < 0 ? 'Desconto' : 'Acréscimo'}: {Math.abs(adjustmentPercentage).toFixed(2)}%
                           </Badge>
                         )}
                         <span>{formatCurrency(finalTotal)}</span>

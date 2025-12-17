@@ -75,8 +75,7 @@ const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
       variant={diff < 0 ? 'destructive' : 'default'}
       className="text-xs ml-2"
     >
-      {diff > 0 && '+'}
-      {formatNumber(percent, 1)}%
+      {diff < 0 ? 'Desconto' : 'Acréscimo'}: {Math.abs(percent).toFixed(1)}%
     </Badge>
   );
 };
