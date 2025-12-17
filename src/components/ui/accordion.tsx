@@ -30,7 +30,7 @@ const AccordionTrigger = React.forwardRef<
     <AccordionPrimitive.Trigger
       ref={ref}
       className={cn(
-        "flex flex-1 items-center justify-between py-4 font-medium transition-all hover:no-underline [&[data-state=open]>svg:not([data-hide-chevron])]:rotate-180",
+        "flex flex-1 items-center justify-between py-4 font-medium transition-all hover:no-underline [&[data-state=open]>svg:not(.no-rotate)]:rotate-180",
         className
       )}
       {...props}
@@ -38,7 +38,6 @@ const AccordionTrigger = React.forwardRef<
       {children}
       {!hideChevron && (
         <ChevronDown 
-            data-hide-chevron="false"
             className="h-4 w-4 shrink-0 transition-transform duration-200" 
         />
       )}
@@ -63,5 +62,3 @@ const AccordionContent = React.forwardRef<
 AccordionContent.displayName = AccordionPrimitive.Content.displayName
 
 export { Accordion, AccordionItem, AccordionTrigger, AccordionContent }
-
-    
