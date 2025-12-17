@@ -21,7 +21,6 @@ import {
   maskDecimal,
   maskInteger,
   maskCurrency,
-  maskDecimalWithAutoComma,
 } from '@/lib/utils';
 
 import { Capacitor } from '@capacitor/core';
@@ -79,7 +78,7 @@ export function EditItemModal({
 
     setEditingItem({ ...item });
 
-    setQuantidadeStr(maskDecimalWithAutoComma(String(item.quantidade)));
+    setQuantidadeStr(String(item.quantidade).replace('.', ','));
 
     setMargemLucroStr(
       item.margemLucro > 0
