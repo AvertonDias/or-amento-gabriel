@@ -66,13 +66,15 @@ interface BudgetListProps {
 /* ---------------- BADGE DE AJUSTE ---------------- */
 const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
   const calculated = orcamento.itens.reduce((s, i) => s + i.precoVenda, 0);
-  if (Math.abs(calculated - orcamento.totalVenda) < 0.01) {
+  const isAdjusted = Math.abs(calculated - orcamento.totalVenda) > 0.01;
+
+  if (!isAdjusted) {
     return (
-      <div className="flex flex-col items-end">
+      <div className="flex flex-col items-center">
         <span className="font-bold">{formatCurrency(orcamento.totalVenda)}</span>
       </div>
-    )
-  };
+    );
+  }
 
   const diff = orcamento.totalVenda - calculated;
   const percentage = calculated !== 0 ? (diff / calculated) * 100 : 0;
@@ -80,7 +82,7 @@ const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="flex flex-col items-end">
+        <div className="flex flex-col items-center">
           <span className="font-bold">
             {formatCurrency(orcamento.totalVenda)}
           </span>
@@ -101,6 +103,7 @@ const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
     </Tooltip>
   );
 };
+
 
 /* ---------------- COMPONENTE PRINCIPAL ---------------- */
 export function BudgetList({
@@ -349,7 +352,7 @@ export function BudgetList({
               <div className="shrink-0">Criação</div>
               <div className="shrink-0">Vencimento</div>
               <div className="shrink-0">Status</div>
-              <div className="text-right">Valor</div>
+              <div className="text-center">Valor</div>
               <div className="shrink-0 text-center">Ações</div>
           </div>
         </div>
@@ -375,7 +378,7 @@ export function BudgetList({
                             <div className="shrink-0">{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</div>
                             <div className="shrink-0">{format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</div>
                             <div className="shrink-0"><Badge variant={getStatusVariant(o.status)}>{o.status}</Badge></div>
-                            <div className="font-semibold flex justify-end items-center">
+                            <div className="font-semibold flex justify-center items-center">
                                 <AdjustmentBadge orcamento={o} />
                             </div>
                             <div className="shrink-0 text-center flex justify-center items-center">
