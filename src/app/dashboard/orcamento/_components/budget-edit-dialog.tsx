@@ -418,10 +418,40 @@ export function BudgetEditDialog({
                 </div>
               )}
             </div>
+            
+            {/* Mobile Item List */}
+            <div className="sm:hidden space-y-3">
+              {editingBudgetItens.length > 0 && <h3 className="font-semibold">Itens do Orçamento</h3>}
+              {editingBudgetItens.map(item => (
+                <Card key={item.id}>
+                  <CardContent className="p-3 space-y-2">
+                    <div>
+                      <p className="font-semibold">{item.materialNome}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatNumber(item.quantidade, 2)} {item.unidade} x {formatCurrency(item.precoUnitario)}
+                      </p>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <p className="font-bold text-primary">{formatCurrency(item.precoVenda)}</p>
+                      <div>
+                        <Button variant="ghost" size="icon" onClick={() => setItemToEdit(item)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setEditingBudgetItens(prev => prev.filter(i => i.id !== item.id))}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
 
-            <div className="border rounded-md">
+
+            {/* Desktop Item List */}
+            <div className="hidden sm:block border rounded-md">
                 <Table>
-                    <TableHeader className="hidden sm:table-header-group">
+                    <TableHeader>
                         <TableRow>
                             <TableHead>Item</TableHead>
                             <TableHead className="text-right">Valor Final</TableHead>
@@ -430,20 +460,17 @@ export function BudgetEditDialog({
                     </TableHeader>
                     <TableBody>
                         {editingBudgetItens.map(item => (
-                            <TableRow key={item.id} className="flex flex-col sm:table-row">
-                                <TableCell className="flex justify-between items-center sm:table-cell font-medium">
-                                    <span className="sm:hidden text-muted-foreground">Item:</span>
+                            <TableRow key={item.id}>
+                                <TableCell>
                                     <div>
                                       <p className="font-medium">{item.materialNome}</p>
                                       <p className="text-xs text-muted-foreground">{formatNumber(item.quantidade, 2)} {item.unidade} x {formatCurrency(item.precoUnitario)}</p>
                                     </div>
                                 </TableCell>
-                                <TableCell className="flex justify-between items-center sm:table-cell text-right font-semibold">
-                                     <span className="sm:hidden text-muted-foreground">Valor:</span>
+                                <TableCell className="text-right font-semibold">
                                     {formatCurrency(item.precoVenda)}
                                 </TableCell>
-                                <TableCell className="flex justify-between items-center sm:table-cell sm:text-center">
-                                     <span className="sm:hidden text-muted-foreground">Ações:</span>
+                                <TableCell className="text-center">
                                     <div>
                                       <Button variant="ghost" size="icon" onClick={() => setItemToEdit(item)}>
                                           <Pencil className="h-4 w-4" />
@@ -456,55 +483,54 @@ export function BudgetEditDialog({
                             </TableRow>
                         ))}
                     </TableBody>
-                    <TableFooter>
-                         <TableRow className="bg-muted/50 font-bold">
-                            <TableCell colSpan={2} className="text-right align-middle">
-                              <div className='flex justify-end items-center gap-2'>
-                                {isTotalEdited && (
-                                  <Badge variant={adjustmentPercentage < 0 ? 'destructive' : 'default'}>
-                                    {adjustmentPercentage < 0 ? 'Desconto' : 'Acréscimo'}: {Math.abs(adjustmentPercentage).toFixed(2)}%
-                                  </Badge>
-                                )}
-                                <Label htmlFor="manualTotal" className="text-base">Total</Label>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right text-primary">
-                               <div className="relative">
-                                  <Input
-                                    id="manualTotal"
-                                    className="text-right text-base font-bold h-9 pr-10"
-                                    value={isTotalLocked ? formatCurrency(finalTotal, false) : manualTotalStr}
-                                    onChange={handleManualTotalChange}
-                                    disabled={isTotalLocked}
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                                    onClick={() => {
-                                      const newLockState = !isTotalLocked;
-                                      if (newLockState === false) { // Unlocking
-                                        setManualTotalStr(formatCurrency(calculatedTotal, false));
-                                        setManualTotal(calculatedTotal);
-                                      }
-                                      setIsTotalLocked(newLockState);
-                                    }}
-                                  >
-                                    {isTotalLocked ? <Lock size={16} /> : <Unlock size={16}/>}
-                                  </Button>
-                               </div>
-                                {isTotalEdited && !isTotalLocked && (
-                                  <Button type="button" size="xs" variant="link" className="h-auto p-0 mt-1" onClick={resetManualTotal}>
-                                      <RotateCcw className="mr-1 h-3 w-3"/> Usar total calculado
-                                  </Button>
-                                )}
-                            </TableCell>
-                        </TableRow>
-                    </TableFooter>
                 </Table>
             </div>
             
+            <div className="border-t pt-4">
+              <div className="flex justify-end items-center">
+                <div className="flex-1 max-w-[250px] space-y-1">
+                  <Label htmlFor="manualTotal" className="text-right block pr-2">Total do Orçamento</Label>
+                  <div className="relative">
+                    <Input
+                      id="manualTotal"
+                      className="text-right text-lg font-bold h-10 pr-10"
+                      value={isTotalLocked ? formatCurrency(finalTotal, false) : manualTotalStr}
+                      onChange={handleManualTotalChange}
+                      disabled={isTotalLocked}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                      onClick={() => {
+                        const newLockState = !isTotalLocked;
+                        if (newLockState === false) { // Unlocking
+                          setManualTotalStr(formatCurrency(calculatedTotal, false));
+                          setManualTotal(calculatedTotal);
+                        }
+                        setIsTotalLocked(newLockState);
+                      }}
+                    >
+                      {isTotalLocked ? <Lock size={16} /> : <Unlock size={16}/>}
+                    </Button>
+                  </div>
+                  {isTotalEdited && !isTotalLocked && (
+                    <Button type="button" size="xs" variant="link" className="h-auto p-0 mt-1" onClick={resetManualTotal}>
+                      <RotateCcw className="mr-1 h-3 w-3"/> Usar total calculado
+                    </Button>
+                  )}
+                  {isTotalEdited && (
+                    <div className="text-right pr-2">
+                      <Badge variant={adjustmentPercentage < 0 ? 'destructive' : 'default'}>
+                        {adjustmentPercentage < 0 ? 'Desconto' : 'Acréscimo'}: {Math.abs(adjustmentPercentage).toFixed(2)}%
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label>Observações (visível para o cliente)</Label>
@@ -546,5 +572,3 @@ export function BudgetEditDialog({
     </>
   );
 }
-
-    
