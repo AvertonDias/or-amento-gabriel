@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -188,18 +189,138 @@ const BudgetPDFLayout = ({
 };
 
 /* =========================================================
+   PDF INTERNO
+========================================================= */
+const InternalBudgetPDFLayout = ({
+  orcamento,
+  empresa,
+}: {
+  orcamento: Orcamento | null;
+  empresa: EmpresaData | null;
+}) => {
+  if (!orcamento) return null;
+
+  const dataCriacao = parseISO(orcamento.dataCriacao);
+
+  const totalCustoItens = orcamento.itens.reduce(
+    (acc, item) => acc + item.total,
+    0
+  );
+  
+  const totalVendaCalculado = orcamento.itens.reduce(
+    (acc, item) => acc + item.precoVenda,
+    0
+  );
+
+  const lucroBruto = orcamento.totalVenda - totalCustoItens;
+  
+  const ajuste = orcamento.totalVenda - totalVendaCalculado;
+  const totalEditado = Math.abs(totalVendaCalculado - orcamento.totalVenda) > 0.01;
+
+  return (
+    <div className="p-8 bg-white text-black text-xs font-sans">
+      {/* CABEÇALHO */}
+      <header className="flex justify-between border-b-2 pb-4 mb-4">
+        <div>
+          <h1 className="text-xl font-bold">{empresa?.nome}</h1>
+          <p className="font-semibold">Relatório Interno de Custos e Lucro</p>
+        </div>
+        <div className="text-right">
+          <h2 className="text-lg font-semibold">
+            Orçamento #{orcamento.numeroOrcamento}
+          </h2>
+          <p>Cliente: {orcamento.cliente.nome}</p>
+          <p>Data: {format(dataCriacao, 'dd/MM/yyyy')}</p>
+        </div>
+      </header>
+
+      {/* TABELA DE CUSTOS */}
+      <table className="w-full border-collapse">
+        <thead className="bg-gray-100">
+          <tr>
+            <th className="p-2 text-left">Item</th>
+            <th className="p-2 text-right">Qtd</th>
+            <th className="p-2 text-right">Custo Unit.</th>
+            <th className="p-2 text-right">Custo Total</th>
+            <th className="p-2 text-right">Margem %</th>
+            <th className="p-2 text-right">Preço Venda</th>
+          </tr>
+        </thead>
+        <tbody>
+          {orcamento.itens.map(item => (
+            <tr key={item.id} className="border-b even:bg-gray-50">
+              <td className="p-2">{item.materialNome}</td>
+              <td className="p-2 text-right">{formatNumber(item.quantidade, 2)}</td>
+              <td className="p-2 text-right">{formatCurrency(item.precoUnitario)}</td>
+              <td className="p-2 text-right">{formatCurrency(item.total)}</td>
+              <td className="p-2 text-right">{formatNumber(item.margemLucro, 2)}%</td>
+              <td className="p-2 text-right font-medium">{formatCurrency(item.precoVenda)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* RESUMO FINANCEIRO */}
+      <section className="mt-4 pt-4 border-t flex justify-end">
+        <div className="w-1/2 space-y-1">
+          <div className="flex justify-between">
+            <span>Custo Total dos Itens:</span>
+            <span>{formatCurrency(totalCustoItens)}</span>
+          </div>
+
+          {totalEditado && (
+             <>
+              <div className="flex justify-between">
+                <span>Total Venda (Calculado):</span>
+                <span>{formatCurrency(totalVendaCalculado)}</span>
+              </div>
+               <div className="flex justify-between">
+                <span>Ajuste Manual:</span>
+                <span>{formatCurrency(ajuste)}</span>
+              </div>
+            </>
+          )}
+
+          <div className="flex justify-between font-bold">
+            <span>Total Venda (Final):</span>
+            <span>{formatCurrency(orcamento.totalVenda)}</span>
+          </div>
+
+          <div className="flex justify-between font-bold pt-2 border-t text-green-700">
+            <span>Lucro Bruto:</span>
+            <span>{formatCurrency(lucroBruto)}</span>
+          </div>
+        </div>
+      </section>
+
+      {(orcamento.observacoes || orcamento.observacoesInternas) && (
+        <section className="mt-4 border-t pt-4">
+          <h3 className="font-semibold mb-2">Observações e Anotações</h3>
+          {orcamento.observacoes && <p><strong>Obs. Cliente:</strong> {orcamento.observacoes}</p>}
+          {orcamento.observacoesInternas && <p><strong>Obs. Internas:</strong> {orcamento.observacoesInternas}</p>}
+        </section>
+      )}
+    </div>
+  );
+};
+
+
+/* =========================================================
    COMPONENTE EXPORTÁVEL
 ========================================================= */
 const BudgetPDFs = forwardRef(
   ({ empresa }: { empresa: EmpresaData | null }, ref) => {
     const pdfRef = useRef<HTMLDivElement>(null);
     const [orcamentoAtual, setOrcamentoAtual] = useState<Orcamento | null>(null);
+    const [pdfType, setPdfType] = useState<'client' | 'internal'>('client');
+
 
     const { toast } = useToast();
     const { requestPermission } = usePermissionDialog();
 
-    const gerarPDF = async (orcamento: Orcamento) => {
+    const gerarPDF = async (orcamento: Orcamento, type: 'client' | 'internal') => {
       setOrcamentoAtual(orcamento);
+      setPdfType(type);
 
       await new Promise(r => setTimeout(r, 120));
 
@@ -218,7 +339,7 @@ const BudgetPDFs = forwardRef(
 
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
 
-      const fileName = `orcamento-${orcamento.numeroOrcamento}.pdf`;
+      const fileName = `orcamento-${orcamento.numeroOrcamento}-${type}.pdf`;
 
       if (Capacitor.isNativePlatform()) {
         const { Filesystem, Directory } = await import('@capacitor/filesystem');
@@ -233,13 +354,19 @@ const BudgetPDFs = forwardRef(
           return;
         }
 
-        await Filesystem.writeFile({
-          path: fileName,
-          data: pdf.output('datauristring').split(',')[1],
-          directory: Directory.Documents,
-        });
+        try {
+          await Filesystem.writeFile({
+            path: fileName,
+            data: pdf.output('datauristring').split(',')[1],
+            directory: Directory.Documents,
+          });
 
-        toast({ title: 'PDF salvo com sucesso!' });
+          toast({ title: 'PDF salvo com sucesso!', description: `Salvo em Documentos/${fileName}` });
+
+        } catch (e: any) {
+            toast({ title: 'Erro ao salvar PDF', description: e?.message || 'Não foi possível salvar o arquivo.', variant: 'destructive' });
+        }
+        
       } else {
         pdf.save(fileName);
       }
@@ -253,8 +380,12 @@ const BudgetPDFs = forwardRef(
 
     return (
       <div className="absolute -left-[9999px] top-0">
-        <div ref={pdfRef}>
-          <BudgetPDFLayout orcamento={orcamentoAtual} empresa={empresa} />
+        <div ref={pdfRef} className="w-[210mm]">
+          {pdfType === 'client' ? (
+            <BudgetPDFLayout orcamento={orcamentoAtual} empresa={empresa} />
+          ) : (
+            <InternalBudgetPDFLayout orcamento={orcamentoAtual} empresa={empresa} />
+          )}
         </div>
       </div>
     );
