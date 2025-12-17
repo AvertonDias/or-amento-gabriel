@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatCurrency, formatNumber, maskCurrency, maskDecimal } from '@/lib/utils';
+import { formatCurrency, formatNumber, maskCurrency, maskDecimal, maskInteger } from '@/lib/utils';
 
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
@@ -86,6 +86,8 @@ const unidadesDeMedida = [
   { value: 'serv', label: 'Serviço (serv)' },
 ];
 
+const integerUnits = ['un', 'h', 'serv'];
+
 const normalizeString = (str: string) =>
   str?.trim().toLowerCase().replace(/,/g, '.').replace(/\s+/g, ' ') || '';
 
@@ -125,6 +127,10 @@ export default function MateriaisPage() {
 
   const [isUpdateConfirmOpen, setIsUpdateConfirmOpen] = useState(false);
   const [conflictingItem, setConflictingItem] = useState<MaterialItem | null>(null);
+  
+  const isNewItemUnitInteger = useMemo(() => integerUnits.includes(newItem.unidade), [newItem.unidade]);
+  const isEditingItemUnitInteger = useMemo(() => editingMaterial ? integerUnits.includes(editingMaterial.unidade) : false, [editingMaterial]);
+
 
   /* ===============================
      FILTRO
@@ -223,8 +229,11 @@ export default function MateriaisPage() {
   const handleOpenEditModal = (material: MaterialItem) => {
     setEditingMaterial(material);
     setEditingPrecoUnitarioStr(material.precoUnitario ? maskCurrency(material.precoUnitario.toFixed(2)) : '');
-    setEditingQuantidadeStr(material.quantidade !== null ? maskDecimal(String(material.quantidade)) : '');
-    setEditingQuantidadeMinimaStr(material.quantidadeMinima !== null ? maskDecimal(String(material.quantidadeMinima)) : '');
+    
+    const isInteger = integerUnits.includes(material.unidade);
+    setEditingQuantidadeStr(material.quantidade !== null ? (isInteger ? String(material.quantidade) : formatNumber(material.quantidade, 2)) : '');
+    setEditingQuantidadeMinimaStr(material.quantidadeMinima !== null ? (isInteger ? String(material.quantidadeMinima) : formatNumber(material.quantidadeMinima, 2)) : '');
+
     setIsEditModalOpen(true);
   };
 
@@ -304,7 +313,7 @@ export default function MateriaisPage() {
                                placeholder="Opcional"
                                value={quantidadeStr}
                                onChange={(e) => {
-                                 const masked = maskDecimal(e.target.value);
+                                 const masked = isNewItemUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value);
                                  setQuantidadeStr(masked);
                                  setNewItem({...newItem, quantidade: parseFloat(masked.replace(',', '.')) || null});
                                }}
@@ -317,7 +326,7 @@ export default function MateriaisPage() {
                                placeholder="Opcional"
                                value={quantidadeMinimaStr}
                                onChange={(e) => {
-                                 const masked = maskDecimal(e.target.value);
+                                 const masked = isNewItemUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value);
                                  setQuantidadeMinimaStr(masked);
                                  setNewItem({...newItem, quantidadeMinima: parseFloat(masked.replace(',', '.')) || null});
                                }}
@@ -389,13 +398,13 @@ export default function MateriaisPage() {
                               <div className="flex justify-between items-center text-sm">
                                 <span className="font-medium text-muted-foreground">Estoque:</span>
                                 <span className={cn(m.quantidade !== null && m.quantidadeMinima !== null && m.quantidade < m.quantidadeMinima && "text-destructive font-bold")}>
-                                  {m.quantidade !== null ? formatNumber(m.quantidade) : 'N/A'}
+                                  {m.quantidade !== null ? formatNumber(m.quantidade, integerUnits.includes(m.unidade) ? 0 : 2) : 'N/A'}
                                 </span>
                               </div>
                                {m.quantidadeMinima !== null && (
                                 <div className="flex justify-between items-center text-sm">
                                   <span className="font-medium text-muted-foreground">Estoque Mínimo:</span>
-                                  <span>{formatNumber(m.quantidadeMinima)}</span>
+                                  <span>{formatNumber(m.quantidadeMinima, integerUnits.includes(m.unidade) ? 0 : 2)}</span>
                                 </div>
                                )}
                             </>
@@ -457,7 +466,7 @@ export default function MateriaisPage() {
                         </TableCell>
                         <TableCell className="text-right">{formatCurrency(m.precoUnitario)} / {m.unidade}</TableCell>
                         <TableCell className={cn("text-right", m.quantidade !== null && m.quantidadeMinima !== null && m.quantidade < m.quantidadeMinima && "text-destructive font-bold")}>
-                          {m.tipo === 'item' && m.quantidade !== null ? formatNumber(m.quantidade) : 'N/A'}
+                          {m.tipo === 'item' && m.quantidade !== null ? formatNumber(m.quantidade, integerUnits.includes(m.unidade) ? 0 : 2) : 'N/A'}
                         </TableCell>
                         <TableCell className="text-center">
                           <Button variant="ghost" size="icon" onClick={() => handleOpenEditModal(m)}>
@@ -553,7 +562,7 @@ export default function MateriaisPage() {
                                  id="edit-quantidade"
                                  value={editingQuantidadeStr}
                                  onChange={(e) => {
-                                     const masked = maskDecimal(e.target.value);
+                                     const masked = isEditingItemUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value);
                                      setEditingQuantidadeStr(masked);
                                      setEditingMaterial({...editingMaterial, quantidade: parseFloat(masked.replace(',', '.')) || null });
                                  }}
@@ -565,7 +574,7 @@ export default function MateriaisPage() {
                                  id="edit-qmin"
                                  value={editingQuantidadeMinimaStr}
                                  onChange={(e) => {
-                                     const masked = maskDecimal(e.target.value);
+                                     const masked = isEditingItemUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value);
                                      setEditingQuantidadeMinimaStr(masked);
                                      setEditingMaterial({...editingMaterial, quantidadeMinima: parseFloat(masked.replace(',', '.')) || null });
                                  }}

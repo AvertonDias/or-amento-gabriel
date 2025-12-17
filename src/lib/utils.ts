@@ -1,4 +1,3 @@
-
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { ClienteData } from "./types";
@@ -54,15 +53,18 @@ export function formatNumber(
     return "0";
   }
 
+  // Se for para formatar com 0 casas decimais, trunca e converte para string
   if (decimalPlaces === 0) {
     return Math.trunc(value).toString();
   }
 
+  // Usa Intl.NumberFormat para outros casos
   return new Intl.NumberFormat("pt-BR", {
     minimumFractionDigits: decimalPlaces,
     maximumFractionDigits: decimalPlaces,
   }).format(value);
 }
+
 
 /* ===========================
    Máscaras
