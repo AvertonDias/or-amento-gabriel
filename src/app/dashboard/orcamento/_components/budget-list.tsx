@@ -95,6 +95,8 @@ export function BudgetList({
 
   const { toast } = useToast();
   const [selectedPhone, setSelectedPhone] = useState('');
+  const [budgetToDelete, setBudgetToDelete] = useState<Orcamento | null>(null);
+
 
   const [phoneDialog, setPhoneDialog] = useState<{
     open: boolean;
@@ -157,6 +159,14 @@ export function BudgetList({
 
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
+
+  const handleDeleteConfirm = () => {
+    if (budgetToDelete) {
+      onDelete(budgetToDelete.id);
+      setBudgetToDelete(null);
+    }
+  };
+
 
   /* ---------------- LOADING ---------------- */
   if (isLoading) {
@@ -260,7 +270,7 @@ export function BudgetList({
                           
                           <DropdownMenuSeparator />
 
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(o.id)}>
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setBudgetToDelete(o)}>
                               <Trash2 className="mr-2 h-4 w-4" /> Excluir
                           </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -324,7 +334,7 @@ export function BudgetList({
                   <Button variant="ghost" size="icon" aria-label="Editar" onClick={() => onEdit(o)}>
                     <Pencil className="h-5 w-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" aria-label="Excluir" onClick={() => onDelete(o.id)}>
+                  <Button variant="ghost" size="icon" aria-label="Excluir" onClick={() => setBudgetToDelete(o)}>
                     <Trash2 className="h-5 w-5 text-destructive" />
                   </Button>
                 </TableCell>
@@ -333,6 +343,22 @@ export function BudgetList({
           </TableBody>
         </Table>
       </div>
+      <AlertDialog open={!!budgetToDelete} onOpenChange={() => setBudgetToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita e irá remover o orçamento nº {budgetToDelete?.numeroOrcamento} permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>
+              Sim, Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
