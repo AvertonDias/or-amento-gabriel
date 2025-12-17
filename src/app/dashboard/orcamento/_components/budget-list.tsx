@@ -321,27 +321,30 @@ export function BudgetList({
             </TableHeader>
             <TableBody>
               {budgets.map(o => (
-                <AccordionItem value={o.id} key={o.id} className="border-b-0">
-                   <tr className={cn("border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted", (o.observacoes || o.observacoesInternas) && "cursor-pointer")}>
-                        <AccordionTrigger asChild disabled={!o.observacoes && !o.observacoesInternas}>
-                            <>
-                                <TableCell>{o.numeroOrcamento}</TableCell>
-                                <TableCell className="font-medium">{o.cliente.nome}</TableCell>
-                                <TableCell>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</TableCell>
-                                <TableCell>
+                <React.Fragment key={o.id}>
+                    <AccordionItem value={o.id} asChild>
+                        <TableRow className={cn((o.observacoes || o.observacoesInternas) && 'cursor-pointer', 'border-b-0')}>
+                            <TableCell className="font-medium">
+                                <AccordionTrigger disabled={!o.observacoes && !o.observacoesInternas} className="p-0 hover:no-underline [&>svg]:ml-2">
+                                  {o.numeroOrcamento}
+                                </AccordionTrigger>
+                            </TableCell>
+                            <TableCell>{o.cliente.nome}</TableCell>
+                            <TableCell>{format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</TableCell>
+                            <TableCell>
                                 <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
-                                </TableCell>
-                                <TableCell className="text-right font-semibold">
+                            </TableCell>
+                            <TableCell className="text-right font-semibold">
                                 <div className="flex justify-end items-center">
                                     {formatCurrency(o.totalVenda)}
                                     <AdjustmentBadge orcamento={o} />
                                 </div>
-                                </TableCell>
-                                <TableCell className="text-center">
+                            </TableCell>
+                            <TableCell className="text-center">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="icon" aria-label="Ações do orçamento" className="h-8 w-8">
-                                        <MoreVertical className="h-5 w-5" />
+                                            <MoreVertical className="h-5 w-5" />
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
@@ -380,23 +383,22 @@ export function BudgetList({
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
-                                </TableCell>
-                            </>
-                        </AccordionTrigger>
-                    </tr>
+                            </TableCell>
+                        </TableRow>
+                    </AccordionItem>
                     {(o.observacoes || o.observacoesInternas) && (
-                        <AccordionContent asChild>
-                             <tr className="bg-muted/30">
-                                <TableCell colSpan={6} className="p-4">
-                                    <div className="text-sm space-y-2">
+                        <TableRow className='border-b'>
+                            <TableCell colSpan={6} className='p-0'>
+                                <AccordionContent>
+                                    <div className="px-4 py-2 text-sm space-y-2">
                                         {o.observacoes && (<p><strong className="text-muted-foreground">Obs. Cliente:</strong> {o.observacoes}</p>)}
                                         {o.observacoesInternas && (<p><strong className="text-muted-foreground">Obs. Interna:</strong> {o.observacoesInternas}</p>)}
                                     </div>
-                                </TableCell>
-                            </tr>
-                        </AccordionContent>
+                                </AccordionContent>
+                            </TableCell>
+                        </TableRow>
                     )}
-                </AccordionItem>
+                </React.Fragment>
               ))}
             </TableBody>
            </Table>
