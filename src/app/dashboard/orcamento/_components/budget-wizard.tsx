@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import type { MaterialItem, ClienteData, Orcamento, OrcamentoItem } from '@/lib/types';
 
 import {
@@ -41,13 +41,14 @@ import {
   formatCurrency, formatNumber,
   maskCpfCnpj, maskTelefone,
   maskCurrency, maskDecimal,
-  maskInteger
+  maskInteger, findDuplicateClient
 } from '@/lib/utils';
 
 import { cn } from '@/lib/utils';
 import { Capacitor } from '@capacitor/core';
 import { EditItemModal } from './edit-item-modal';
 import { Badge } from '@/components/ui/badge';
+import { useDebounce } from '@/hooks/use-debounce';
 
 /* =========================
    CONSTANTES
@@ -152,6 +153,9 @@ export function BudgetWizard({
   const [manualTotal, setManualTotal] = useState<number | null>(null);
   const [manualTotalStr, setManualTotalStr] = useState('');
 
+  const [potentialDuplicate, setPotentialDuplicate] = useState<ClienteData | null>(null);
+  const debouncedClienteData = useDebounce(clienteData, 500);
+
   /* ---------- MEMOS ---------- */
 
   const selectedMaterial = useMemo(
@@ -179,6 +183,17 @@ export function BudgetWizard({
     return ((finalTotal - calculatedTotal) / calculatedTotal) * 100;
   }, [isTotalEdited, finalTotal, calculatedTotal]);
 
+  /* ---------- EFEITOS ---------- */
+  
+  useEffect(() => {
+    if (clientSelectionType === 'novo' && (debouncedClienteData.nome || debouncedClienteData.telefones[0]?.numero)) {
+      const duplicate = findDuplicateClient(debouncedClienteData, clientes);
+      setPotentialDuplicate(duplicate);
+    } else {
+      setPotentialDuplicate(null);
+    }
+  }, [debouncedClienteData, clientSelectionType, clientes]);
+
   /* ---------- FUNÇÕES PRINCIPAIS ---------- */
 
   const resetWizard = () => {
@@ -205,6 +220,7 @@ export function BudgetWizard({
     setIsTotalLocked(true);
     setManualTotal(null);
     setManualTotalStr('');
+    setPotentialDuplicate(null);
   };
   
   const handleOpenChange = (open: boolean) => {
@@ -362,6 +378,14 @@ export function BudgetWizard({
     setWizardStep(s => s + 1);
   };
 
+  const useExistingDuplicate = () => {
+    if (potentialDuplicate) {
+      setClienteData(potentialDuplicate);
+      setClientSelectionType('existente');
+      setPotentialDuplicate(null);
+    }
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -435,6 +459,22 @@ export function BudgetWizard({
                    </div>
                 ) : (
                   <div className="space-y-4 border p-4 rounded-md">
+                     {potentialDuplicate && (
+                        <AlertDialog defaultOpen>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Cliente Encontrado</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Já existe um cliente chamado &quot;{potentialDuplicate.nome}&quot;. Deseja usar este cliente para o orçamento?
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel onClick={() => setPotentialDuplicate(null)}>Não, criar um novo</AlertDialogCancel>
+                                    <AlertDialogAction onClick={useExistingDuplicate}>Sim, usar este</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div>
                         <Label>Nome Completo*</Label>

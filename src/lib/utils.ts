@@ -1,6 +1,7 @@
 
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import type { ClienteData } from "./types";
 
 /* ===========================
    Utilitário de classes
@@ -131,7 +132,7 @@ export const maskCurrency = (value: string): string => {
 export const maskDecimal = (value: string): string => {
   if (!value) return '';
 
-  let v = value.replace(/\D/g, ''); // Remove tudo que não é dígito
+  let v = value.replace(/[^\d]/g, ''); // Remove tudo que não é dígito
   v = v.replace(/^0+/, ''); // Remove zeros à esquerda
 
   if (v.length === 0) return '0,00';
@@ -228,4 +229,62 @@ export function validateCpfCnpj(
 
   if (onlyNums.length < 11) return "incomplete";
   return validateCPF(onlyNums) ? "valid" : "invalid";
+}
+
+/* =================================
+   Checagem de cliente duplicado
+================================= */
+
+const normalizePhone = (value: string) =>
+  value.replace(/\D/g, '').replace(/^55/, '');
+
+const normalizeEmail = (value: string) =>
+  value.trim().toLowerCase();
+
+export function findDuplicateClient(
+  newClient: Partial<Omit<ClienteData, 'id' | 'userId'>>,
+  existingClients: ClienteData[]
+): ClienteData | null {
+  const newPhones =
+    newClient.telefones?.map(t => normalizePhone(t.numero)).filter(Boolean) ?? [];
+
+  const newEmail = newClient.email
+    ? normalizeEmail(newClient.email)
+    : null;
+
+  const newName = newClient.nome?.trim().toLowerCase();
+
+  for (const client of existingClients) {
+    // Verifica telefone
+    const clientPhones =
+      client.telefones?.map(t => normalizePhone(t.numero)).filter(Boolean) ?? [];
+
+    if (
+      newPhones.length > 0 &&
+      newPhones.some(p => clientPhones.includes(p))
+    ) {
+      return client;
+    }
+
+    // Verifica email
+    if (
+      newEmail &&
+      client.email &&
+      normalizeEmail(client.email) === newEmail
+    ) {
+      return client;
+    }
+
+    // Verifica nome (se for o único campo preenchido)
+    if (
+      newName &&
+      !newEmail &&
+      newPhones.length === 0 &&
+      client.nome.trim().toLowerCase() === newName
+    ) {
+        return client;
+    }
+  }
+
+  return null;
 }
