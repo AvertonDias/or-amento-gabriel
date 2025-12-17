@@ -600,7 +600,14 @@ export function BudgetWizard({
                                     variant="ghost"
                                     size="icon"
                                     className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                                    onClick={() => setIsTotalLocked(v => !v)}
+                                    onClick={() => {
+                                      const newLockState = !isTotalLocked;
+                                      if (newLockState === false) { // Unlocking
+                                          setManualTotalStr(formatCurrency(calculatedTotal, false));
+                                          setManualTotal(calculatedTotal);
+                                      }
+                                      setIsTotalLocked(newLockState);
+                                    }}
                                   >
                                     {isTotalLocked ? <Lock size={16} /> : <Unlock size={16}/>}
                                   </Button>
