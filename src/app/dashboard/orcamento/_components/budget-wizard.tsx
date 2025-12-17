@@ -252,15 +252,19 @@ export function BudgetWizard({
       toast({ title: "Dados inválidos", description: "Selecione um item e informe a quantidade.", variant: "destructive" });
       return;
     }
-    
+
     // Verifica estoque mínimo
-    if (selectedMaterial.tipo === 'item' && selectedMaterial.quantidade !== null && selectedMaterial.quantidadeMinima !== null) {
+    if (
+      selectedMaterial.tipo === 'item' &&
+      selectedMaterial.quantidade !== null &&
+      selectedMaterial.quantidadeMinima !== null
+    ) {
       const novoEstoque = selectedMaterial.quantidade - quantidade;
-      if (novoEstoque < selectedMaterial.quantidadeMinima) {
+      if (novoEstoque <= selectedMaterial.quantidadeMinima) {
         toast({
-          title: "Aviso de Estoque Baixo",
-          description: `O item "${selectedMaterial.descricao}" atingiu o estoque mínimo.`,
-          variant: "destructive",
+          title: 'Aviso de Estoque Baixo',
+          description: `O item "${selectedMaterial.descricao}" ficará com ${formatNumber(novoEstoque, integerUnits.includes(selectedMaterial.unidade) ? 0 : 2)} em estoque.`,
+          variant: 'destructive',
           duration: 5000,
         });
       }

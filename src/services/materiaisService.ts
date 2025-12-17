@@ -60,9 +60,9 @@ export const updateEstoque = async (userId: string, materialId: string, quantida
         syncStatus: 'pending'
     });
     
-    // Verifica se o estoque mínimo foi atingido
-    if (materialData.quantidadeMinima !== null && novaQuantidade <= materialData.quantidadeMinima) {
-        return materialData.descricao; // Retorna o nome do item
+    // Verifica se o estoque mínimo foi atingido, garantindo que quantidadeMinima não é null
+    if (materialData.quantidadeMinima !== null && materialData.quantidadeMinima !== undefined && novaQuantidade <= materialData.quantidadeMinima) {
+        return materialData.descricao; // Retorna o nome do item para alerta
     }
 
     return null; // Nenhum alerta necessário
@@ -93,4 +93,5 @@ export const deleteMaterialFromFirestore = async (materialId: string) => {
     const materialDocRef = doc(firestoreDB, 'materiais', materialId);
     await deleteDocFirestore(materialDocRef);
 };
+
 
