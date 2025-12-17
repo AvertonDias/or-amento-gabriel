@@ -30,7 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   FileText, Pencil, MessageCircle,
   CheckCircle2, XCircle, Trash2,
-  MoreVertical, FileSignature, ChevronDown, Info
+  MoreVertical, FileSignature, ChevronDown
 } from 'lucide-react';
 import { addDays, format, parseISO } from 'date-fns';
 import { formatCurrency, formatNumber } from '@/lib/utils';
@@ -325,6 +325,7 @@ export function BudgetList({
                          <div className="pb-2">
                            <AccordionTrigger className="px-4 text-sm text-muted-foreground hover:no-underline flex items-center gap-1">
                               Observações
+                              <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
                            </AccordionTrigger>
                            <AccordionContent className="px-4 pb-2 text-sm space-y-2">
                              {o.observacoes && (<div><strong className="text-muted-foreground">Obs. Cliente:</strong> {o.observacoes}</div>)}
@@ -408,10 +409,9 @@ export function BudgetList({
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                                  {hasNotes ? (
-                                    <AccordionTrigger className="p-2 -mr-2">
+                                    <AccordionTrigger className="p-2 -mr-2" hideChevron>
                                       <div className="p-0 rounded-md hover:bg-accent hover:text-accent-foreground flex items-center gap-1 text-muted-foreground hover:text-accent-foreground text-xs">
                                         Obs.
-                                        <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
                                       </div>
                                     </AccordionTrigger>
                                  ) : (
