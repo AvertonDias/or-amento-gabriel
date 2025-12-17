@@ -210,6 +210,15 @@ export function BudgetEditDialog({
     });
   };
 
+  const addTelefoneField = () => {
+    if (!editingBudget) return;
+    setEditingBudget(prev => {
+        if (!prev) return null;
+        const newTelefones = [...prev.cliente.telefones, { nome: '', numero: '', principal: false }];
+        return { ...prev, cliente: { ...prev.cliente, telefones: newTelefones }};
+    });
+  }
+
   const removeTelefoneField = (index: number) => {
     if (!editingBudget || editingBudget.cliente.telefones.length <= 1) {
       toast({
@@ -222,6 +231,10 @@ export function BudgetEditDialog({
     setEditingBudget(prev => {
       if (!prev) return null;
       const telefones = prev.cliente.telefones.filter((_, i) => i !== index);
+      // Se o telefone principal foi removido, define o primeiro da lista como principal
+      if (!telefones.some(t => t.principal)) {
+          telefones[0].principal = true;
+      }
       return { ...prev, cliente: { ...prev.cliente, telefones } };
     });
   }
@@ -369,6 +382,15 @@ export function BudgetEditDialog({
                         </Button>
                     </div>
                   ))}
+                   <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addTelefoneField}
+                    >
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Adicionar Telefone
+                    </Button>
                 </div>
               </CardContent>
             </Card>
