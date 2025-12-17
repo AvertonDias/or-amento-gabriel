@@ -149,29 +149,31 @@ export function EditItemModal({
       parseFloat(newPrecoUnitStr.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
     const precoVenda =
       parseFloat(newPrecoVendaStr.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
-
+      
     // Recalcula os valores dependentes
     if (isSalePriceUnlocked) {
-      // Se o PREÇO DE VENDA está desbloqueado (foi alterado), recalcula a MARGEM
-      const totalCusto = precoUnitario * quantidade;
-      newItem.precoVenda = precoVenda;
-      if (totalCusto > 0) {
-        const novaMargem = (precoVenda / totalCusto - 1) * 100;
-        newMargemStr = novaMargem > 0 ? String(novaMargem.toFixed(2)).replace('.', ',') : '';
-        newItem.margemLucro = novaMargem > 0 ? novaMargem : 0;
-      } else {
-        newMargemStr = '';
-        newItem.margemLucro = 0;
+      // Se o PREÇO DE VENDA está desbloqueado (foi alterado), recalcula o CUSTO UNITÁRIO
+      const margemDecimal = 1 + (margem / 100);
+      let novoCustoUnitario = 0;
+      if (quantidade > 0 && margemDecimal > 0) {
+        novoCustoUnitario = precoVenda / quantidade / margemDecimal;
       }
+      
+      newItem.precoUnitario = novoCustoUnitario;
+      newPrecoUnitStr = formatCurrency(novoCustoUnitario, false);
+      newItem.precoVenda = precoVenda;
+
     } else {
       // Se qualquer OUTRO campo foi alterado, recalcula o PREÇO DE VENDA
       newItem.total = precoUnitario * quantidade;
       newItem.precoVenda = newItem.total * (1 + margem / 100);
       newPrecoVendaStr = formatCurrency(newItem.precoVenda, false);
+      newItem.precoUnitario = precoUnitario;
     }
     
     newItem.quantidade = quantidade;
-    newItem.precoUnitario = precoUnitario;
+    newItem.margemLucro = margem;
+    
 
     // Atualiza todos os estados
     setEditingItem(newItem);
@@ -315,4 +317,3 @@ export function EditItemModal({
     </Dialog>
   );
 }
-
