@@ -74,7 +74,7 @@ interface BudgetWizardProps {
   onOpenChange: (open: boolean) => void;
   clientes: ClienteData[];
   materiais: MaterialItem[];
-  onSaveBudget: (budget: Omit<Orcamento, 'id'>) => void;
+  onSaveBudget: (budget: Omit<Orcamento, 'id'>, saveNewClient: boolean) => void;
 }
 
 /* =========================
@@ -295,7 +295,7 @@ export function BudgetWizard({
         numeroOrcamento: '',
         cliente: {
           ...clienteData,
-          id: clienteData.id || (saveClient ? generateId() : `temp-${generateId()}`),
+          id: clienteData.id, // ID será undefined se for novo e não salvo
           telefones: clienteData.telefones.filter(t => t.numero)
         } as ClienteData,
         itens: orcamentoItens,
@@ -308,8 +308,9 @@ export function BudgetWizard({
         dataAceite: null,
         dataRecusa: null,
       };
+      
+      onSaveBudget(budgetData, saveClient);
 
-      onSaveBudget(budgetData);
     } catch (e) {
       console.error(e);
       toast({ title: "Erro ao salvar", description: "Não foi possível criar o orçamento.", variant: "destructive" });
@@ -419,11 +420,11 @@ export function BudgetWizard({
                     </div>
                     <div>
                       <Label>Email</Label>
-                      <Input type="email" value={clienteData.email} onChange={e => setClienteData({ ...clienteData, email: e.target.value })} />
+                      <Input type="email" value={clienteData.email ?? ''} onChange={e => setClienteData({ ...clienteData, email: e.target.value })} />
                     </div>
                     <div>
                       <Label>Endereço</Label>
-                      <Input value={clienteData.endereco} onChange={e => setClienteData({ ...clienteData, endereco: e.target.value })} />
+                      <Input value={clienteData.endereco ?? ''} onChange={e => setClienteData({ ...clienteData, endereco: e.target.value })} />
                     </div>
                   </div>
                 )}

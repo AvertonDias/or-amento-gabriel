@@ -31,6 +31,8 @@ import {
   updateOrcamentoStatus,
 } from '@/services/orcamentosService';
 import { updateEstoque } from '@/services/materiaisService';
+import { addCliente } from '@/services/clientesService';
+
 
 import {
   addDays,
@@ -228,19 +230,35 @@ export default function OrcamentoPage() {
   // HANDLERS
   // =========================
   const handleSaveBudget = async (
-    data: Omit<Orcamento, 'id'>
+    data: Omit<Orcamento, 'id'>,
+    saveNewClient: boolean
   ) => {
     if (!user) return;
-
-    const numero =
-      await getNextOrcamentoNumber(user.uid);
-
+  
+    let finalClientData = data.cliente;
+  
+    // Se for um novo cliente a ser salvo
+    if (saveNewClient && !data.cliente.id) {
+      try {
+        const newClientId = await addCliente(user.uid, data.cliente);
+        finalClientData = { ...data.cliente, id: newClientId };
+        toast({ title: 'Novo cliente salvo com sucesso!' });
+      } catch (error) {
+        console.error("Erro ao salvar novo cliente:", error);
+        toast({ title: 'Erro ao salvar o novo cliente', variant: 'destructive' });
+        return; // Interrompe se não conseguir salvar o cliente
+      }
+    }
+    
+    const numero = await getNextOrcamentoNumber(user.uid);
+  
     await addOrcamento({
       ...data,
+      cliente: finalClientData, // Usa os dados do cliente (novo ou existente)
       numeroOrcamento: numero,
       userId: user.uid,
     });
-
+  
     toast({ title: 'Orçamento salvo com sucesso' });
     setIsWizardOpen(false);
   };

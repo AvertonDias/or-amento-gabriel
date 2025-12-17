@@ -38,8 +38,8 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
 };
 
 export const addOrcamento = async (orcamento: Omit<Orcamento, 'id'>): Promise<string> => {
-  if (!orcamento || !orcamento.cliente) {
-    throw new Error('Dados do orçamento ou cliente inválidos.');
+  if (!orcamento || !orcamento.cliente || !orcamento.cliente.id) {
+    throw new Error('Dados do orçamento ou ID do cliente inválidos.');
   }
 
   const newId = uuidv4();
