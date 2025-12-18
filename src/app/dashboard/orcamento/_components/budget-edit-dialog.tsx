@@ -571,7 +571,7 @@ export function BudgetEditDialog({
                   </div>
                   {isTotalEdited && !isTotalLocked && (
                     <div className='flex justify-between items-center text-xs mt-1 pr-2'>
-                        <Button type="button" size="xs" variant="link" className="h-auto p-0" onClick={resetManualTotal}>
+                        <Button type="button" variant="link" className="h-auto p-0 text-xs" onClick={resetManualTotal}>
                           <RotateCcw className="mr-1 h-3 w-3"/> Usar calculado
                         </Button>
                          <p className="text-muted-foreground">

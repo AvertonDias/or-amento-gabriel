@@ -692,7 +692,7 @@ export function BudgetWizard({
                               </div>
                                {isTotalEdited && !isTotalLocked && (
                                  <div className="flex justify-end mt-1">
-                                    <Button type="button" size="xs" variant="link" className="h-auto p-0" onClick={resetManualTotal}>
+                                    <Button type="button" variant="link" className="h-auto p-0 text-xs" onClick={resetManualTotal}>
                                         <RotateCcw className="mr-1 h-3 w-3"/> Usar calculado
                                     </Button>
                                   </div>
