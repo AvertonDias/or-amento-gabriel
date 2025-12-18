@@ -108,7 +108,7 @@ export function BudgetWizard({
     endereco?: string;
     email?: string;
     cpfCnpj?: string;
-    telefones: { nome: string; numero: string; principal?: boolean }[];
+    telefones: { nome?: string; numero: string; principal?: boolean }[];
   }>({
     id: undefined,
     nome: '',
