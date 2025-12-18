@@ -22,6 +22,7 @@ import {
 import { Badge, badgeVariants } from '@/components/ui/badge';
 import { MoreVertical, Pencil, History, Trash2 } from 'lucide-react';
 import type { VariantProps } from 'class-variance-authority';
+import { maskTelefone } from '@/lib/utils';
 
 /* -------------------------------------------------------------------------- */
 /* TIPOS                                                                       */
@@ -208,7 +209,7 @@ function ClientList({
                   <span className="font-medium text-muted-foreground">
                     {tel.nome || `Telefone ${index + 1}`}:
                   </span>{' '}
-                  {tel.numero}
+                  {maskTelefone(tel.numero)}
                 </p>
               ))}
 
