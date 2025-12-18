@@ -424,7 +424,7 @@ export default function ConfiguracoesPage() {
               {/* Logo */}
               <div className="space-y-2 flex flex-col items-center justify-center bg-muted/50 rounded-lg p-4">
                 <Label>Logo da Empresa</Label>
-                <div className="w-32 h-32 rounded-full border-2 border-dashed flex items-center justify-center bg-background overflow-hidden">
+                <div className="w-32 h-32 rounded-full border-2 border-dashed flex items-center justify-center bg-white overflow-hidden">
                   {empresa.logo ? (
                     <Image
                       src={empresa.logo}
