@@ -420,7 +420,7 @@ export default function ConfiguracoesPage() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Envie JPG ou PNG (max 200x200px)
+                  Envie JPG ou PNG.
                 </p>
               </div>
             </div>
