@@ -34,11 +34,8 @@ const telefoneSchema = z.object({
   nome: z.string().optional(),
   numero: z
     .string()
-    .min(8, 'Telefone inválido')
-    .refine(
-      value => value.replace(/\D/g, '').length >= 10,
-      'Informe um número válido'
-    ),
+    .transform(val => val.replace(/\D/g, ''))
+    .pipe(z.string().min(10, 'Informe um número válido')),
 });
 
 const formSchema = z.object({
