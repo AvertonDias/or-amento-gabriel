@@ -247,10 +247,13 @@ export default function ClientesPage() {
   /* -------------------------------------------------------------------------- */
   /* IMPORTAÇÃO DE CONTATOS                                                      */
   /* -------------------------------------------------------------------------- */
-  const processSelectedContact = useCallback((contact: Contact) => {
-    const contactPhones = (contact.phones || []).map(p => p.number).filter(Boolean);
-    const contactEmails = (contact.emails || []).map(e => e.address).filter(Boolean);
-    const contactAddresses = (contact.postalAddresses || []).map(a => a.street).filter(Boolean);
+  const processSelectedContact = useCallback((contact: any) => {
+    
+    // Normaliza os dados, pois a API do Capacitor e a da Web retornam formatos diferentes
+    const contactPhones = (contact.phones || contact.tel || []).map(p => typeof p === 'string' ? p : p.number).filter(Boolean);
+    const contactEmails = (contact.emails || contact.email || []).map(e => typeof e === 'string' ? e : e.address).filter(Boolean);
+    const contactAddresses = (contact.postalAddresses || contact.address || []).map(a => typeof a === 'string' ? a : a.street).filter(Boolean);
+    const contactName = (contact.name?.display || (Array.isArray(contact.name) && contact.name[0]) || 'Sem nome');
 
     const needsSelection =
       contactPhones.length > 1 ||
@@ -258,7 +261,7 @@ export default function ClientesPage() {
       contactAddresses.length > 1;
 
     const contactData = {
-      nome: contact.name?.display || '',
+      nome: contactName,
       telefones: contactPhones.length > 0 ? [{ nome: 'Principal', numero: contactPhones[0] }] : [],
       email: contactEmails.length > 0 ? contactEmails[0] : '',
       endereco: contactAddresses.length > 0 ? contactAddresses[0] : '',
@@ -266,14 +269,14 @@ export default function ClientesPage() {
     
     const duplicate = findDuplicateClient(contactData, clientes || []);
     if (duplicate) {
-      setDuplicateMessage(`O contato ${contact.name?.display} já está cadastrado como ${duplicate.nome}.`);
+      setDuplicateMessage(`O contato ${contactName} já está cadastrado como ${duplicate.nome}.`);
       setIsDuplicateAlertOpen(true);
       return;
     }
 
     if (needsSelection) {
       setSelectedContactDetails({
-        name: [contact.name?.display || ''],
+        name: [contactName],
         tel: contactPhones,
         email: contactEmails,
         address: contactAddresses,
@@ -287,6 +290,22 @@ export default function ClientesPage() {
 
 
   const handleImportContacts = useCallback(async () => {
+    // --- Fallback para PWA (Contact Picker API) ---
+    if ('contacts' in navigator && 'select' in (navigator as any).contacts) {
+      try {
+        const contacts = await (navigator as any).contacts.select(['name', 'email', 'tel'], { multiple: false });
+        if (contacts.length > 0) {
+          processSelectedContact(contacts[0]);
+        }
+        return; // Sucesso, não continua para a API do Capacitor
+      } catch (e) {
+        // O usuário pode ter cancelado a seleção. Não é necessariamente um erro.
+        console.info("Contact Picker API foi fechada ou não selecionou contato.");
+        // Deixa o código continuar para tentar a API do Capacitor se houver erro
+      }
+    }
+
+    // --- Tenta a API do Capacitor (para App Nativo) ---
     try {
       const permission = await Contacts.requestPermissions();
       if (permission.contacts !== 'granted') {
@@ -295,12 +314,7 @@ export default function ClientesPage() {
       }
 
       const result = await Contacts.pickContact({
-        projection: {
-          name: true,
-          phones: true,
-          emails: true,
-          postalAddresses: true,
-        },
+        projection: { name: true, phones: true, emails: true, postalAddresses: true },
       });
 
       processSelectedContact(result.contact);
@@ -311,7 +325,9 @@ export default function ClientesPage() {
         } else if (e instanceof Error && e.message.includes('not implemented')) {
             setIsApiNotSupportedAlertOpen(true);
         } else {
-            toast({ title: 'Erro ao importar', description: 'Não foi possível buscar o contato.', variant: 'destructive' });
+            // Se chegou aqui, nenhuma das APIs funcionou.
+            console.error("Erro final ao importar contato:", e);
+            setIsApiNotSupportedAlertOpen(true);
         }
     }
   }, [toast, processSelectedContact]);
