@@ -3,6 +3,7 @@
 
 import React, { FormEvent, useState, useEffect, useMemo, useRef } from 'react';
 import type { EmpresaData } from '@/lib/types';
+import { useBeforeUnload } from 'react-router-dom';
 
 import {
   Card,
@@ -579,3 +580,5 @@ export default function ConfiguracoesPage() {
     </div>
   );
 }
+
+    
