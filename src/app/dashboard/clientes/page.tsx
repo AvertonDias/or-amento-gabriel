@@ -34,7 +34,6 @@ import { db } from '@/lib/dexie';
 
 import { Capacitor } from '@capacitor/core';
 import { Contacts } from '@capacitor-community/contacts';
-import type { Contact } from '@capacitor-community/contacts';
 
 import ClientForm, { type ClientFormValues } from './_components/client-form';
 import ClientList from './_components/client-list';
