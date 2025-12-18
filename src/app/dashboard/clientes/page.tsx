@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
@@ -249,9 +250,9 @@ export default function ClientesPage() {
   const processSelectedContact = useCallback((contact: any) => {
     
     // Normaliza os dados, pois a API do Capacitor e a da Web retornam formatos diferentes
-    const contactPhones = (contact.phones || contact.tel || []).map(p => typeof p === 'string' ? p : p.number).filter(Boolean);
-    const contactEmails = (contact.emails || contact.email || []).map(e => typeof e === 'string' ? e : e.address).filter(Boolean);
-    const contactAddresses = (contact.postalAddresses || contact.address || []).map(a => typeof a === 'string' ? a : a.street).filter(Boolean);
+    const contactPhones = (contact.phones || contact.tel || []).map((p: any) => typeof p === 'string' ? p : p.number).filter(Boolean);
+    const contactEmails = (contact.emails || contact.email || []).map((e: any) => typeof e === 'string' ? e : e.address).filter(Boolean);
+    const contactAddresses = (contact.postalAddresses || contact.address || []).map((a: any) => typeof a === 'string' ? a : a.street).filter(Boolean);
     const contactName = (contact.name?.display || (Array.isArray(contact.name) && contact.name[0]) || 'Sem nome');
 
     const needsSelection =
