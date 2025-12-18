@@ -3,9 +3,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import type { ClienteData } from '@/lib/types';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-
 
 import {
   Card,
@@ -290,11 +287,6 @@ export default function ClientesPage() {
 
 
   const handleImportContacts = useCallback(async () => {
-    if (!Capacitor.isNativePlatform()) {
-      setIsApiNotSupportedAlertOpen(true);
-      return;
-    }
-
     try {
       const permission = await Contacts.requestPermissions();
       if (permission.contacts !== 'granted') {
@@ -316,6 +308,8 @@ export default function ClientesPage() {
     } catch (e) {
         if (e instanceof Error && e.message.includes('cancelled')) {
              // Ação cancelada pelo usuário, não mostrar erro
+        } else if (e instanceof Error && e.message.includes('not implemented')) {
+            setIsApiNotSupportedAlertOpen(true);
         } else {
             toast({ title: 'Erro ao importar', description: 'Não foi possível buscar o contato.', variant: 'destructive' });
         }
