@@ -5,7 +5,6 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { UnifiedThemeProvider } from '@/contexts/unified-theme-provider';
 import { PermissionDialogProvider } from '@/hooks/use-permission-dialog';
-import PwaRegistry from '@/app/pwa-registry';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -42,9 +41,6 @@ export default function RootLayout({
       </head>
 
       <body className={`${inter.variable} font-body antialiased`}>
-        {/* Registro do Service Worker / PWA */}
-        <PwaRegistry />
-
         <UnifiedThemeProvider>
           <PermissionDialogProvider>
             {children}

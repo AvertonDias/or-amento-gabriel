@@ -1,17 +1,13 @@
-
 /** @type {import('next').NextConfig} */
-import withPWAInit from '@ducanh2912/next-pwa';
-
-const withPWA = withPWAInit({
-  dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
-  register: false, // Vamos controlar o registro manualmente
-  skipWaiting: true,
-});
-
 const nextConfig = {
-  // Sua configuração Next.js aqui
-  reactStrictMode: true,
+  output: 'export',
+  distDir: 'out',
+  images: {
+    unoptimized: true,
+  },
+  // O Service Worker e o Fallback não são mais necessários para o Capacitor.
+  // A abordagem recomendada agora é usar o roteamento do Next.js diretamente.
+  // A página _offline será tratada pelo Capacitor se não houver conexão.
 };
 
-export default withPWA(nextConfig);
+export default nextConfig;
