@@ -23,6 +23,8 @@ import {
 } from '@/components/ui/accordion';
 import { PlusCircle, Trash2, Loader2, UserPlus } from 'lucide-react';
 import { maskCpfCnpj, maskTelefone } from '@/lib/utils';
+import type { Control } from 'react-hook-form';
+
 
 /* -------------------------------------------------------------------------- */
 /* SCHEMA                                                                      */
@@ -70,6 +72,7 @@ interface ClientFormProps {
   isSubmitting: boolean;
   triggerTitle?: string;
   isEditMode?: boolean;
+  formControl?: Control<ClientFormValues>;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -83,7 +86,9 @@ export default function ClientForm({
   isSubmitting,
   triggerTitle,
   isEditMode = false,
+  formControl
 }: ClientFormProps) {
+  
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -94,8 +99,11 @@ export default function ClientForm({
       telefones: [{ nome: 'Principal', numero: '' }],
     },
   });
-
-  const { control, handleSubmit, reset } = form;
+  
+  // Usa o controle externo se fornecido (para o formulário de Adicionar),
+  // senão usa o controle interno (para o modal de Editar)
+  const control = formControl || form.control;
+  const { handleSubmit, reset } = form;
 
   /* ------------------------------------------------------------------------ */
   /* SINCRONIZA initialData                                                    */
@@ -104,7 +112,7 @@ export default function ClientForm({
   useEffect(() => {
     if (!initialData) return;
 
-    reset({
+    const valuesToReset = {
       nome: initialData.nome || '',
       cpfCnpj: initialData.cpfCnpj || '',
       endereco: initialData.endereco || '',
@@ -114,8 +122,17 @@ export default function ClientForm({
         initialData.telefones.length > 0
           ? initialData.telefones
           : [{ nome: 'Principal', numero: '' }],
-    });
-  }, [initialData, reset]);
+    };
+
+    // Reseta o form interno ou o form pai
+    if(formControl) {
+        Object.entries(valuesToReset).forEach(([key, value]) => {
+             form.setValue(key as keyof ClientFormValues, value);
+        })
+    } else {
+         reset(valuesToReset);
+    }
+  }, [initialData, reset, formControl, form]);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -128,7 +145,7 @@ export default function ClientForm({
 
   const formContent = (
     <Form {...form}>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={control}
           name="nome"

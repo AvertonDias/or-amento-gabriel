@@ -2,6 +2,10 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import type { ClienteData } from '@/lib/types';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
 
 import {
   Card,
@@ -33,8 +37,9 @@ import { db } from '@/lib/dexie';
 
 import { Capacitor } from '@capacitor/core';
 import { Contacts } from '@capacitor-community/contacts';
+import type { Contact } from '@capacitor-community/contacts';
 
-import ClientForm from './_components/client-form';
+import ClientForm, { type ClientFormValues } from './_components/client-form';
 import ClientList from './_components/client-list';
 import type { BudgetCounts } from './_components/client-list';
 import { DeleteClientDialog } from './_components/delete-client-dialog';
@@ -43,64 +48,8 @@ import {
   ContactImportModals,
   type SelectedContactDetails,
 } from './_components/contact-import-modals';
+import { findDuplicateClient } from '@/lib/utils';
 
-/* -------------------------------------------------------------------------- */
-/* HELPERS                                                                    */
-/* -------------------------------------------------------------------------- */
-
-const normalizePhone = (value: string) =>
-  value.replace(/\D/g, '').replace(/^55/, '');
-
-const normalizeEmail = (value: string) =>
-  value.trim().toLowerCase();
-
-function findDuplicateClient(
-  newClient: Omit<ClienteData, 'id' | 'userId'>,
-  existingClients: ClienteData[]
-): ClienteData | null {
-  const newPhones =
-    newClient.telefones?.map(t => normalizePhone(t.numero)) ?? [];
-
-  const newEmail = newClient.email
-    ? normalizeEmail(newClient.email)
-    : null;
-
-  for (const client of existingClients) {
-    // Verifica telefone
-    const clientPhones =
-      client.telefones?.map(t => normalizePhone(t.numero)) ?? [];
-
-    if (
-      newPhones.length > 0 &&
-      newPhones.some(p => p && clientPhones.includes(p))
-    ) {
-      return client;
-    }
-
-    // Verifica email
-    if (
-      newEmail &&
-      client.email &&
-      normalizeEmail(client.email) === newEmail
-    ) {
-      return client;
-    }
-  }
-
-  return null;
-}
-
-/* -------------------------------------------------------------------------- */
-/* ESTADO INICIAL                                                              */
-/* -------------------------------------------------------------------------- */
-
-const initialNewClientState: Omit<ClienteData, 'id' | 'userId'> = {
-  nome: '',
-  cpfCnpj: '',
-  endereco: '',
-  telefones: [{ nome: 'Principal', numero: '' }],
-  email: '',
-};
 
 export default function ClientesPage() {
   const [user, loadingAuth] = useAuthState(auth);
@@ -136,8 +85,9 @@ export default function ClientesPage() {
   /* -------------------------------------------------------------------------- */
   /* STATES                                                                     */
   /* -------------------------------------------------------------------------- */
+  
+  const addClientForm = useForm<ClientFormValues>();
 
-  const [newClient, setNewClient] = useState(initialNewClientState);
   const [editingClient, setEditingClient] = useState<ClienteData | null>(null);
   const [clientToDelete, setClientToDelete] = useState<ClienteData | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -217,10 +167,9 @@ export default function ClientesPage() {
   /* -------------------------------------------------------------------------- */
 
   const handleAdicionarCliente = useCallback(
-    async (data: Omit<ClienteData, 'id' | 'userId'>) => {
+    async (data: ClientFormValues) => {
       if (!user || !clientes) return;
 
-      // 🔍 DETECÇÃO DE DUPLICADO
       const duplicate = findDuplicateClient(data, clientes);
 
       if (duplicate) {
@@ -238,7 +187,7 @@ export default function ClientesPage() {
           telefones: data.telefones.filter(t => t.numero.trim()),
         });
 
-        setNewClient(initialNewClientState);
+        addClientForm.reset();
         toast({ title: 'Cliente adicionado com sucesso' });
       } catch {
         toast({
@@ -249,7 +198,7 @@ export default function ClientesPage() {
         setIsSubmitting(false);
       }
     },
-    [user, clientes, toast]
+    [user, clientes, toast, addClientForm]
   );
 
   const handleSalvarEdicao = useCallback(
@@ -301,6 +250,44 @@ export default function ClientesPage() {
   /* -------------------------------------------------------------------------- */
   /* IMPORTAÇÃO DE CONTATOS                                                      */
   /* -------------------------------------------------------------------------- */
+  const processSelectedContact = useCallback((contact: Contact) => {
+    const contactPhones = (contact.phones || []).map(p => p.number).filter(Boolean);
+    const contactEmails = (contact.emails || []).map(e => e.address).filter(Boolean);
+    const contactAddresses = (contact.postalAddresses || []).map(a => a.street).filter(Boolean);
+
+    const needsSelection =
+      contactPhones.length > 1 ||
+      contactEmails.length > 1 ||
+      contactAddresses.length > 1;
+
+    const contactData = {
+      nome: contact.name?.display || '',
+      telefones: contactPhones.length > 0 ? [{ nome: 'Principal', numero: contactPhones[0] }] : [],
+      email: contactEmails.length > 0 ? contactEmails[0] : '',
+      endereco: contactAddresses.length > 0 ? contactAddresses[0] : '',
+    };
+    
+    const duplicate = findDuplicateClient(contactData, clientes || []);
+    if (duplicate) {
+      setDuplicateMessage(`O contato ${contact.name?.display} já está cadastrado como ${duplicate.nome}.`);
+      setIsDuplicateAlertOpen(true);
+      return;
+    }
+
+    if (needsSelection) {
+      setSelectedContactDetails({
+        name: [contact.name?.display || ''],
+        tel: contactPhones,
+        email: contactEmails,
+        address: contactAddresses,
+      });
+      setIsContactSelectionModalOpen(true);
+    } else {
+      addClientForm.reset(contactData);
+      toast({ title: 'Contato pronto para ser salvo!' });
+    }
+  }, [clientes, addClientForm, toast]);
+
 
   const handleImportContacts = useCallback(async () => {
     if (!Capacitor.isNativePlatform()) {
@@ -309,17 +296,13 @@ export default function ClientesPage() {
     }
 
     try {
-      const perm = await Contacts.requestPermissions();
-      if (perm.contacts !== 'granted') {
-        toast({
-          title: 'Permissão negada',
-          description: 'Permita acesso aos contatos.',
-          variant: 'destructive',
-        });
+      const permission = await Contacts.requestPermissions();
+      if (permission.contacts !== 'granted') {
+        toast({ title: 'Permissão negada', description: 'Acesso aos contatos é necessário.', variant: 'destructive' });
         return;
       }
 
-      const result = await Contacts.getContacts({
+      const result = await Contacts.pickContact({
         projection: {
           name: true,
           phones: true,
@@ -328,38 +311,30 @@ export default function ClientesPage() {
         },
       });
 
-      const contact = result.contacts.find(
-        c => c.phones?.length || c.emails?.length
-      );
+      processSelectedContact(result.contact);
 
-      if (!contact) {
-        toast({ title: 'Nenhum contato válido encontrado' });
-        return;
-      }
-
-      setNewClient({
-        nome: contact.name?.display || 'Sem nome',
-        email: contact.emails?.[0]?.address || '',
-        telefones: [
-          {
-            nome: 'Principal',
-            numero: normalizePhone(
-              contact.phones?.[0]?.number || ''
-            ),
-          },
-        ],
-        endereco: contact.postalAddresses?.[0]?.street || '',
-        cpfCnpj: '',
-      });
-
-      toast({ title: 'Contato importado do celular' });
-    } catch {
-      toast({
-        title: 'Erro ao importar contatos',
-        variant: 'destructive',
-      });
+    } catch (e) {
+        if (e instanceof Error && e.message.includes('cancelled')) {
+             // Ação cancelada pelo usuário, não mostrar erro
+        } else {
+            toast({ title: 'Erro ao importar', description: 'Não foi possível buscar o contato.', variant: 'destructive' });
+        }
     }
-  }, [toast]);
+  }, [toast, processSelectedContact]);
+  
+  const handleConfirmContactSelection = useCallback((selectedData: Partial<ClienteData>) => {
+    const dataToSet = {
+      nome: selectedData.nome || '',
+      cpfCnpj: '',
+      endereco: selectedData.endereco || '',
+      email: selectedData.email || '',
+      telefones: selectedData.telefones || [{ nome: 'Principal', numero: '' }],
+    };
+    addClientForm.reset(dataToSet);
+    setIsContactSelectionModalOpen(false);
+    toast({ title: 'Contato pronto para ser salvo!' });
+  }, [addClientForm, toast]);
+
 
   /* -------------------------------------------------------------------------- */
   /* UI                                                                         */
@@ -390,8 +365,9 @@ export default function ClientesPage() {
           </div>
 
           <Accordion type="single" collapsible>
-            <ClientForm
-              initialData={newClient}
+             <ClientForm
+              initialData={addClientForm.getValues()}
+              formControl={addClientForm.control}
               onSubmit={handleAdicionarCliente}
               onImportContacts={handleImportContacts}
               isSubmitting={isSubmitting}
@@ -409,7 +385,7 @@ export default function ClientesPage() {
             <ClientList
               clientes={filteredClientes}
               budgetCounts={budgetCountsByClient}
-              onEdit={setEditingClient}
+              onEdit={(client) => setEditingClient(client)}
               onDelete={setClientToDelete}
               onViewBudgets={id =>
                 router.push(
@@ -421,15 +397,15 @@ export default function ClientesPage() {
         </CardContent>
       </Card>
 
-      <EditClientDialog
-        isEditModalOpen={!!editingClient}
-        setIsEditModalOpen={open =>
-          !open && setEditingClient(null)
-        }
-        editingClient={editingClient}
-        onSaveEdit={handleSalvarEdicao}
-        isSubmitting={isSubmitting}
-      />
+      {editingClient && (
+        <EditClientDialog
+          isEditModalOpen={!!editingClient}
+          setIsEditModalOpen={open => !open && setEditingClient(null)}
+          editingClient={editingClient}
+          onSaveEdit={handleSalvarEdicao}
+          isSubmitting={isSubmitting}
+        />
+      )}
 
       <DeleteClientDialog
         clientToDelete={clientToDelete}
@@ -447,7 +423,7 @@ export default function ClientesPage() {
           setIsContactSelectionModalOpen
         }
         selectedContactDetails={selectedContactDetails}
-        onConfirmContactSelection={() => {}}
+        onConfirmContactSelection={handleConfirmContactSelection}
         isDuplicateAlertOpen={isDuplicateAlertOpen}
         setIsDuplicateAlertOpen={setIsDuplicateAlertOpen}
         duplicateMessage={duplicateMessage}
