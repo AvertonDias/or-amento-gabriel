@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { FormEvent, useState, useEffect, useMemo } from 'react';
+import React, { FormEvent, useState, useEffect, useMemo, useRef } from 'react';
 import type { EmpresaData } from '@/lib/types';
 
 import {
@@ -74,6 +74,9 @@ export default function ConfiguracoesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
+  const [initialData, setInitialData] = useState<EmpresaData | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+
   const empresaDexie = useLiveQuery(
     () => (user ? db.empresa.get(user.uid) : undefined),
     [user]
@@ -88,16 +91,50 @@ export default function ConfiguracoesPage() {
   useEffect(() => {
     if (!user || isLoadingData) return;
 
+    let loadedData;
     if (empresaDexie) {
-      setEmpresa(empresaDexie.data); // Corrigido: acessa a propriedade 'data'
+      loadedData = empresaDexie.data;
     } else {
-      setEmpresa({
+      loadedData = {
         ...initialEmpresaState,
         id: user.uid,
         userId: user.uid,
-      });
+      };
     }
+    setEmpresa(loadedData);
+    setInitialData(JSON.parse(JSON.stringify(loadedData))); // Deep copy
+    setIsDirty(false); // Reseta o estado 'dirty'
   }, [empresaDexie, user, isLoadingData]);
+  
+  
+  /* =======================
+     AVISO DE SAIR SEM SALVAR
+  ======================= */
+  
+  useEffect(() => {
+    // Compara o estado atual com o inicial para definir se o formulário está "sujo"
+    if (initialData && empresa) {
+      const hasChanged = JSON.stringify(initialData) !== JSON.stringify(empresa);
+      setIsDirty(hasChanged);
+    }
+  }, [empresa, initialData]);
+  
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        // A mensagem personalizada não é mais suportada na maioria dos navegadores,
+        // mas é bom ter para compatibilidade. O navegador mostrará um prompt genérico.
+        e.returnValue = 'Você tem alterações não salvas. Deseja realmente sair?';
+      }
+    };
+  
+    window.addEventListener('beforeunload', handleBeforeUnload);
+  
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isDirty]);
 
 
   /* =======================
@@ -266,10 +303,13 @@ export default function ConfiguracoesPage() {
 
     setIsSaving(true);
     try {
-      await saveEmpresaData(user.uid, {
+      const savedData = await saveEmpresaData(user.uid, {
         ...empresa,
         telefones: empresa.telefones.filter(t => t.numero.trim()),
       });
+      
+      setInitialData(JSON.parse(JSON.stringify(savedData))); // Atualiza o estado inicial após salvar
+      setIsDirty(false); // Reseta o estado 'dirty'
 
       toast({
         title: 'Sucesso',
@@ -411,6 +451,7 @@ export default function ConfiguracoesPage() {
                   </Button>
                   {empresa.logo && (
                     <Button
+                      type="button"
                       variant="destructive"
                       size="sm"
                       onClick={removeLogo}
