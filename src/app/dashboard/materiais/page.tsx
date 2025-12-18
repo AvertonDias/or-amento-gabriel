@@ -79,6 +79,7 @@ const initialNewItemState: Omit<MaterialItem, 'id' | 'userId'> = {
 const unidadesDeMedida = [
   { value: 'un', label: 'Unidade (un)' },
   { value: 'h', label: 'Hora (h)' },
+  { value: 'dia', label: 'Dia de Serviço (dia)' },
   { value: 'm', label: 'Metro (m)' },
   { value: 'm²', label: 'Metro Quadrado (m²)' },
   { value: 'kg', label: 'Quilograma (kg)' },
@@ -86,7 +87,7 @@ const unidadesDeMedida = [
   { value: 'serv', label: 'Serviço (serv)' },
 ];
 
-const integerUnits = ['un', 'h', 'serv'];
+const integerUnits = ['un', 'h', 'serv', 'dia'];
 
 const normalizeString = (str: string) =>
   str?.trim().toLowerCase().replace(/,/g, '.').replace(/\s+/g, ' ') || '';

@@ -40,7 +40,7 @@ interface EditItemModalProps {
   onSave: (item: OrcamentoItem) => void;
 }
 
-const integerUnits = ['un', 'h', 'serv'];
+const integerUnits = ['un', 'h', 'serv', 'dia'];
 
 /* =========================
    COMPONENTE
