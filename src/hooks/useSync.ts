@@ -40,10 +40,10 @@ export function useSync() {
   const [lastSync, setLastSync] = useLocalStorage<string | null>('lastSyncTime', null);
 
   const syncLock = useRef(false);
-  const initialSyncDone = useRef(false);
+  const initialPullDone = useRef(false);
 
   const pendingItems = useLiveQuery(async () => {
-    if (!isOnline || !user) return { count: 0 };
+    if (!user) return { count: 0 };
 
     const [clientes, materiais, orcamentos, empresa, deletions] = await Promise.all([
       dexieDB.clientes.where({ syncStatus: 'pending', userId: user.uid }).count(),
@@ -54,7 +54,7 @@ export function useSync() {
     ]);
 
     return { count: clientes + materiais + orcamentos + empresa + deletions };
-  }, [isOnline, user]);
+  }, [user]);
 
   useEffect(() => {
     const updateOnlineStatus = () => setIsOnline(navigator.onLine);
@@ -138,7 +138,7 @@ export function useSync() {
     if (!user || !isOnline || syncLock.current) return;
   
     syncLock.current = true;
-    setIsSyncing(true);
+    // Não seta isSyncing para true aqui para não mostrar loading no pull inicial
   
     try {
       const collections: SyncableCollection[] = ['clientes', 'materiais', 'orcamentos', 'empresa'];
@@ -147,57 +147,43 @@ export function useSync() {
         const q = query(collection(firestoreDB, coll), where('userId', '==', user.uid));
         const snapshot = await getDocs(q);
   
-        if (!snapshot.empty) {
-          const items = snapshot.docs.map(doc => ({
+        const firestoreItems = snapshot.docs.map(doc => ({
             id: doc.id,
             userId: user.uid,
             data: doc.data(),
             syncStatus: 'synced',
             syncError: null,
-          }));
-  
-          // Limpa a tabela local SOMENTE APÓS buscar os dados com sucesso
-          await (dexieDB as any)[coll].where('userId').equals(user.uid).delete();
-          await (dexieDB as any)[coll].bulkPut(items);
-        } else {
-          // Se não há nada no Firestore, verifica se há algo localmente antes de limpar
-          const localCount = await (dexieDB as any)[coll].where('userId').equals(user.uid).count();
-          if (localCount > 0) {
-            await (dexieDB as any)[coll].where('userId').equals(user.uid).delete();
-          }
+        }));
+
+        if (firestoreItems.length > 0) {
+            await (dexieDB as any)[coll].bulkPut(firestoreItems);
         }
       }
       setLastSync(new Date().toISOString());
+      initialPullDone.current = true;
     } catch (error) {
         console.error("Erro ao puxar dados do Firestore:", error);
-        toast({
-            title: 'Erro ao buscar dados da nuvem',
-            description: 'Não foi possível sincronizar os dados. Tente novamente mais tarde.',
-            variant: 'destructive',
-        });
     } finally {
         syncLock.current = false;
-        setIsSyncing(false);
     }
-  }, [user, isOnline, toast, setLastSync]);
+  }, [user, isOnline, setLastSync]);
 
+  // Efeito para Pull inicial (apenas uma vez)
   useEffect(() => {
-    if (isOnline && user && !initialSyncDone.current) {
-      initialSyncDone.current = true;
-      (async () => {
-        await pushToFirestore();
-        await pullFromFirestore();
-      })();
+    if (isOnline && user && !initialPullDone.current) {
+        pullFromFirestore();
     }
-  }, [isOnline, user, pushToFirestore, pullFromFirestore]);
+  }, [isOnline, user, pullFromFirestore]);
 
+
+  // Efeito para Push (quando houver itens pendentes)
   useEffect(() => {
     const count = pendingItems?.count ?? 0;
   
-    if (count > 0 && isOnline && !isSyncing) {
+    if (count > 0 && isOnline && !syncLock.current) {
       pushToFirestore();
     }
-  }, [pendingItems, isOnline, isSyncing, pushToFirestore]);
+  }, [pendingItems, isOnline, pushToFirestore]);
  
   return {
     isOnline,
