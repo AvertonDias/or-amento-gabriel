@@ -324,7 +324,7 @@ export function BudgetList({
               </div>
               
               <div className="flex items-end justify-between mt-2">
-                <div className="flex flex-col text-xs text-muted-foreground">
+                <div className="flex flex-col text-sm text-muted-foreground">
                     <span>Criação: {format(parseISO(o.dataCriacao), 'dd/MM/yy')}</span>
                     <span>Venc.: {format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yy')}</span>
                 </div>
