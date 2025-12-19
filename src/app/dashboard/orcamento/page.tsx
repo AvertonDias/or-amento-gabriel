@@ -67,6 +67,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { formatCurrency, formatNumber } from '@/lib/utils';
+import { BudgetDetailsModal } from './_components/budget-details-modal';
 
 export default function OrcamentoPage() {
   const [user, loadingAuth] = useAuthState(auth);
@@ -127,6 +128,7 @@ export default function OrcamentoPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingBudget, setEditingBudget] =
     useState<Orcamento | null>(null);
+  const [viewingBudget, setViewingBudget] = useState<Orcamento | null>(null);
   const [statusFilter, setStatusFilter] = useState('todos');
 
   const [companyPhoneDialog, setCompanyPhoneDialog] = useState<{
@@ -462,6 +464,7 @@ export default function OrcamentoPage() {
         onDelete={deleteOrcamento}
         onUpdateStatus={handleUpdateStatus}
         clienteFiltrado={clienteFiltrado}
+        onViewDetails={setViewingBudget}
       />
 
       {isWizardOpen && clientes && materiais && (
@@ -483,6 +486,14 @@ export default function OrcamentoPage() {
           budget={editingBudget}
           materiais={materiais}
           onUpdateBudget={handleUpdateBudget}
+        />
+      )}
+
+      {viewingBudget && (
+        <BudgetDetailsModal
+          budget={viewingBudget}
+          isOpen={!!viewingBudget}
+          onOpenChange={(open) => !open && setViewingBudget(null)}
         />
       )}
 
