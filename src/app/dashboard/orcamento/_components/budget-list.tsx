@@ -65,7 +65,7 @@ const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
 
   if (!isAdjusted) {
     return (
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-end">
         <span className="font-bold">{formatCurrency(orcamento.totalVenda)}</span>
       </div>
     );
@@ -77,7 +77,7 @@ const AdjustmentBadge = ({ orcamento }: { orcamento: Orcamento }) => {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-end">
           <span className="font-bold">{formatCurrency(orcamento.totalVenda)}</span>
           <span
             className={cn(
@@ -213,8 +213,9 @@ export function BudgetList({
   if (isLoading) {
     return (
       <div className="space-y-4">
-          <Skeleton className="h-40 w-full" />
-          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
       </div>
     );
   }
@@ -272,19 +273,24 @@ export function BudgetList({
             onClick={() => onViewDetails(o)}
           >
             <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex-1 space-y-1">
+              
+              {/* Coluna 1: Cliente e Status */}
+              <div className="flex-1 space-y-1 min-w-0">
+                <h3 className="text-lg font-semibold text-primary truncate" title={o.cliente.nome}>{o.cliente.nome}</h3>
                 <div className="flex items-center gap-2">
                   <p className="text-sm text-muted-foreground">Nº {o.numeroOrcamento}</p>
                   <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
                 </div>
-                <h3 className="text-lg font-semibold text-primary">{o.cliente.nome}</h3>
-                <div className="flex flex-col sm:flex-row sm:gap-4 text-sm text-muted-foreground">
-                  <span>Criação: {format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</span>
-                  <span>Vencimento: {format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</span>
-                </div>
               </div>
               
-              <div className="flex sm:flex-col items-center justify-between">
+              {/* Coluna 2: Datas (visível em telas maiores) */}
+              <div className="hidden md:flex flex-col text-sm text-muted-foreground text-center">
+                  <span>Criação: {format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</span>
+                  <span>Vencimento: {format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</span>
+              </div>
+              
+              {/* Coluna 3: Total e Ações */}
+              <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
                 <div className="sm:text-right">
                   <p className="text-sm text-muted-foreground">Total</p>
                   <AdjustmentBadge orcamento={o} />
