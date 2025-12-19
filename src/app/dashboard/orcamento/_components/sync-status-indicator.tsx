@@ -22,11 +22,6 @@ export function SyncStatusIndicator() {
     if (!isOnline) return 'Você está offline. As alterações serão sincronizadas quando você se conectar.';
     if (isSyncing) return `Sincronizando ${pendingCount > 0 ? `${pendingCount} item(s)` : ''}...`;
     if (pendingCount > 0) return `${pendingCount} ${pendingCount === 1 ? 'item pendente' : 'itens pendentes'} para sincronizar.`;
-    if (lastSync) {
-      const lastSyncDate = new Date(lastSync);
-      const timeAgo = formatDistanceToNow(lastSyncDate, { addSuffix: true, locale: ptBR });
-      return `Sincronizado. Última sincronização: ${timeAgo}`;
-    }
     return 'Conectado e sincronizado.';
   };
 
