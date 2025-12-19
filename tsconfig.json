@@ -26,7 +26,10 @@
       "@/*": [
         "./src/*"
       ]
-    }
+    },
+    "types": [
+      "@ducanh2912/next-pwa/workbox"
+    ]
   },
   "include": [
     "next-env.d.ts",
