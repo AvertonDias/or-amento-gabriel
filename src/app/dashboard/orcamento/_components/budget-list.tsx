@@ -317,11 +317,11 @@ export function BudgetList({
             <CardContent className="p-4 cursor-pointer flex flex-col justify-between min-h-[110px]" onClick={() => onViewDetails(o)}>
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                 <div className="flex-1 space-y-1 min-w-0 pr-10">
-                  <h3 className="text-lg font-semibold text-primary truncate" title={o.cliente.nome}>{o.cliente.nome}</h3>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm text-muted-foreground">Nº {o.numeroOrcamento}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-lg font-semibold text-primary truncate" title={o.cliente.nome}>{o.cliente.nome}</h3>
                     <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
                   </div>
+                  <p className="text-sm text-muted-foreground">Nº {o.numeroOrcamento}</p>
                 </div>
                 
                 <div className="hidden md:flex flex-col text-sm text-muted-foreground text-center shrink-0">
