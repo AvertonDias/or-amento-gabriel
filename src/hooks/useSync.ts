@@ -9,6 +9,7 @@ import { collection, getDocs, where, query } from 'firebase/firestore';
 import { db as dexieDB } from '@/lib/dexie';
 import { db as firestoreDB, auth } from '@/lib/firebase';
 import { useToast } from './use-toast';
+import { useLocalStorage } from './useLocalStorage'; // Importar useLocalStorage
 
 import { syncClienteToFirestore, deleteClienteFromFirestore } from '@/services/clientesService';
 import { syncMaterialToFirestore, deleteMaterialFromFirestore } from '@/services/materiaisService';
@@ -36,6 +37,7 @@ export function useSync() {
 
   const [isOnline, setIsOnline] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSync, setLastSync] = useLocalStorage<string | null>('lastSyncTime', null);
 
   const syncLock = useRef(false);
   const initialSyncDone = useRef(false);
@@ -119,6 +121,7 @@ export function useSync() {
       await syncCollection('materiais');
       await syncCollection('orcamentos');
       await syncDeletions();
+      setLastSync(new Date().toISOString());
     } catch {
       toast({
         title: 'Erro na sincronização',
@@ -129,7 +132,7 @@ export function useSync() {
       syncLock.current = false;
       setIsSyncing(false);
     }
-  }, [user, isOnline, toast]);
+  }, [user, isOnline, toast, setLastSync]);
 
   const pullFromFirestore = useCallback(async () => {
     if (!user || !isOnline || syncLock.current) return;
@@ -164,6 +167,7 @@ export function useSync() {
           }
         }
       }
+      setLastSync(new Date().toISOString());
     } catch (error) {
         console.error("Erro ao puxar dados do Firestore:", error);
         toast({
@@ -175,7 +179,7 @@ export function useSync() {
         syncLock.current = false;
         setIsSyncing(false);
     }
-  }, [user, isOnline, toast]);
+  }, [user, isOnline, toast, setLastSync]);
 
   useEffect(() => {
     if (isOnline && user && !initialSyncDone.current) {
@@ -199,5 +203,6 @@ export function useSync() {
     isOnline,
     isSyncing,
     pendingCount: pendingItems?.count ?? 0,
+    lastSync,
   };
 }

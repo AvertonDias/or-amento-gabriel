@@ -55,6 +55,7 @@ import { BudgetList } from './_components/budget-list';
 import { BudgetWizard } from './_components/budget-wizard';
 import { BudgetEditDialog } from './_components/budget-edit-dialog';
 import { BudgetPDFs } from './_components/budget-pdfs';
+import { SyncStatusIndicator } from './_components/sync-status-indicator';
 import {
   Dialog,
   DialogContent,
@@ -416,12 +417,17 @@ export default function OrcamentoPage() {
     <div className="container mx-auto p-4 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Meus Orçamentos</CardTitle>
-          <CardDescription>
-            {clienteFiltrado
-              ? `Filtrando orçamentos para ${clienteFiltrado.nome}`
-              : 'Crie e gerencie seus orçamentos, mesmo offline.'}
-          </CardDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle>Meus Orçamentos</CardTitle>
+              <CardDescription>
+                {clienteFiltrado
+                  ? `Filtrando orçamentos para ${clienteFiltrado.nome}`
+                  : 'Crie e gerencie seus orçamentos, mesmo offline.'}
+              </CardDescription>
+            </div>
+            <SyncStatusIndicator />
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
