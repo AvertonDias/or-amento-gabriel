@@ -70,9 +70,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       const notifStatus = await LocalNotifications.checkPermissions();
       if (notifStatus.display === 'prompt') {
         const granted = await requestPermission({
-          title: 'Permitir notificações?',
+          title: 'Receber Alertas Importantes?',
           description:
-            'Deseja receber alertas importantes, como lembretes e atualizações de orçamentos?',
+            'Deseja receber notificações sobre orçamentos, como lembretes de vencimento e alertas de estoque?',
         });
 
         if (granted) {
@@ -84,9 +84,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       const contactsStatus = await Contacts.checkPermissions();
       if (contactsStatus.contacts === 'prompt') {
         const granted = await requestPermission({
-          title: 'Permitir acesso aos contatos?',
+          title: 'Importar Clientes da Agenda?',
           description:
-            'Isso permite adicionar clientes diretamente da sua agenda, economizando tempo.',
+            'Para adicionar clientes rapidamente, o aplicativo pode acessar sua agenda de contatos. Deseja permitir?',
         });
 
         if (granted) {
@@ -99,9 +99,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     else {
       if ('Notification' in window && Notification.permission === 'default') {
         const granted = await requestPermission({
-          title: 'Permitir notificações?',
+          title: 'Receber Alertas Importantes?',
           description:
-            'Deseja receber alertas importantes, como lembretes e atualizações de orçamentos?',
+            'Deseja receber notificações sobre orçamentos, como lembretes de vencimento e alertas de estoque?',
         });
 
         if (granted) {

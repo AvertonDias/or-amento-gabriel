@@ -362,8 +362,9 @@ const BudgetPDFs = forwardRef(
         const { Filesystem, Directory } = await import('@capacitor/filesystem');
 
         const perm = await requestPermission({
-          title: 'Salvar PDF',
-          description: 'Precisamos de permissão para salvar o PDF.',
+          title: 'Permissão para Salvar Arquivo',
+          description:
+            'Para salvar o orçamento em PDF na pasta de Documentos do seu celular, o aplicativo precisa de permissão para acessar o armazenamento. Deseja permitir?',
         });
 
         if (!perm) {
