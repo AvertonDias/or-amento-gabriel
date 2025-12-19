@@ -133,23 +133,22 @@ export function useSync() {
         const snapshot = await getDocs(q);
 
         if (!snapshot.empty) {
-            await localTable.where('userId').equals(user.uid).delete();
-            const firestoreItems = snapshot.docs.map(doc => ({
-                id: doc.id,
-                userId: user.uid,
-                data: doc.data(),
-                syncStatus: 'synced',
-                syncError: null,
-            }));
-            await localTable.bulkPut(firestoreItems);
+          const firestoreItems = snapshot.docs.map(doc => ({
+            id: doc.id,
+            userId: user.uid,
+            data: doc.data(),
+            syncStatus: 'synced',
+            syncError: null,
+          }));
+          await localTable.bulkPut(firestoreItems);
         }
       }
       setLastSync(new Date().toISOString());
-      initialPullDone.current = true;
     } catch (error) {
       console.error("Erro ao puxar dados do Firestore:", error);
       toast({ title: 'Erro ao buscar dados da nuvem.', variant: 'destructive' });
     } finally {
+      initialPullDone.current = true; // Mark as done even if it fails, to avoid retrying infinitely
       setIsSyncing(false);
     }
   }, [user, isOnline, setLastSync, toast]);
