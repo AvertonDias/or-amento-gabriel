@@ -61,7 +61,7 @@ export function BudgetDetailsModal({
           if (Capacitor.isNativePlatform()) e.preventDefault();
         }}
       >
-        <DialogHeader className="p-6 pb-4">
+        <DialogHeader className="p-6 pb-4 pr-16">
           <div className="flex justify-between items-start">
             <div>
               <DialogTitle className="text-2xl">
