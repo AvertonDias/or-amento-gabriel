@@ -290,46 +290,53 @@ export default function ClientesPage() {
 
 
   const handleImportContacts = useCallback(async () => {
-    // --- Fallback para PWA (Contact Picker API) ---
+    // Primeiro, tenta a API Nativa do Capacitor
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const permission = await Contacts.requestPermissions();
+        if (permission.contacts !== 'granted') {
+          toast({ title: 'Permissão negada', description: 'Acesso aos contatos é necessário.', variant: 'destructive' });
+          return;
+        }
+  
+        const result = await Contacts.pickContact({
+          projection: { name: true, phones: true, emails: true, postalAddresses: true },
+        });
+  
+        processSelectedContact(result.contact);
+        return; // Sucesso, termina aqui
+      } catch (e) {
+          if (e instanceof Error && e.message.includes('cancelled')) {
+               // Ação cancelada pelo usuário, não mostrar erro
+          } else {
+              console.error("Erro ao usar API de Contatos do Capacitor:", e);
+              // Deixa continuar para tentar a API web como fallback se disponível
+          }
+      }
+    }
+
+    // Se não for nativo ou a API nativa falhar, tenta a API Web (PWA)
     if ('contacts' in navigator && 'select' in (navigator as any).contacts) {
       try {
         const contacts = await (navigator as any).contacts.select(['name', 'email', 'tel'], { multiple: false });
         if (contacts.length > 0) {
           processSelectedContact(contacts[0]);
         }
-        return; // Sucesso, não continua para a API do Capacitor
+        return; // Sucesso com a API web
       } catch (e) {
-        // O usuário pode ter cancelado a seleção. Não é necessariamente um erro.
-        console.info("Contact Picker API foi fechada ou não selecionou contato.");
-        // Deixa o código continuar para tentar a API do Capacitor se houver erro
-      }
-    }
-
-    // --- Tenta a API do Capacitor (para App Nativo) ---
-    try {
-      const permission = await Contacts.requestPermissions();
-      if (permission.contacts !== 'granted') {
-        toast({ title: 'Permissão negada', description: 'Acesso aos contatos é necessário.', variant: 'destructive' });
+        if (e instanceof Error && e.message.includes('cancelled')) {
+          // Ação cancelada pelo usuário, não mostrar erro
+        } else {
+          console.error("Erro ao usar a API Web de Contatos (PWA):", e);
+          setIsApiNotSupportedAlertOpen(true);
+        }
         return;
       }
-
-      const result = await Contacts.pickContact({
-        projection: { name: true, phones: true, emails: true, postalAddresses: true },
-      });
-
-      processSelectedContact(result.contact);
-
-    } catch (e) {
-        if (e instanceof Error && e.message.includes('cancelled')) {
-             // Ação cancelada pelo usuário, não mostrar erro
-        } else if (e instanceof Error && e.message.includes('not implemented')) {
-            setIsApiNotSupportedAlertOpen(true);
-        } else {
-            // Se chegou aqui, nenhuma das APIs funcionou.
-            console.error("Erro final ao importar contato:", e);
-            setIsApiNotSupportedAlertOpen(true);
-        }
     }
+    
+    // Se chegou até aqui, nenhuma das APIs está disponível ou funcionou
+    setIsApiNotSupportedAlertOpen(true);
+
   }, [toast, processSelectedContact]);
   
   const handleConfirmContactSelection = useCallback((selectedData: Partial<ClienteData>) => {
