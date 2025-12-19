@@ -62,47 +62,41 @@ export function BudgetDetailsModal({
         }}
       >
         <DialogHeader className="p-6 pb-4 pr-16">
-          <div className="flex justify-between items-start">
-            <div>
-              <DialogTitle className="text-2xl">
-                Orçamento Nº {budget.numeroOrcamento}
-              </DialogTitle>
-              <DialogDescription>
-                Detalhes do orçamento para {budget.cliente.nome}
-              </DialogDescription>
-            </div>
-            <Badge variant={getStatusVariant(budget.status)} className="text-base">
-              {budget.status}
-            </Badge>
+          <div className="flex justify-between items-center">
+            <DialogTitle className="text-2xl flex items-center gap-4">
+              Orçamento Nº {budget.numeroOrcamento}
+              <Badge variant={getStatusVariant(budget.status)} className="text-base">
+                {budget.status}
+              </Badge>
+            </DialogTitle>
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 space-y-6">
+        <div className="flex-1 overflow-y-auto px-6 space-y-4">
           {/* Informações Gerais */}
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Data de Criação:</span>
-              <span className="font-medium">{format(dataCriacao, 'dd/MM/yyyy')}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Data de Validade:</span>
-              <span className="font-medium">{format(dataValidade, 'dd/MM/yyyy')}</span>
-            </div>
-            {budget.dataAceite && (
-              <div className="flex justify-between text-green-600">
-                <span className="font-medium">Aceito em:</span>
-                <span className="font-semibold">{format(parseISO(budget.dataAceite), 'dd/MM/yyyy')}</span>
-              </div>
-            )}
-             {budget.dataRecusa && (
-              <div className="flex justify-between text-red-600">
-                <span className="font-medium">Recusado em:</span>
-                <span className="font-semibold">{format(parseISO(budget.dataRecusa), 'dd/MM/yyyy')}</span>
-              </div>
-            )}
+          <div className="grid grid-cols-[auto_1fr] sm:grid-cols-[auto_1fr_auto_1fr] gap-x-4 gap-y-1 text-sm p-4 border rounded-lg">
+              <div className="font-medium text-muted-foreground col-span-full sm:col-span-1">Cliente:</div>
+              <div className="font-semibold col-span-full sm:col-span-3">{budget.cliente.nome}</div>
+
+              <div className="font-medium text-muted-foreground">Criação:</div>
+              <div className="font-semibold">{format(dataCriacao, 'dd/MM/yyyy')}</div>
+
+              <div className="font-medium text-muted-foreground">Validade:</div>
+              <div className="font-semibold">{format(dataValidade, 'dd/MM/yyyy')}</div>
+            
+              {budget.dataAceite && (
+                <>
+                  <div className="font-medium text-green-600">Aceito em:</div>
+                  <div className="font-semibold text-green-600">{format(parseISO(budget.dataAceite), 'dd/MM/yyyy')}</div>
+                </>
+              )}
+              {budget.dataRecusa && (
+                <>
+                  <div className="font-medium text-red-600">Recusado em:</div>
+                  <div className="font-semibold text-red-600">{format(parseISO(budget.dataRecusa), 'dd/MM/yyyy')}</div>
+                </>
+              )}
           </div>
-          
-          <Separator />
           
           {/* Itens */}
           <div>
