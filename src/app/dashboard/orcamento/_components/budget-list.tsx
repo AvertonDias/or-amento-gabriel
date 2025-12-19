@@ -269,74 +269,75 @@ export function BudgetList({
         {budgets.map(o => (
           <Card
             key={o.id}
-            className="cursor-pointer hover:border-primary/50 transition-colors"
-            onClick={() => onViewDetails(o)}
+            className="hover:border-primary/50 transition-colors relative"
           >
-            <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              
-              {/* Coluna 1: Cliente e Status */}
-              <div className="flex-1 space-y-1 min-w-0">
-                <h3 className="text-lg font-semibold text-primary truncate" title={o.cliente.nome}>{o.cliente.nome}</h3>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-muted-foreground">Nº {o.numeroOrcamento}</p>
-                  <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
-                </div>
-              </div>
-              
-              {/* Coluna 2: Datas (visível em telas maiores) */}
-              <div className="hidden md:flex flex-col text-sm text-muted-foreground text-center">
-                  <span>Criação: {format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</span>
-                  <span>Vencimento: {format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</span>
-              </div>
-              
-              {/* Coluna 3: Total e Ações */}
-              <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
-                <div className="sm:text-right">
-                  <p className="text-sm text-muted-foreground">Total</p>
-                  <AdjustmentBadge orcamento={o} />
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" aria-label="Ações do orçamento" className="sm:-mr-2 h-8 w-8" onClick={(e) => e.stopPropagation()}>
-                      <MoreVertical className="h-5 w-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenuItem onClick={() => onEdit(o)}>
-                      <Pencil className="mr-2 h-4 w-4" /> Editar
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => sendWhatsApp(o)}>
-                      <MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp
-                    </DropdownMenuItem>
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" /> Gerar PDF</DropdownMenuSubTrigger>
-                      <DropdownMenuPortal>
-                        <DropdownMenuSubContent>
-                          <DropdownMenuItem onClick={() => onGeneratePDF(o, 'client')}>PDF do Cliente</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onGeneratePDF(o, 'internal')}>PDF Interno (custos)</DropdownMenuItem>
-                        </DropdownMenuSubContent>
-                      </DropdownMenuPortal>
-                    </DropdownMenuSub>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger disabled={o.status !== 'Pendente'}><FileSignature className="mr-2 h-4 w-4" /> Alterar Status</DropdownMenuSubTrigger>
-                      <DropdownMenuPortal>
-                        <DropdownMenuSubContent>
-                          <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Aceito')}>
-                            <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Marcar como Aceito
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Recusado')}>
-                            <XCircle className="mr-2 h-4 w-4 text-red-500" /> Marcar como Recusado
-                          </DropdownMenuItem>
-                        </DropdownMenuSubContent>
-                      </DropdownMenuPortal>
-                    </DropdownMenuSub>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setBudgetToDelete(o)}>
-                      <Trash2 className="mr-2 h-4 w-4" /> Excluir
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                 <Button variant="ghost" size="icon" aria-label="Ações do orçamento" className="absolute top-2 right-2 h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                    <MoreVertical className="h-5 w-5" />
+                 </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem onClick={() => onEdit(o)}>
+                  <Pencil className="mr-2 h-4 w-4" /> Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => sendWhatsApp(o)}>
+                  <MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp
+                </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger><FileText className="mr-2 h-4 w-4" /> Gerar PDF</DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem onClick={() => onGeneratePDF(o, 'client')}>PDF do Cliente</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onGeneratePDF(o, 'internal')}>PDF Interno (custos)</DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
+                <DropdownMenuSeparator />
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger disabled={o.status !== 'Pendente'}><FileSignature className="mr-2 h-4 w-4" /> Alterar Status</DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Aceito')}>
+                        <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Marcar como Aceito
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Recusado')}>
+                        <XCircle className="mr-2 h-4 w-4 text-red-500" /> Marcar como Recusado
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setBudgetToDelete(o)}>
+                  <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <CardContent className="p-4 cursor-pointer" onClick={() => onViewDetails(o)}>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  {/* Coluna 1: Cliente e Status */}
+                  <div className="flex-1 space-y-1 min-w-0 pr-10">
+                    <h3 className="text-lg font-semibold text-primary truncate" title={o.cliente.nome}>{o.cliente.nome}</h3>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-muted-foreground">Nº {o.numeroOrcamento}</p>
+                      <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
+                    </div>
+                  </div>
+                  
+                  {/* Coluna 2: Datas (visível em telas maiores) */}
+                  <div className="hidden md:flex flex-col text-sm text-muted-foreground text-center">
+                      <span>Criação: {format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</span>
+                      <span>Vencimento: {format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</span>
+                  </div>
+                  
+                  {/* Coluna 3: Total */}
+                  <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
+                    <div className="sm:text-right">
+                      <p className="text-sm text-muted-foreground">Total</p>
+                      <AdjustmentBadge orcamento={o} />
+                    </div>
+                  </div>
               </div>
             </CardContent>
           </Card>
