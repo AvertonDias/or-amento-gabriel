@@ -314,30 +314,31 @@ export function BudgetList({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <CardContent className="p-4 cursor-pointer" onClick={() => onViewDetails(o)}>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  {/* Coluna 1: Cliente e Status */}
-                  <div className="flex-1 space-y-1 min-w-0 pr-10">
-                    <h3 className="text-lg font-semibold text-primary truncate" title={o.cliente.nome}>{o.cliente.nome}</h3>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm text-muted-foreground">Nº {o.numeroOrcamento}</p>
-                      <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
-                    </div>
+            <CardContent className="p-4 cursor-pointer flex flex-col justify-between min-h-[110px]" onClick={() => onViewDetails(o)}>
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                <div className="flex-1 space-y-1 min-w-0 pr-10">
+                  <h3 className="text-lg font-semibold text-primary truncate" title={o.cliente.nome}>{o.cliente.nome}</h3>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-muted-foreground">Nº {o.numeroOrcamento}</p>
+                    <Badge variant={getStatusVariant(o.status)}>{o.status}</Badge>
                   </div>
-                  
-                  {/* Coluna 2: Datas (visível em telas maiores) */}
-                  <div className="hidden md:flex flex-col text-sm text-muted-foreground text-center">
-                      <span>Criação: {format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</span>
-                      <span>Vencimento: {format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</span>
-                  </div>
-                  
-                  {/* Coluna 3: Total */}
-                  <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
-                    <div className="sm:text-right">
-                      <p className="text-sm text-muted-foreground">Total</p>
-                      <AdjustmentBadge orcamento={o} />
-                    </div>
-                  </div>
+                </div>
+                
+                <div className="hidden md:flex flex-col text-sm text-muted-foreground text-center shrink-0">
+                    <span>Criação: {format(parseISO(o.dataCriacao), 'dd/MM/yyyy')}</span>
+                    <span>Vencimento: {format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yyyy')}</span>
+                </div>
+              </div>
+              
+              <div className="flex items-end justify-between mt-2">
+                <div className="md:hidden flex flex-col text-xs text-muted-foreground">
+                    <span>Criação: {format(parseISO(o.dataCriacao), 'dd/MM/yy')}</span>
+                    <span>Venc.: {format(addDays(parseISO(o.dataCriacao), Number(o.validadeDias)), 'dd/MM/yy')}</span>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Total</p>
+                  <AdjustmentBadge orcamento={o} />
+                </div>
               </div>
             </CardContent>
           </Card>
