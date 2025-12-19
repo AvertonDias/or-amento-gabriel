@@ -4,22 +4,23 @@
 import React from 'react';
 import { useSync } from '@/hooks/useSync';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Cloud, CloudOff, Loader2 } from 'lucide-react';
+import { Cloud, CloudOff, Loader2, RefreshCcw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export function SyncStatusIndicator() {
-  const { isOnline, isSyncing, pendingCount, lastSync } = useSync();
+  const { isOnline, isSyncing, pendingCount, lastSync, forceSync } = useSync();
 
   const getTooltipContent = () => {
     if (!isOnline) return 'Você está offline. As alterações serão sincronizadas quando você se conectar.';
-    if (isSyncing) return `Sincronizando ${pendingCount} ${pendingCount === 1 ? 'item' : 'itens'}...`;
+    if (isSyncing) return `Sincronizando ${pendingCount > 0 ? `${pendingCount} item(s)` : ''}...`;
     if (pendingCount > 0) return `${pendingCount} ${pendingCount === 1 ? 'item pendente' : 'itens pendentes'} para sincronizar.`;
     if (lastSync) {
       const lastSyncDate = new Date(lastSync);
@@ -31,9 +32,9 @@ export function SyncStatusIndicator() {
 
   return (
     <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex items-center justify-end">
+      <div className="flex items-center justify-end gap-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
             <Badge
               variant={isOnline ? (isSyncing || pendingCount > 0 ? 'secondary' : 'default') : 'destructive'}
               className="flex items-center gap-2 cursor-help"
@@ -49,15 +50,35 @@ export function SyncStatusIndicator() {
                 {!isOnline ? 'Offline' : isSyncing ? 'Sincronizando...' : 'Sincronizado'}
               </span>
               {pendingCount > 0 && !isSyncing && (
-                <span className="ml-1 h-2 w-2 rounded-full bg-yellow-400"></span>
+                <span className="ml-1 h-2 w-2 rounded-full bg-yellow-400 animate-pulse"></span>
               )}
             </Badge>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{getTooltipContent()}</p>
-        </TooltipContent>
-      </Tooltip>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{getTooltipContent()}</p>
+          </TooltipContent>
+        </Tooltip>
+        
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={forceSync}
+              disabled={isSyncing || !isOnline}
+              className="h-7 w-7"
+            >
+              <RefreshCcw className="h-4 w-4" />
+              <span className="sr-only">Sincronizar manualmente</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Forçar Sincronização</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
     </TooltipProvider>
   );
 }
+
+    
