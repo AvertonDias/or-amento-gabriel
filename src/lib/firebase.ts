@@ -1,12 +1,11 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import { 
   initializeFirestore, 
   CACHE_SIZE_UNLIMITED, 
   persistentLocalCache, 
-  type Firestore,
-  connectFirestoreEmulator
+  type Firestore
 } from "firebase/firestore";
 import { getMessaging, type Messaging } from 'firebase/messaging';
 
@@ -21,7 +20,7 @@ const firebaseConfig = {
 
 // --- Singleton pattern to ensure single instance ---
 let app: FirebaseApp;
-let auth: ReturnType<typeof getAuth>;
+let authInstance: ReturnType<typeof getAuth>;
 let db: Firestore;
 let messaging: Messaging | null = null;
 let initialized = false;
@@ -39,10 +38,9 @@ function initializeFirebase() {
   }
 
   // --- Initialize Auth ---
-  auth = getAuth(app);
+  authInstance = getAuth(app);
 
   // --- Initialize Firestore with offline persistence ---
-  // Using initializeFirestore instead of getFirestore to enable persistence
   try {
      db = initializeFirestore(app, {
       localCache: persistentLocalCache({ cacheSizeBytes: CACHE_SIZE_UNLIMITED })
@@ -70,4 +68,4 @@ function initializeFirebase() {
 initializeFirebase();
 
 // Export the instances
-export { app, auth, db, messaging };
+export { app, authInstance as auth, db, messaging };

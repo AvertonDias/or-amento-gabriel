@@ -1,8 +1,9 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onIdTokenChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 import { Loader2 } from 'lucide-react';
@@ -114,21 +115,33 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
      AUTH
   ====================================================== */
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    // onIdTokenChanged é mais rápido para obter o usuário do cache local
+    const unsubscribe = onIdTokenChanged(auth, async (user) => {
       if (!user) {
-        router.push('/login');
+        // Apenas redireciona se a verificação inicial terminou e não há usuário
+        if (!isCheckingAuth) {
+           router.push('/login');
+        } else {
+           // Se for a primeira verificação e não houver usuário,
+           // encerra o loading e deixa o usuário na tela de login (que será a próxima renderização)
+           setIsCheckingAuth(false);
+           router.push('/login');
+        }
         return;
       }
-
-      setIsCheckingAuth(false);
-
-      // Solicita permissões e token FCM
-      await requestAppPermissions();
-      await requestForToken();
+      
+      // Se houver um usuário, podemos parar de verificar a autenticação
+      if (isCheckingAuth) {
+        setIsCheckingAuth(false);
+        // Solicita permissões e token FCM após a primeira autenticação bem-sucedida
+        await requestAppPermissions();
+        await requestForToken();
+      }
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, [router, isCheckingAuth]);
+
 
   /* =====================================================
      LOADING

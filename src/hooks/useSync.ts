@@ -38,6 +38,7 @@ export function useSync() {
   const [isSyncing, setIsSyncing] = useState(false);
 
   const syncLock = useRef(false);
+  const initialSyncDone = useRef(false);
 
   const pendingItems = useLiveQuery(async () => {
     if (!isOnline || !user) return { count: 0 };
@@ -177,7 +178,8 @@ export function useSync() {
   }, [user, isOnline, toast]);
 
   useEffect(() => {
-    if (isOnline && user) {
+    if (isOnline && user && !initialSyncDone.current) {
+      initialSyncDone.current = true;
       (async () => {
         await pushToFirestore();
         await pullFromFirestore();
