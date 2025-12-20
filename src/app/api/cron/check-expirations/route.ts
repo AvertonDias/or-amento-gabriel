@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
                 body: `O orçamento Nº ${orcamento.numeroOrcamento} para ${orcamento.cliente.nome} (${formatCurrency(orcamento.totalVenda)}) está próximo de expirar.`
               },
               webpush: {
-                fcm_options: {
+                fcmOptions: {
                   link: `/dashboard/orcamento?clienteId=${orcamento.cliente.id}`
                 }
               }
