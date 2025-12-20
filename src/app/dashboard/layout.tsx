@@ -23,7 +23,7 @@ import { usePermissionDialog } from '@/hooks/use-permission-dialog';
 import { requestForToken } from '@/lib/fcm';
 import { useSync } from '@/hooks/useSync';
 import { useIsMobile } from '@/hooks/use-mobile';
-
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 import {
   AlertDialog,
@@ -35,6 +35,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
@@ -48,6 +53,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const { requestPermission } = usePermissionDialog();
   const [showInstructions, setShowInstructions] = useState(false);
 
+  // Estados para o novo diálogo de notificação
+  const [showNotifyDialog, setShowNotifyDialog] = useState(false);
+  const [dontShowNotifyAgain, setDontShowNotifyAgain] = useLocalStorage<boolean>('hide-notif-alert', false);
+  const [checkboxChecked, setCheckboxChecked] = useState(false);
 
   // Inicializa sincronização offline/online
   useSync();
@@ -137,17 +146,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     /* ---------- WEB / PWA ---------- */
     else {
       if ('Notification' in window && Notification.permission !== 'granted') {
-         if (Notification.permission === 'denied') {
-            const openInstructions = await requestPermission({
-              title: 'Receber Alertas Importantes?',
-              description: 'Você bloqueou as notificações. Para reativá-las, siga as instruções para o seu navegador.',
-              actionLabel: 'Ver Instruções',
-              cancelLabel: 'Agora não',
-            });
-            if (openInstructions) {
-              setShowInstructions(true);
-            }
-         } else {
+         if (Notification.permission === 'denied' && !dontShowNotifyAgain) {
+            setShowNotifyDialog(true);
+         } else if (Notification.permission === 'default') {
             const granted = await requestPermission({
               title: 'Receber Alertas Importantes?',
               description: 'Deseja receber notificações sobre orçamentos, como lembretes de vencimento e alertas de estoque?',
@@ -193,6 +194,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return () => unsubscribe();
   }, [router, isCheckingAuth]);
 
+  // Função para fechar o modal
+  const handleCloseModal = () => {
+    if (checkboxChecked) {
+      setDontShowNotifyAgain(true); // Salva no navegador para nunca mais abrir
+    }
+    setShowNotifyDialog(false);
+  };
+
 
   /* =====================================================
      LOADING
@@ -212,6 +221,55 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     <TooltipProvider>
       <PwaManager />
 
+      {/* Diálogo para quando as notificações estão bloqueadas */}
+      <Dialog open={showNotifyDialog} onOpenChange={(open) => !open && handleCloseModal()}>
+        <DialogContent className="sm:max-w-[400px] text-center">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-center">
+              Receber Alertas Importantes?
+            </DialogTitle>
+            <DialogDescription className="text-center text-base pt-2">
+              Você bloqueou as notificações. Para reativá-las, siga as instruções para o seu navegador.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex items-center justify-center space-x-2 py-4">
+            <Checkbox 
+              id="dont-show-again" 
+              checked={checkboxChecked} 
+              onCheckedChange={(checked) => setCheckboxChecked(!!checked)} 
+            />
+            <Label 
+              htmlFor="dont-show-again" 
+              className="text-sm font-medium text-muted-foreground cursor-pointer"
+            >
+              Não mostrar esta mensagem novamente
+            </Label>
+          </div>
+
+          <div className="flex flex-col gap-3 pt-2">
+            <Button 
+              className="w-full h-12 text-lg"
+              onClick={() => {
+                  setShowInstructions(true);
+                  setShowNotifyDialog(false);
+              }}
+            >
+              Ver Instruções
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="w-full h-12 text-lg"
+              onClick={handleCloseModal}
+            >
+              Agora não
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Diálogo com as instruções detalhadas */}
       <AlertDialog open={showInstructions} onOpenChange={setShowInstructions}>
         <AlertDialogContent>
           <AlertDialogHeader>
