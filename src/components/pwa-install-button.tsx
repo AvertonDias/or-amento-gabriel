@@ -30,14 +30,16 @@ export function PwaInstallButton() {
   const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [isAppInstalled, setIsAppInstalled] = useLocalStorage<boolean>('pwa-installed', false);
+  const [dontShowInstallDialog, setDontShowInstallDialog] = useLocalStorage<boolean>('pwa-dont-show-install', false);
+
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       const promptEvent = event as BeforeInstallPromptEvent;
       setInstallPromptEvent(promptEvent);
-      // Only show the dialog if the app isn't already marked as installed
-      if (!isAppInstalled) {
+      // Only show the dialog if the app isn't installed and user hasn't dismissed it
+      if (!isAppInstalled && !dontShowInstallDialog) {
         setShowDialog(true);
       }
     };
@@ -55,7 +57,7 @@ export function PwaInstallButton() {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, [isAppInstalled, setIsAppInstalled]);
+  }, [isAppInstalled, dontShowInstallDialog, setIsAppInstalled]);
 
 
   const handleInstallClick = async () => {
@@ -85,6 +87,15 @@ export function PwaInstallButton() {
         });
     }
   };
+
+  const handleDismissPermanently = () => {
+    setDontShowInstallDialog(true);
+    setShowDialog(false);
+    toast({
+        title: 'Aviso oculto.',
+        description: 'Você pode reinstalar o app pelo menu do navegador.',
+    });
+  };
   
   if (isAppInstalled || !showDialog) {
     return null;
@@ -111,8 +122,8 @@ export function PwaInstallButton() {
                 </DialogDescription>
             </DialogHeader>
             <DialogFooter className="sm:justify-center pt-4">
-                 <Button type="button" variant="outline" onClick={() => setShowDialog(false)}>
-                    Agora não
+                 <Button type="button" variant="outline" onClick={handleDismissPermanently}>
+                    Não mostrar novamente
                 </Button>
                 <Button onClick={handleInstallClick}>
                     Instalar
