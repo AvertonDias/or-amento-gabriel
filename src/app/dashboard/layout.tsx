@@ -132,7 +132,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         if (granted) {
           if (contactsStatus.contacts === 'denied') {
             if ('openAppSettings' in CapacitorApp && typeof CapacitorApp.openAppSettings === 'function') {
-              await CapacitorApp.openAppSettings();
+               await CapacitorApp.openAppSettings();
             } else {
                toast({ title: 'Ação necessária', description: 'Por favor, abra as configurações do aplicativo e ative a permissão de contatos.', duration: 5000 });
             }
