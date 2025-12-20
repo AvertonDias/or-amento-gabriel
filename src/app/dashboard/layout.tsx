@@ -97,7 +97,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
         if (granted) {
           if (notifStatus.display === 'denied') {
-            if ('openAppSettings' in CapacitorApp) {
+            if ('openAppSettings' in CapacitorApp && typeof CapacitorApp.openAppSettings === 'function') {
               await CapacitorApp.openAppSettings();
             } else {
               toast({ title: 'Ação necessária', description: 'Por favor, abra as configurações do aplicativo e ative as notificações manualmente.', duration: 5000 });
@@ -122,7 +122,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
         if (granted) {
           if (contactsStatus.contacts === 'denied') {
-            if ('openAppSettings' in CapacitorApp) {
+            if ('openAppSettings' in CapacitorApp && typeof CapacitorApp.openAppSettings === 'function') {
               await CapacitorApp.openAppSettings();
             } else {
                toast({ title: 'Ação necessária', description: 'Por favor, abra as configurações do aplicativo e ative a permissão de contatos.', duration: 5000 });
