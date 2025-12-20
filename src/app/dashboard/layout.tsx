@@ -34,11 +34,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -95,7 +97,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
         if (granted) {
           if (notifStatus.display === 'denied') {
-            await CapacitorApp.openAppSettings();
+            if ('openAppSettings' in CapacitorApp) {
+              await CapacitorApp.openAppSettings();
+            } else {
+              toast({ title: 'Ação necessária', description: 'Por favor, abra as configurações do aplicativo e ative as notificações manualmente.', duration: 5000 });
+            }
           } else {
             await LocalNotifications.requestPermissions();
           }
@@ -116,7 +122,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
         if (granted) {
           if (contactsStatus.contacts === 'denied') {
-            await CapacitorApp.openAppSettings();
+            if ('openAppSettings' in CapacitorApp) {
+              await CapacitorApp.openAppSettings();
+            } else {
+               toast({ title: 'Ação necessária', description: 'Por favor, abra as configurações do aplicativo e ative a permissão de contatos.', duration: 5000 });
+            }
           } else {
             await Contacts.requestPermissions();
           }
