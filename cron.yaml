@@ -1,0 +1,8 @@
+
+# See https://cloud.google.com/appengine/docs/standard/scheduling-jobs-with-cron-yaml
+cron:
+- description: "Verifica orçamentos prestes a vencer diariamente"
+  # Substitua a URL pela URL da sua aplicação implantada
+  url: /api/cron/check-expirations
+  schedule: every 24 hours
+  target: app

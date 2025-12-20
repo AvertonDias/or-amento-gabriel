@@ -13,14 +13,9 @@ import { useLocalStorage } from './useLocalStorage';
 
 import { syncClienteToFirestore, deleteClienteFromFirestore } from '@/services/clientesService';
 import { syncMaterialToFirestore, deleteMaterialFromFirestore } from '@/services/materiaisService';
-import { syncOrcamentoToFirestore, deleteOrcamentoFromFirestore, updateOrcamento, updateOrcamentoStatus } from '@/services/orcamentosService';
+import { syncOrcamentoToFirestore, deleteOrcamentoFromFirestore } from '@/services/orcamentosService';
 import { syncEmpresaToFirestore } from '@/services/empresaService';
-import { addDays, differenceInHours, isPast, parseISO } from 'date-fns';
 
-import { Capacitor } from '@capacitor/core';
-import { LocalNotifications } from '@capacitor/local-notifications';
-import { formatCurrency } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 
 type SyncableCollection = 'clientes' | 'materiais' | 'orcamentos' | 'empresa';
@@ -58,12 +53,6 @@ export function useSync() {
 
   const initialPullDone = useRef(false);
 
-  const orcamentosSalvos = useLiveQuery(
-    () => user ? dexieDB.orcamentos.where('userId').equals(user.uid).toArray() : [],
-    [user]
-  )?.map(o => o.data);
-
-
   useEffect(() => {
     const listener = (syncing: boolean) => setIsSyncingState(syncing);
     listeners.add(listener);
@@ -95,70 +84,6 @@ export function useSync() {
       window.removeEventListener('offline', updateOnlineStatus);
     };
   }, []);
-
-  // =========================
-  // NOTIFICAÇÃO E STATUS DE VENCIMENTO
-  // =========================
-  useEffect(() => {
-    if (!orcamentosSalvos || !user) return;
-  
-    const now = new Date();
-  
-    orcamentosSalvos.forEach(async orc => {
-      if (orc.status !== 'Pendente') return;
-  
-      const validade = Number(orc.validadeDias);
-      if (!validade) return;
-  
-      const dataCriacao = parseISO(orc.dataCriacao);
-      const dataValidade = addDays(dataCriacao, validade);
-      
-      if (isPast(dataValidade)) {
-        await updateOrcamentoStatus(orc.id, 'Vencido', {});
-        return;
-      }
-  
-      const horas = differenceInHours(dataValidade, now);
-      if (horas > 0 && horas <= 24 && !orc.notificacaoVencimentoEnviada) {
-
-        const toastAction = (
-          <Button 
-            variant="secondary" 
-            size="sm"
-            onClick={() => router.push(`/dashboard/orcamento?clienteId=${orc.cliente.id}`)}
-          >
-            Ver
-          </Button>
-        );
-
-        toast({
-          title: "Orçamento prestes a vencer!",
-          description: `O orçamento #${orc.numeroOrcamento} para ${orc.cliente.nome} de ${formatCurrency(orc.totalVenda)} está próximo de expirar.`,
-          duration: 15000,
-          action: toastAction,
-        });
-
-        if (Capacitor.isNativePlatform()) {
-          try {
-            await LocalNotifications.schedule({
-              notifications: [
-                {
-                  id: new Date().getTime(),
-                  title: 'Orçamento quase vencendo',
-                  body: `Orçamento #${orc.numeroOrcamento} para ${orc.cliente.nome}`,
-                  schedule: { at: new Date(Date.now() + 1000) },
-                },
-              ],
-            });
-          } catch(e) {
-            console.error("Erro ao agendar notificação local:", e);
-          }
-        }
-        
-        await updateOrcamento(orc.id, { notificacaoVencimentoEnviada: true });
-      }
-    });
-  }, [orcamentosSalvos, user, toast, router]);
 
 
   const pushToFirestore = useCallback(async () => {

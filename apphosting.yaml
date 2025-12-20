@@ -1,6 +1,9 @@
+
 # Settings to manage and configure a Firebase App Hosting backend.
 # https://firebase.google.com/docs/app-hosting/configure
 
+# O secret CRON_SECRET precisa ser configurado no App Hosting
+# https://firebase.google.com/docs/app-hosting/configure-backend#set_secrets
 runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
@@ -9,3 +12,5 @@ runConfig:
 iam:
   roles:
   - 'firebase.rulesAdmin'
+  - 'firebase.serviceAccountUser' # Necessário para o serviço de agendamento chamar o endpoint
+  - 'cloudmessaging.admin' # Necessário para enviar notificações
