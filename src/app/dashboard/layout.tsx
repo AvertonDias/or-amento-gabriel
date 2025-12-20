@@ -14,7 +14,7 @@ import { App as CapacitorApp } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Contacts } from '@capacitor-community/contacts';
 
-import { PwaInstallButton } from '@/components/pwa-install-button';
+import { PwaManager } from '@/components/pwa-install-button';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { DesktopSidebar } from '@/components/layout/desktop-sidebar';
 import { MobileNavbar } from '@/components/layout/mobile-navbar';
@@ -210,7 +210,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   ====================================================== */
   return (
     <TooltipProvider>
-      <PwaInstallButton />
+      <PwaManager />
 
       <AlertDialog open={showInstructions} onOpenChange={setShowInstructions}>
         <AlertDialogContent>

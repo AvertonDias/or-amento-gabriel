@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -13,132 +12,126 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Download, X } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+import { Bell, BellOff, Download, Settings2 } from 'lucide-react';
 
-
-// Define the shape of the event object for better type safety
-interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: string[];
-  readonly userChoice: Promise<{
-    outcome: 'accepted' | 'dismissed';
-    platform: string;
-  }>;
-  prompt(): Promise<void>;
-}
-
-export function PwaInstallButton() {
+export function PwaManager() {
   const { toast } = useToast();
-  const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showDialog, setShowDialog] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [showInstallDialog, setShowInstallDialog] = useState(false);
+  const [showNotifyInstructions, setShowNotifyInstructions] = useState(false);
+  const [notificationStatus, setNotificationStatus] = useState<NotificationPermission>('default');
+
+  // Estados de instalação
   const [isAppInstalled, setIsAppInstalled] = useLocalStorage<boolean>('pwa-installed', false);
-  const [dontShowInstallDialog, setDontShowInstallDialog] = useLocalStorage<boolean>('pwa-dont-show-install', false);
-  const [checkboxChecked, setCheckboxChecked] = useState(false);
+  const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (event: Event) => {
-      event.preventDefault();
-      const promptEvent = event as BeforeInstallPromptEvent;
-      setInstallPromptEvent(promptEvent);
-      // Only show the dialog if the app isn't installed and user hasn't dismissed it
-      if (!isAppInstalled && !dontShowInstallDialog) {
-        setShowDialog(true);
-      }
-    };
-    
-    const handleAppInstalled = () => {
-      setIsAppInstalled(true);
-      setShowDialog(false);
-      setInstallPromptEvent(null);
+    setMounted(true);
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotificationStatus(Notification.permission);
+    }
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallPromptEvent(e);
+      if (!isAppInstalled) setShowInstallDialog(true);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, [isAppInstalled]);
 
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-    };
-  }, [isAppInstalled, dontShowInstallDialog, setIsAppInstalled]);
+  // Função para pedir notificação ou mostrar instrução
+  const handleEnableNotifications = async () => {
+    if (!('Notification' in window)) {
+      toast({ title: "Não suportado", description: "Seu navegador não suporta notificações." });
+      return;
+    }
 
-
-  const handleInstallClick = async () => {
-    setShowDialog(false); // Hide dialog immediately on click
-
-    // If the native prompt is available (Chrome, Edge), use it.
-    if (installPromptEvent) {
-        try {
-            await installPromptEvent.prompt();
-            const { outcome } = await installPromptEvent.userChoice;
-            if (outcome === 'accepted') {
-                toast({ title: 'Aplicativo instalado com sucesso!' });
-                setIsAppInstalled(true);
-            } else {
-                toast({ title: 'Instalação cancelada.' });
-            }
-        } catch(error) {
-            toast({ title: 'Ocorreu um erro durante a instalação.', description: 'Tente novamente mais tarde.', variant: 'destructive' });
-        }
+    if (Notification.permission === 'denied') {
+      // Se estiver bloqueado, abrimos o modal de instruções manuais
+      setShowNotifyInstructions(true);
     } else {
-        // If no prompt event, it's a browser like Samsung Internet or Safari.
-        // We can only show instructions.
-        toast({ 
-            title: "Como instalar",
-            description: "Procure pelo ícone de download na barra de endereço ou use a opção 'Adicionar à tela inicial' no menu do seu navegador.",
-            duration: 8000,
-        });
+      const permission = await Notification.requestPermission();
+      setNotificationStatus(permission);
+      if (permission === 'granted') {
+        toast({ title: "Sucesso!", description: "Você receberá nossas notificações." });
+      }
     }
   };
 
-  const handleDialogClose = () => {
-    if (checkboxChecked) {
-      setDontShowInstallDialog(true);
-      toast({
-        title: 'Aviso oculto.',
-        description: 'Você pode reinstalar o app pelo menu do navegador.',
-      });
-    }
-    setShowDialog(false);
-  }
-  
-  if (isAppInstalled || !showDialog) {
-    return null;
-  }
+  if (!mounted) return null;
 
   return (
-     <Dialog open={showDialog} onOpenChange={(open) => !open && handleDialogClose()}>
-        <DialogContent 
-            className="sm:max-w-md"
-            onEscapeKeyDown={handleDialogClose}
-        >
-          <button onClick={handleDialogClose} className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </button>
-            <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                    <Download className="h-6 w-6 text-primary"/>
-                    Instalar o Aplicativo
-                </DialogTitle>
-                <DialogDescription>
-                    Para uma experiência completa e acesso offline, instale nosso aplicativo. Clique em 'Instalar' e siga as instruções do seu navegador.
-                </DialogDescription>
-            </DialogHeader>
-            
-            <div className="flex items-center space-x-2 my-4">
-              <Checkbox id="dont-show-again" checked={checkboxChecked} onCheckedChange={(checked) => setCheckboxChecked(Boolean(checked))} />
-              <Label htmlFor="dont-show-again" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Não mostrar novamente
-              </Label>
-            </div>
-
-            <DialogFooter className="sm:justify-end pt-4">
-                <Button onClick={handleInstallClick}>
-                    Instalar
-                </Button>
-            </DialogFooter>
+    <>
+      {/* 1. MODAL DE INSTALAÇÃO (O que você já tinha) */}
+      <Dialog open={showInstallDialog} onOpenChange={setShowInstallDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Download className="h-5 w-5" /> Instalar Aplicativo
+            </DialogTitle>
+            <DialogDescription>
+              Instale para uma melhor experiência e acesso rápido.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => installPromptEvent?.prompt()}>Instalar Agora</Button>
+          </DialogFooter>
         </DialogContent>
-    </Dialog>
+      </Dialog>
+
+      {/* 2. MODAL DE INSTRUÇÕES DE NOTIFICAÇÃO (Caso esteja bloqueado) */}
+      <Dialog open={showNotifyInstructions} onOpenChange={setShowNotifyInstructions}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <BellOff className="h-5 w-5" /> Notificações Bloqueadas
+            </DialogTitle>
+            <DialogDescription className="pt-2 space-y-3 text-left">
+              <p>Você bloqueou as notificações anteriormente. Para ativar, siga os passos:</p>
+              
+              <div className="bg-muted p-3 rounded-lg text-sm space-y-2">
+                <p className="font-bold flex items-center gap-2">
+                   No Computador:
+                </p>
+                <p>1. Clique no ícone de <strong>cadeado</strong> ou <strong>configurações</strong> ao lado da URL (barra de endereço).</p>
+                <p>2. Ative a chave de <strong>"Notificações"</strong>.</p>
+              </div>
+
+              <div className="bg-muted p-3 rounded-lg text-sm space-y-2">
+                <p className="font-bold flex items-center gap-2">
+                   No Celular (Android):
+                </p>
+                <p>1. Toque nos três pontos (menu) do navegador.</p>
+                <p>2. Vá em <strong>Configurações {'>'} Configurações do Site {'>'} Notificações</strong>.</p>
+                <p>3. Permita o acesso para este site.</p>
+              </div>
+
+              {/Android|iPhone|iPad/i.test(navigator.userAgent) && (
+                <p className="text-xs text-orange-600 font-medium">
+                  Nota: No iPhone, você precisa primeiro "Instalar" o app na tela inicial para poder ativar notificações.
+                </p>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setShowNotifyInstructions(false)}>Entendi</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* EXEMPLO DE BOTÃO PARA DISPARAR A LÓGICA NO SEU APP */}
+      <div className="fixed bottom-4 right-4">
+        <Button 
+          variant={notificationStatus === 'granted' ? 'outline' : 'default'}
+          onClick={handleEnableNotifications}
+          className="gap-2"
+        >
+          {notificationStatus === 'granted' ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+          {notificationStatus === 'granted' ? 'Notificações Ativas' : 'Ativar Notificações'}
+        </Button>
+      </div>
+    </>
   );
 }
