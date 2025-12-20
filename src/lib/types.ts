@@ -9,7 +9,7 @@ export interface EmpresaData {
   telefones: { nome: string; numero: string; principal?: boolean }[];
   cnpj: string;
   logo?: string;
-  fcmToken?: string; // Adicionado para salvar o token de notificação
+  fcmToken?: string; 
 }
 
 export interface Telefone {
