@@ -14,6 +14,9 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Download, X } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+
 
 // Define the shape of the event object for better type safety
 interface BeforeInstallPromptEvent extends Event {
@@ -31,7 +34,7 @@ export function PwaInstallButton() {
   const [showDialog, setShowDialog] = useState(false);
   const [isAppInstalled, setIsAppInstalled] = useLocalStorage<boolean>('pwa-installed', false);
   const [dontShowInstallDialog, setDontShowInstallDialog] = useLocalStorage<boolean>('pwa-dont-show-install', false);
-
+  const [checkboxChecked, setCheckboxChecked] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event: Event) => {
@@ -88,27 +91,28 @@ export function PwaInstallButton() {
     }
   };
 
-  const handleDismissPermanently = () => {
-    setDontShowInstallDialog(true);
-    setShowDialog(false);
-    toast({
+  const handleDialogClose = () => {
+    if (checkboxChecked) {
+      setDontShowInstallDialog(true);
+      toast({
         title: 'Aviso oculto.',
         description: 'Você pode reinstalar o app pelo menu do navegador.',
-    });
-  };
+      });
+    }
+    setShowDialog(false);
+  }
   
   if (isAppInstalled || !showDialog) {
     return null;
   }
 
   return (
-     <Dialog open={showDialog} onOpenChange={setShowDialog}>
+     <Dialog open={showDialog} onOpenChange={(open) => !open && handleDialogClose()}>
         <DialogContent 
             className="sm:max-w-md"
-            onEscapeKeyDown={(e) => e.preventDefault()}
-            onPointerDownOutside={(e) => e.preventDefault()}
+            onEscapeKeyDown={handleDialogClose}
         >
-          <button onClick={() => setShowDialog(false)} className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+          <button onClick={handleDialogClose} className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </button>
@@ -121,10 +125,15 @@ export function PwaInstallButton() {
                     Para uma experiência completa e acesso offline, instale nosso aplicativo. Clique em 'Instalar' e siga as instruções do seu navegador.
                 </DialogDescription>
             </DialogHeader>
-            <DialogFooter className="sm:justify-center pt-4">
-                 <Button type="button" variant="outline" onClick={handleDismissPermanently}>
-                    Não mostrar novamente
-                </Button>
+            
+            <div className="flex items-center space-x-2 my-4">
+              <Checkbox id="dont-show-again" checked={checkboxChecked} onCheckedChange={(checked) => setCheckboxChecked(Boolean(checked))} />
+              <Label htmlFor="dont-show-again" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Não mostrar novamente
+              </Label>
+            </div>
+
+            <DialogFooter className="sm:justify-end pt-4">
                 <Button onClick={handleInstallClick}>
                     Instalar
                 </Button>
