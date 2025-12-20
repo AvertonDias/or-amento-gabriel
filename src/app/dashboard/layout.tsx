@@ -22,6 +22,8 @@ import { MobileNavbar } from '@/components/layout/mobile-navbar';
 import { usePermissionDialog } from '@/hooks/use-permission-dialog';
 import { requestForToken } from '@/lib/fcm';
 import { useSync } from '@/hooks/useSync';
+import { useIsMobile } from '@/hooks/use-mobile';
+
 
 import {
   AlertDialog,
@@ -36,6 +38,7 @@ import {
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const isMobile = useIsMobile();
 
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -127,7 +130,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
          if (Notification.permission === 'denied') {
             const openInstructions = await requestPermission({
               title: 'Receber Alertas Importantes?',
-              description: 'Você bloqueou as notificações. Para reativá-las, altere as configurações de notificações do seu navegador para este site.',
+              description: 'Você bloqueou as notificações. Para reativá-las, siga as instruções para o seu navegador.',
               actionLabel: 'Ver Instruções',
               cancelLabel: 'Agora não',
             });
@@ -205,12 +208,25 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             <AlertDialogTitle>Como Ativar as Notificações</AlertDialogTitle>
             <AlertDialogDescription className="text-left space-y-2">
               <p>Para reativar as notificações, você precisa acessar as configurações do seu navegador.</p>
-              <ul className="list-disc pl-5 space-y-1 text-xs">
-                <li><strong>Chrome:</strong> Copie e cole <code className="bg-muted px-1 rounded">chrome://settings/content/notifications</code> na barra de endereço.</li>
-                <li><strong>Firefox:</strong> Vá em "Configurações" &gt; "Privacidade e Segurança" &gt; "Permissões" &gt; "Notificações".</li>
-                <li><strong>Safari (Mac):</strong> Vá em "Safari" &gt; "Ajustes..." &gt; "Sites" &gt; "Notificações".</li>
-              </ul>
-               <p>Depois, encontre este site na lista e altere a permissão de "Bloqueado" para "Permitido".</p>
+              
+              {isMobile ? (
+                  <div className="text-sm space-y-2 pt-2">
+                     <p>1. Toque no ícone de <strong>cadeado (🔒)</strong> ou no menu de opções (<strong>⋮</strong>) na barra de endereço.</p>
+                     <p>2. Procure por <strong>&quot;Permissões&quot;</strong> ou <strong>&quot;Configurações do site&quot;</strong>.</p>
+                     <p>3. Encontre <strong>&quot;Notificações&quot;</strong> e mude a opção de &quot;Bloqueado&quot; para &quot;Permitido&quot;.</p>
+                     <p>4. Recarregue a página.</p>
+                  </div>
+              ) : (
+                <>
+                  <ul className="list-disc pl-5 space-y-1 text-xs">
+                    <li><strong>Chrome:</strong> Copie e cole <code className="bg-muted px-1 rounded">chrome://settings/content/notifications</code> na barra de endereço.</li>
+                    <li><strong>Firefox:</strong> Vá em &quot;Configurações&quot; &gt; &quot;Privacidade e Segurança&quot; &gt; &quot;Permissões&quot; &gt; &quot;Notificações&quot;.</li>
+                    <li><strong>Safari (Mac):</strong> Vá em &quot;Safari&quot; &gt; &quot;Ajustes...&quot; &gt; &quot;Sites&quot; &gt; &quot;Notificações&quot;.</li>
+                  </ul>
+                  <p>Depois, encontre este site na lista e altere a permissão de &quot;Bloqueado&quot; para &quot;Permitido&quot;.</p>
+                </>
+              )}
+
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
