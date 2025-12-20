@@ -65,51 +65,68 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const requestAppPermissions = async () => {
     /* ---------- NATIVE (APK) ---------- */
     if (Capacitor.isNativePlatform()) {
-
-      /* 🔔 Notificações */
-      const notifStatus = await LocalNotifications.checkPermissions();
-      if (notifStatus.display === 'prompt') {
+      // 🔔 Notificações (Android)
+      let notifStatus = await LocalNotifications.checkPermissions();
+      if (notifStatus.display !== 'granted') {
+        const rationale = notifStatus.display === 'denied' 
+          ? 'Para receber alertas importantes sobre orçamentos, você precisa ativar as notificações nas configurações do aplicativo.'
+          : 'Deseja receber notificações sobre orçamentos, como lembretes de vencimento e alertas de estoque?';
+        
         const granted = await requestPermission({
           title: 'Receber Alertas Importantes?',
-          description:
-            'Deseja receber notificações sobre orçamentos, como lembretes de vencimento e alertas de estoque?',
+          description: rationale,
         });
 
         if (granted) {
-          await LocalNotifications.requestPermissions();
+          if (notifStatus.display === 'denied') {
+            await CapacitorApp.openAppSettings();
+          } else {
+            await LocalNotifications.requestPermissions();
+          }
         }
       }
 
-      /* 📇 Contatos */
-      const contactsStatus = await Contacts.checkPermissions();
-      if (contactsStatus.contacts === 'prompt') {
+      // 📇 Contatos (Android)
+      let contactsStatus = await Contacts.checkPermissions();
+      if (contactsStatus.contacts !== 'granted') {
+         const rationale = contactsStatus.contacts === 'denied'
+          ? 'Para importar clientes da agenda, o aplicativo precisa de acesso aos seus contatos. Ative a permissão nas configurações.'
+          : 'Para adicionar clientes rapidamente, o aplicativo pode acessar sua agenda de contatos. Deseja permitir?';
+        
         const granted = await requestPermission({
           title: 'Importar Clientes da Agenda?',
-          description:
-            'Para adicionar clientes rapidamente, o aplicativo pode acessar sua agenda de contatos. Deseja permitir?',
+          description: rationale,
         });
 
         if (granted) {
-          await Contacts.requestPermissions();
+          if (contactsStatus.contacts === 'denied') {
+            await CapacitorApp.openAppSettings();
+          } else {
+            await Contacts.requestPermissions();
+          }
         }
       }
 
     } 
     /* ---------- WEB / PWA ---------- */
     else {
-      if ('Notification' in window && Notification.permission === 'default') {
+      if ('Notification' in window && Notification.permission !== 'granted') {
+         const rationale = Notification.permission === 'denied'
+          ? 'Você bloqueou as notificações. Para reativá-las, altere as configurações de notificações do seu navegador para este site.'
+          : 'Deseja receber notificações sobre orçamentos, como lembretes de vencimento e alertas de estoque?';
+
         const granted = await requestPermission({
           title: 'Receber Alertas Importantes?',
-          description:
-            'Deseja receber notificações sobre orçamentos, como lembretes de vencimento e alertas de estoque?',
+          description: rationale,
         });
 
-        if (granted) {
+        if (granted && Notification.permission !== 'denied') {
           await Notification.requestPermission();
         }
       }
     }
   };
+
 
   /* =====================================================
      AUTH

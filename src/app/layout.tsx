@@ -24,6 +24,12 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: '#64B5F6',
+  // Adiciona a propriedade 'display' para PWA
+  viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',
+  colorScheme: 'light dark',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -39,6 +45,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Meu orçamento" />
+        <meta name="display" content="standalone" />
       </head>
 
       <body className={`${inter.variable} font-body antialiased`}>
