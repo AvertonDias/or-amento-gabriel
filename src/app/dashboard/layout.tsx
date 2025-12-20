@@ -23,6 +23,17 @@ import { usePermissionDialog } from '@/hooks/use-permission-dialog';
 import { requestForToken } from '@/lib/fcm';
 import { useSync } from '@/hooks/useSync';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
+
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
@@ -30,6 +41,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const { requestPermission } = usePermissionDialog();
+  const [showInstructions, setShowInstructions] = useState(false);
+
 
   // Inicializa sincronização offline/online
   useSync();
@@ -111,18 +124,26 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     /* ---------- WEB / PWA ---------- */
     else {
       if ('Notification' in window && Notification.permission !== 'granted') {
-         const rationale = Notification.permission === 'denied'
-          ? 'Você bloqueou as notificações. Para reativá-las, altere as configurações de notificações do seu navegador para este site.'
-          : 'Deseja receber notificações sobre orçamentos, como lembretes de vencimento e alertas de estoque?';
+         if (Notification.permission === 'denied') {
+            const openInstructions = await requestPermission({
+              title: 'Receber Alertas Importantes?',
+              description: 'Você bloqueou as notificações. Para reativá-las, altere as configurações de notificações do seu navegador para este site.',
+              actionLabel: 'Ver Instruções',
+              cancelLabel: 'Agora não',
+            });
+            if (openInstructions) {
+              setShowInstructions(true);
+            }
+         } else {
+            const granted = await requestPermission({
+              title: 'Receber Alertas Importantes?',
+              description: 'Deseja receber notificações sobre orçamentos, como lembretes de vencimento e alertas de estoque?',
+            });
 
-        const granted = await requestPermission({
-          title: 'Receber Alertas Importantes?',
-          description: rationale,
-        });
-
-        if (granted && Notification.permission !== 'denied') {
-          await Notification.requestPermission();
-        }
+            if (granted) {
+              await Notification.requestPermission();
+            }
+         }
       }
     }
   };
@@ -177,6 +198,26 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   return (
     <TooltipProvider>
       <PwaInstallButton />
+
+      <AlertDialog open={showInstructions} onOpenChange={setShowInstructions}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Como Ativar as Notificações</AlertDialogTitle>
+            <AlertDialogDescription className="text-left space-y-2">
+              <p>Para reativar as notificações, você precisa acessar as configurações do seu navegador.</p>
+              <ul className="list-disc pl-5 space-y-1 text-xs">
+                <li><strong>Chrome:</strong> Copie e cole <code className="bg-muted px-1 rounded">chrome://settings/content/notifications</code> na barra de endereço.</li>
+                <li><strong>Firefox:</strong> Vá em "Configurações" &gt; "Privacidade e Segurança" &gt; "Permissões" &gt; "Notificações".</li>
+                <li><strong>Safari (Mac):</strong> Vá em "Safari" &gt; "Ajustes..." &gt; "Sites" &gt; "Notificações".</li>
+              </ul>
+               <p>Depois, encontre este site na lista e altere a permissão de "Bloqueado" para "Permitido".</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction>Entendi</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="flex min-h-screen w-full">
 

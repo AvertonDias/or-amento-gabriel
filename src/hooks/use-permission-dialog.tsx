@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
@@ -15,6 +16,8 @@ import {
 interface PermissionRequest {
   title: string;
   description: string;
+  actionLabel?: string;
+  cancelLabel?: string;
 }
 
 interface PermissionDialogContextType {
@@ -56,8 +59,12 @@ export function PermissionDialogProvider({ children }: { children: ReactNode }) 
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleDeny}>Agora não</AlertDialogCancel>
-            <AlertDialogAction onClick={handleAllow}>Permitir</AlertDialogAction>
+            <AlertDialogCancel onClick={handleDeny}>
+              {permissionRequest?.cancelLabel || 'Agora não'}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleAllow}>
+              {permissionRequest?.actionLabel || 'Permitir'}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
