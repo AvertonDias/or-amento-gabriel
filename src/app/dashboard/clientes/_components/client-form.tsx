@@ -109,13 +109,14 @@ export default function ClientForm({
 
   useEffect(() => {
     if (!initialData) return;
-    
-    const telefonesNormalizados = (initialData.telefones || []).map(tel => ({
-        nome: tel.nome || '', // Garante que nome seja sempre uma string
+  
+    const telefonesNormalizados = (initialData.telefones || [])
+      .map(tel => ({
+        nome: tel.nome || '',
         numero: tel.numero || '',
-    }));
-
-
+      }))
+      .filter(tel => tel.numero); // Filtra telefones sem número
+  
     const valuesToReset = {
       nome: initialData.nome || '',
       cpfCnpj: initialData.cpfCnpj || '',
@@ -124,16 +125,18 @@ export default function ClientForm({
       telefones:
         telefonesNormalizados.length > 0
           ? telefonesNormalizados
-          : [{ nome: 'Principal', numero: '' }],
+          : [{ nome: 'Principal', numero: '' }], // Garante que sempre haja um campo
     };
-
+  
     // Reseta o form interno ou o form pai
-    if(formControl) {
-        Object.entries(valuesToReset).forEach(([key, value]) => {
-             form.setValue(key as keyof ClientFormValues, value);
-        })
+    if (formControl) {
+      Object.entries(valuesToReset).forEach(([key, value]) => {
+        form.setValue(key as keyof ClientFormValues, value, {
+          shouldValidate: true,
+        });
+      });
     } else {
-         reset(valuesToReset);
+      reset(valuesToReset);
     }
   }, [initialData, reset, formControl, form]);
 
@@ -185,6 +188,7 @@ export default function ClientForm({
                 <Input
                   placeholder="Opcional"
                   {...field}
+                  value={field.value ?? ''}
                   onChange={e =>
                     field.onChange(maskCpfCnpj(e.target.value))
                   }
@@ -202,7 +206,7 @@ export default function ClientForm({
             <FormItem>
               <FormLabel>E-mail</FormLabel>
               <FormControl>
-                <Input placeholder="Opcional" {...field} />
+                <Input placeholder="Opcional" {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -216,7 +220,7 @@ export default function ClientForm({
             <FormItem>
               <FormLabel>Endereço</FormLabel>
               <FormControl>
-                <Input placeholder="Opcional" {...field} />
+                <Input placeholder="Opcional" {...field} value={field.value ?? ''} />
               </FormControl>
             </FormItem>
           )}
