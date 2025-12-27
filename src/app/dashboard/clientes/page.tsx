@@ -163,11 +163,27 @@ export default function ClientesPage() {
   /* CRUD CLIENTE                                                               */
   /* -------------------------------------------------------------------------- */
 
+  // Transforma os dados do formulário para o formato ClienteData
+  const transformFormDataToClienteData = (data: ClientFormValues): Omit<ClienteData, 'id' | 'userId'> => {
+    const telefones = [{ nome: 'Principal', numero: data.telefonePrincipal, principal: true }];
+    if (data.telefonesAdicionais) {
+        telefones.push(...data.telefonesAdicionais.filter(t => t.numero?.trim()).map(t => ({ ...t, principal: false })));
+    }
+    return {
+        nome: data.nome,
+        cpfCnpj: data.cpfCnpj,
+        email: data.email,
+        endereco: data.endereco,
+        telefones,
+    };
+  }
+
   const handleAdicionarCliente = useCallback(
     async (data: ClientFormValues) => {
       if (!user || !clientes) return;
 
-      const duplicate = findDuplicateClient(data, clientes);
+      const clienteParaVerificar = transformFormDataToClienteData(data);
+      const duplicate = findDuplicateClient(clienteParaVerificar, clientes);
 
       if (duplicate) {
         setDuplicateMessage(
@@ -179,10 +195,7 @@ export default function ClientesPage() {
 
       setIsSubmitting(true);
       try {
-        await addCliente(user.uid, {
-          ...data,
-          telefones: data.telefones.filter(t => t.numero.trim()),
-        });
+        await addCliente(user.uid, clienteParaVerificar);
 
         addClientForm.reset();
         toast({ title: 'Cliente adicionado com sucesso' });
@@ -260,9 +273,9 @@ export default function ClientesPage() {
       contactEmails.length > 1 ||
       contactAddresses.length > 1;
 
-    const contactData = {
+    const contactData: Partial<ClienteData> = {
       nome: contactName,
-      telefones: contactPhones.length > 0 ? [{ nome: 'Principal', numero: contactPhones[0] }] : [],
+      telefones: contactPhones.length > 0 ? [{ nome: 'Principal', numero: contactPhones[0], principal: true }] : [],
       email: contactEmails.length > 0 ? contactEmails[0] : '',
       endereco: contactAddresses.length > 0 ? contactAddresses[0] : '',
     };
@@ -283,7 +296,15 @@ export default function ClientesPage() {
       });
       setIsContactSelectionModalOpen(true);
     } else {
-      addClientForm.reset(contactData);
+      // Adapta para o novo formato do formulário
+      addClientForm.reset({
+        nome: contactData.nome || '',
+        telefonePrincipal: contactData.telefones?.[0]?.numero || '',
+        cpfCnpj: '',
+        endereco: contactData.endereco || '',
+        email: contactData.email || '',
+        telefonesAdicionais: contactData.telefones?.slice(1) || [],
+      });
       toast({ title: 'Contato pronto para ser salvo!' });
     }
   }, [clientes, addClientForm, toast]);
@@ -341,10 +362,11 @@ export default function ClientesPage() {
   const handleConfirmContactSelection = useCallback((selectedData: Partial<ClienteData>) => {
     const dataToSet = {
       nome: selectedData.nome || '',
+      telefonePrincipal: selectedData.telefones?.[0]?.numero || '',
       cpfCnpj: '',
       endereco: selectedData.endereco || '',
       email: selectedData.email || '',
-      telefones: selectedData.telefones || [{ nome: 'Principal', numero: '' }],
+      telefonesAdicionais: selectedData.telefones?.slice(1) || [],
     };
     addClientForm.reset(dataToSet);
     setIsContactSelectionModalOpen(false);
@@ -382,7 +404,7 @@ export default function ClientesPage() {
 
           <Accordion type="single" collapsible>
              <ClientForm
-              initialData={addClientForm.getValues()}
+              initialData={{}} // Passa objeto vazio pois os valores padrão estão no form
               formControl={addClientForm.control}
               onSubmit={handleAdicionarCliente}
               onImportContacts={handleImportContacts}

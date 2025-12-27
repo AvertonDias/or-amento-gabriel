@@ -62,7 +62,10 @@ export const deleteCliente = async (clienteId: string) => {
 export const syncClienteToFirestore = async (clienteData: ClienteData) => {
     const clienteDocRef = doc(firestoreDB, 'clientes', clienteData.id);
     // `setDoc` com `merge: true` funciona como um "upsert", criando ou atualizando.
-    await setDoc(clienteDocRef, clienteData, { merge: true });
+    const cleanData = JSON.parse(JSON.stringify(clienteData, (key, value) =>
+      value === undefined ? null : value
+    ));
+    await setDoc(clienteDocRef, cleanData, { merge: true });
 };
 
 export const deleteClienteFromFirestore = async (clienteId: string) => {

@@ -39,8 +39,10 @@ const telefoneSchema = z.object({
     .pipe(z.string().min(10, 'Informe um número válido')),
 });
 
+// O primeiro telefone é agora obrigatório e parte do objeto principal
 const formSchema = z.object({
   nome: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres'),
+  telefonePrincipal: z.string().transform(val => val.replace(/\D/g, '')).pipe(z.string().min(10, 'Informe um número válido')),
   cpfCnpj: z
     .string()
     .optional()
@@ -54,7 +56,8 @@ const formSchema = z.object({
     .email('Formato de e-mail inválido')
     .optional()
     .or(z.literal('')),
-  telefones: z.array(telefoneSchema).min(1, 'Informe ao menos um telefone'),
+  // Telefones adicionais são opcionais
+  telefonesAdicionais: z.array(telefoneSchema).optional(),
 });
 
 export type ClientFormValues = z.infer<typeof formSchema>;
@@ -91,15 +94,14 @@ export default function ClientForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       nome: '',
+      telefonePrincipal: '',
       cpfCnpj: '',
       endereco: '',
       email: '',
-      telefones: [{ nome: 'Principal', numero: '' }],
+      telefonesAdicionais: [],
     },
   });
   
-  // Usa o controle externo se fornecido (para o formulário de Adicionar),
-  // senão usa o controle interno (para o modal de Editar)
   const control = formControl || form.control;
   const { handleSubmit, reset } = form;
 
@@ -109,23 +111,18 @@ export default function ClientForm({
 
   useEffect(() => {
     if (!initialData) return;
-  
-    const telefonesNormalizados = (initialData.telefones || [])
-      .map(tel => ({
-        nome: tel.nome || '',
-        numero: tel.numero || '',
-      }))
-      .filter(tel => tel.numero); // Filtra telefones sem número
+    
+    // Separa o telefone principal dos adicionais
+    const principal = initialData.telefones?.find(t => t.principal) || initialData.telefones?.[0];
+    const adicionais = initialData.telefones?.filter(t => t !== principal).map(t => ({ nome: t.nome ?? '', numero: t.numero ?? '' })) || [];
   
     const valuesToReset = {
       nome: initialData.nome || '',
+      telefonePrincipal: principal?.numero || '',
       cpfCnpj: initialData.cpfCnpj || '',
       endereco: initialData.endereco || '',
       email: initialData.email || '',
-      telefones:
-        telefonesNormalizados.length > 0
-          ? telefonesNormalizados
-          : [{ nome: 'Principal', numero: '' }], // Garante que sempre haja um campo
+      telefonesAdicionais: adicionais,
     };
   
     // Reseta o form interno ou o form pai
@@ -142,7 +139,7 @@ export default function ClientForm({
 
   const { fields, append, remove } = useFieldArray({
     control,
-    name: 'telefones',
+    name: 'telefonesAdicionais',
   });
 
   /* ------------------------------------------------------------------------ */
@@ -157,7 +154,7 @@ export default function ClientForm({
           name="nome"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nome Completo</FormLabel>
+              <FormLabel>Nome Completo*</FormLabel>
               <FormControl>
                 <Input placeholder="Ex: João da Silva" {...field} />
               </FormControl>
@@ -177,6 +174,26 @@ export default function ClientForm({
             Importar da Agenda
           </Button>
         )}
+
+        <FormField
+            control={control}
+            name="telefonePrincipal"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Telefone Principal*</FormLabel>
+                <FormControl>
+                    <Input
+                    placeholder="(DD) XXXXX-XXXX"
+                    {...field}
+                    onChange={e =>
+                        field.onChange(maskTelefone(e.target.value))
+                    }
+                    />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+        />
 
         <FormField
           control={control}
@@ -227,18 +244,18 @@ export default function ClientForm({
         />
 
         <div className="space-y-2">
-          <FormLabel>Telefones</FormLabel>
+          <FormLabel>Telefones Adicionais</FormLabel>
 
           {fields.map((field, index) => (
             <div key={field.id} className="grid grid-cols-[1fr_2fr_auto] gap-2 items-start">
               <FormField
                 control={control}
-                name={`telefones.${index}.nome`}
+                name={`telefonesAdicionais.${index}.nome`}
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
                       <Input
-                        placeholder="Ex: Principal"
+                        placeholder="Ex: Contato"
                         {...field}
                         value={field.value ?? ''}
                       />
@@ -250,7 +267,7 @@ export default function ClientForm({
               
               <FormField
                 control={control}
-                name={`telefones.${index}.numero`}
+                name={`telefonesAdicionais.${index}.numero`}
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
@@ -272,7 +289,6 @@ export default function ClientForm({
                 variant="ghost"
                 size="icon"
                 onClick={() => remove(index)}
-                disabled={fields.length === 1}
               >
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>

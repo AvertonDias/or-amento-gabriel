@@ -9,7 +9,7 @@ import {
   setDoc,
 } from 'firebase/firestore';
 import { db as dexieDB } from '@/lib/dexie';
-import type { Orcamento } from '@/lib/types';
+import type { Orcamento, ClienteData } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { auth } from '@/lib/firebase';
 
@@ -38,20 +38,25 @@ export const getNextOrcamentoNumber = async (userId: string): Promise<string> =>
 };
 
 export const addOrcamento = async (orcamento: Omit<Orcamento, 'id'>): Promise<string> => {
-  if (!orcamento || !orcamento.cliente || !orcamento.cliente.id) {
-    throw new Error('Dados do orçamento ou ID do cliente inválidos.');
+  if (!orcamento || !orcamento.cliente) {
+    throw new Error('Dados do orçamento ou cliente inválidos.');
   }
+
+  // Se o cliente é novo (não tem ID), o ID será o do novo documento criado no addCliente
+  const clienteData: ClienteData = {
+    ...orcamento.cliente,
+    id: orcamento.cliente.id || uuidv4(), // Garante um ID se não houver
+    userId: orcamento.userId,
+    cpfCnpj: orcamento.cliente.cpfCnpj || '',
+    email: orcamento.cliente.email || '',
+    endereco: orcamento.cliente.endereco || ''
+  };
 
   const newId = uuidv4();
   const dataToSave: Orcamento = {
     ...orcamento,
     id: newId,
-    cliente: {
-      ...orcamento.cliente,
-      cpfCnpj: orcamento.cliente.cpfCnpj || '',
-      email: orcamento.cliente.email || '',
-      endereco: orcamento.cliente.endereco || ''
-    },
+    cliente: clienteData,
     observacoes: orcamento.observacoes || '',
     observacoesInternas: orcamento.observacoesInternas || '',
   };
