@@ -401,7 +401,7 @@ export default function OrcamentoPage() {
         budgets={filteredOrcamentos}
         empresa={empresa || null}
         onGeneratePDF={handleGerarPDF}
-        onEdit={setEditingBudget}
+        onEdit={handleEditBudget}
         onDelete={deleteOrcamento}
         onUpdateStatus={handleUpdateStatus}
         clienteFiltrado={clienteFiltrado}
