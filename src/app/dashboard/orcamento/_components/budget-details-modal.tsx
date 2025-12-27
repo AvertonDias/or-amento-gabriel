@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { Badge, badgeVariants } from '@/components/ui/badge';
 import {
   Table,
@@ -25,11 +26,13 @@ import { formatCurrency, formatNumber, cn } from '@/lib/utils';
 import { type VariantProps } from 'class-variance-authority';
 import { Capacitor } from '@capacitor/core';
 import { Separator } from '@/components/ui/separator';
+import { Pencil } from 'lucide-react';
 
 interface BudgetDetailsModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   budget: Orcamento;
+  onEdit: (budget: Orcamento) => void;
 }
 
 const getStatusVariant = (
@@ -45,6 +48,7 @@ export function BudgetDetailsModal({
   isOpen,
   onOpenChange,
   budget,
+  onEdit,
 }: BudgetDetailsModalProps) {
 
   const dataCriacao = parseISO(budget.dataCriacao);
@@ -62,13 +66,22 @@ export function BudgetDetailsModal({
         }}
       >
         <DialogHeader className="p-6 pb-4 pr-16">
-          <div className="flex justify-between items-center">
-            <DialogTitle className="text-2xl flex items-center gap-4">
-              Orçamento Nº {budget.numeroOrcamento}
-              <Badge variant={getStatusVariant(budget.status)} className="text-base">
-                {budget.status}
-              </Badge>
-            </DialogTitle>
+          <div className="flex justify-between items-start">
+            <div className="flex-1 space-y-2">
+                <DialogTitle className="text-2xl flex items-center gap-4">
+                  Orçamento Nº {budget.numeroOrcamento}
+                  <Badge variant={getStatusVariant(budget.status)} className="text-base">
+                    {budget.status}
+                  </Badge>
+                </DialogTitle>
+            </div>
+
+            {budget.status === 'Pendente' && (
+                <Button variant="outline" onClick={() => onEdit(budget)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Editar
+                </Button>
+            )}
           </div>
         </DialogHeader>
 

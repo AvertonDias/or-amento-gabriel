@@ -192,6 +192,11 @@ export default function OrcamentoPage() {
   // HANDLERS
   // =========================
 
+  const handleEditBudget = (budget: Orcamento) => {
+    setViewingBudget(null); // Fecha o modal de detalhes
+    setEditingBudget(budget); // Abre o modal de edição
+  };
+
   const openCompanyWhatsApp = (orcamento: Orcamento, phone: string) => {
     const cleanPhone = `55${phone.replace(/\D/g, '')}`;
     
@@ -430,6 +435,7 @@ export default function OrcamentoPage() {
           budget={viewingBudget}
           isOpen={!!viewingBudget}
           onOpenChange={(open) => !open && setViewingBudget(null)}
+          onEdit={handleEditBudget}
         />
       )}
 
