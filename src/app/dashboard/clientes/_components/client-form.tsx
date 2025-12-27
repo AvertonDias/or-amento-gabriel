@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import type { ClienteData } from '@/lib/types';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -28,7 +27,7 @@ import type { Control } from 'react-hook-form';
 
 
 /* -------------------------------------------------------------------------- */
-/* SCHEMA                                                                      */
+/* SCHEMA (Modelo do Formulário)                                              */
 /* -------------------------------------------------------------------------- */
 
 const telefoneSchema = z.object({
@@ -39,7 +38,6 @@ const telefoneSchema = z.object({
     .pipe(z.string().min(10, 'Informe um número válido')),
 });
 
-// O primeiro telefone é agora obrigatório e parte do objeto principal
 const formSchema = z.object({
   nome: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres'),
   telefonePrincipal: z.string().transform(val => val.replace(/\D/g, '')).pipe(z.string().min(10, 'Informe um número válido')),
@@ -56,7 +54,6 @@ const formSchema = z.object({
     .email('Formato de e-mail inválido')
     .optional()
     .or(z.literal('')),
-  // Telefones adicionais são opcionais
   telefonesAdicionais: z.array(telefoneSchema).optional(),
 });
 
@@ -67,13 +64,12 @@ export type ClientFormValues = z.infer<typeof formSchema>;
 /* -------------------------------------------------------------------------- */
 
 interface ClientFormProps {
-  initialData: Partial<ClienteData>;
+  initialData?: Partial<ClientFormValues>; // Recebe os dados JÁ no formato do formulário
   onSubmit: (data: ClientFormValues) => void;
   onImportContacts?: () => void;
   isSubmitting: boolean;
   triggerTitle?: string;
   isEditMode?: boolean;
-  formControl?: Control<ClientFormValues>;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -87,55 +83,36 @@ export default function ClientForm({
   isSubmitting,
   triggerTitle,
   isEditMode = false,
-  formControl
 }: ClientFormProps) {
   
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      nome: '',
-      telefonePrincipal: '',
-      cpfCnpj: '',
-      endereco: '',
-      email: '',
-      telefonesAdicionais: [],
+      nome: initialData?.nome || '',
+      telefonePrincipal: initialData?.telefonePrincipal || '',
+      cpfCnpj: initialData?.cpfCnpj || '',
+      endereco: initialData?.endereco || '',
+      email: initialData?.email || '',
+      telefonesAdicionais: initialData?.telefonesAdicionais || [],
     },
   });
   
-  const control = formControl || form.control;
-  const { reset } = form;
+  const { control, reset, setValue } = form;
 
-  /* ------------------------------------------------------------------------ */
-  /* SINCRONIZA initialData                                                    */
-  /* ------------------------------------------------------------------------ */
-
+  // Sincroniza quando o initialData (de fora) muda.
+  // Útil para o caso de importação de contatos.
   useEffect(() => {
-    if (!initialData) return;
-    
-    // Separa o telefone principal dos adicionais
-    const principal = initialData.telefones?.find(t => t.principal) || initialData.telefones?.[0];
-    const adicionais = initialData.telefones?.filter(t => t !== principal).map(t => ({ nome: t.nome ?? '', numero: t.numero ?? '' })) || [];
-  
-    const valuesToReset = {
-      nome: initialData.nome || '',
-      telefonePrincipal: principal?.numero || '',
-      cpfCnpj: initialData.cpfCnpj || '',
-      endereco: initialData.endereco || '',
-      email: initialData.email || '',
-      telefonesAdicionais: adicionais,
-    };
-  
-    // Reseta o form interno ou o form pai
-    if (formControl) {
-      Object.entries(valuesToReset).forEach(([key, value]) => {
-        form.setValue(key as keyof ClientFormValues, value, {
-          shouldValidate: true,
-        });
+    if (initialData) {
+      reset({
+        nome: initialData.nome || '',
+        telefonePrincipal: initialData.telefonePrincipal || '',
+        cpfCnpj: initialData.cpfCnpj || '',
+        endereco: initialData.endereco || '',
+        email: initialData.email || '',
+        telefonesAdicionais: initialData.telefonesAdicionais || [],
       });
-    } else {
-      reset(valuesToReset);
     }
-  }, [initialData, reset, formControl, form]);
+  }, [initialData, reset]);
 
   const { fields, append, remove } = useFieldArray({
     control,

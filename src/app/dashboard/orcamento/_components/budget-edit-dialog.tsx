@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import type { Orcamento, OrcamentoItem, MaterialItem } from '@/lib/types';
+import type { Orcamento, OrcamentoItem, MaterialItem, ClienteData } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -72,6 +72,9 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import ClientForm, { type ClientFormValues } from '@/app/dashboard/clientes/_components/client-form';
+import { clienteToFormValues } from '@/app/dashboard/clientes/page';
+
 
 /* ===========================
    Helpers
@@ -137,6 +140,9 @@ export function BudgetEditDialog({
   const [isTotalLocked, setIsTotalLocked] = useState(true);
   const [manualTotal, setManualTotal] = useState<number | null>(null);
   const [manualTotalStr, setManualTotalStr] = useState('');
+  
+  const [isEditingClient, setIsEditingClient] = useState(false);
+
 
   /* ===========================
      Effects
@@ -191,53 +197,33 @@ export function BudgetEditDialog({
   /* ===========================
      Handlers
   =========================== */
-
-  const handleClienteTelefoneChange = (index: number, field: 'nome' | 'numero', value: string) => {
+  
+  const handleSaveClientEdits = (formValues: ClientFormValues) => {
     if (!editingBudget) return;
-  
-    setEditingBudget(prev => {
-      if (!prev) return null;
-  
-      const telefones = [...prev.cliente.telefones];
-      if (!telefones[index]) return prev;
-  
-      const newValue = field === 'numero' ? maskTelefone(value) : value;
-      telefones[index] = { ...telefones[index], [field]: newValue };
-  
-      return {
-        ...prev,
-        cliente: { ...prev.cliente, telefones },
-      };
-    });
-  };
 
-  const addTelefoneField = () => {
-    if (!editingBudget) return;
-    setEditingBudget(prev => {
-        if (!prev) return null;
-        const newTelefones = [...prev.cliente.telefones, { nome: '', numero: '', principal: false }];
-        return { ...prev, cliente: { ...prev.cliente, telefones: newTelefones }};
-    });
-  }
+    const telefones = [{
+      nome: 'Principal',
+      numero: formValues.telefonePrincipal,
+      principal: true
+    }];
 
-  const removeTelefoneField = (index: number) => {
-    if (!editingBudget || editingBudget.cliente.telefones.length <= 1) {
-      toast({
-        title: 'Ação não permitida',
-        description: 'O cliente deve ter pelo menos um telefone.',
-        variant: 'destructive',
-      });
-      return;
+    if (formValues.telefonesAdicionais) {
+      telefones.push(...formValues.telefonesAdicionais.filter(t => t.numero).map(t => ({...t, principal: false})));
     }
-    setEditingBudget(prev => {
-      if (!prev) return null;
-      const telefones = prev.cliente.telefones.filter((_, i) => i !== index);
-      // Se o telefone principal foi removido, define o primeiro da lista como principal
-      if (!telefones.some(t => t.principal)) {
-          telefones[0].principal = true;
+
+    setEditingBudget({
+      ...editingBudget,
+      cliente: {
+        ...editingBudget.cliente, // Mantém id, userId
+        nome: formValues.nome,
+        cpfCnpj: formValues.cpfCnpj,
+        email: formValues.email,
+        endereco: formValues.endereco,
+        telefones: telefones,
       }
-      return { ...prev, cliente: { ...prev.cliente, telefones } };
     });
+    setIsEditingClient(false);
+    toast({ title: 'Dados do cliente atualizados localmente.' });
   }
 
   const handleManualTotalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -359,42 +345,37 @@ export function BudgetEditDialog({
 
           <div className="flex-1 overflow-y-auto space-y-6 px-6">
             <Card>
-              <CardContent className="p-4 grid sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Nome do Cliente</Label>
-                  <Input value={editingBudget.cliente.nome} onChange={(e) => setEditingBudget({...editingBudget, cliente: {...editingBudget.cliente, nome: e.target.value}})}/>
-                </div>
-                 <div className="space-y-4">
-                  <Label>Telefones</Label>
-                  {editingBudget.cliente.telefones?.map((tel, index) => (
-                    <div key={index} className="grid grid-cols-[1fr_2fr_auto] gap-2 items-start">
-                       <Input 
-                         value={tel.nome || ''} 
-                         onChange={(e) => handleClienteTelefoneChange(index, 'nome', e.target.value)}
-                         placeholder="Ex: Principal"
-                       />
-                       <Input 
-                         value={tel.numero} 
-                         onChange={(e) => handleClienteTelefoneChange(index, 'numero', e.target.value)}
-                         placeholder="(DD) XXXXX-XXXX"
-                       />
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeTelefoneField(index)} disabled={editingBudget.cliente.telefones.length <= 1}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                    </div>
-                  ))}
-                   <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={addTelefoneField}
-                    >
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Adicionar Telefone
-                    </Button>
-                </div>
-              </CardContent>
+                <CardContent className="p-4">
+                    {isEditingClient ? (
+                        <div>
+                            <h3 className="font-semibold mb-4">Editando Cliente</h3>
+                            <ClientForm
+                                isEditMode
+                                initialData={clienteToFormValues(editingBudget.cliente as ClienteData)}
+                                onSubmit={handleSaveClientEdits}
+                                isSubmitting={false}
+                            />
+                             <Button variant="outline" size="sm" onClick={() => setIsEditingClient(false)} className="mt-4 w-full">
+                                Cancelar Edição do Cliente
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="space-y-2 text-sm">
+                             <div className="flex justify-between items-start">
+                                <h3 className="font-semibold text-base mb-2">Dados do Cliente</h3>
+                                <Button variant="outline" size="sm" onClick={() => setIsEditingClient(true)}>
+                                    <Pencil className="mr-2 h-4 w-4"/> Editar
+                                </Button>
+                            </div>
+                            <p><strong>Nome:</strong> {editingBudget.cliente.nome}</p>
+                            {editingBudget.cliente.telefones?.map((tel, index) => (
+                                <p key={index}><strong>{tel.nome || `Telefone ${index + 1}`}:</strong> {maskTelefone(tel.numero)}</p>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
             </Card>
+
 
             {/* Adicionar Itens */}
             <div className="border p-4 rounded-md space-y-4">

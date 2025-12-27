@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -11,12 +12,13 @@ import {
 } from '@/components/ui/dialog';
 import ClientForm from './client-form';
 import type { ClientFormValues } from './client-form';
+import { clienteToFormValues } from '../page';
 
 interface EditClientDialogProps {
   isEditModalOpen: boolean;
   setIsEditModalOpen: (isOpen: boolean) => void;
   editingClient: ClienteData | null;
-  onSaveEdit: (client: ClienteData) => void;
+  onSaveEdit: (values: ClientFormValues) => void;
   isSubmitting: boolean;
 }
 
@@ -27,14 +29,11 @@ export function EditClientDialog({
   onSaveEdit,
   isSubmitting,
 }: EditClientDialogProps) {
-  const handleInternalSave = (formData: ClientFormValues) => {
-    if (editingClient) {
-      onSaveEdit({
-        ...editingClient,
-        ...formData,
-      });
-    }
-  };
+  
+  if (!editingClient) return null;
+
+  // Converte ClienteData para ClientFormValues ANTES de passar para o formulário
+  const formInitialData = clienteToFormValues(editingClient);
 
   return (
     <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
@@ -45,15 +44,15 @@ export function EditClientDialog({
             Faça as alterações necessárias e clique em salvar.
           </DialogDescription>
         </DialogHeader>
-        {editingClient && (
-          <ClientForm
-            key={editingClient.id}
-            initialData={editingClient}
-            onSubmit={handleInternalSave}
-            isSubmitting={isSubmitting}
-            isEditMode={true}
-          />
-        )}
+        
+        <ClientForm
+          key={editingClient.id} // Força a remontagem para garantir estado limpo
+          initialData={formInitialData}
+          onSubmit={onSaveEdit}
+          isSubmitting={isSubmitting}
+          isEditMode={true}
+        />
+        
       </DialogContent>
     </Dialog>
   );

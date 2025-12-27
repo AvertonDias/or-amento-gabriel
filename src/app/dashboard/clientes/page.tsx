@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
-import type { ClienteData } from '@/lib/types';
+import type { ClienteData, Telefone } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 
 import {
@@ -47,6 +47,55 @@ import {
 } from './_components/contact-import-modals';
 import { findDuplicateClient } from '@/lib/utils';
 
+// =================================================================
+// MAPPERS (Conversores de modelo)
+// =================================================================
+
+/**
+ * Converte o modelo de dados do formulário (ClientFormValues)
+ * para o modelo de dados do banco (ClienteData).
+ */
+const formValuesToCliente = (formValues: ClientFormValues): Omit<ClienteData, 'id' | 'userId'> => {
+  const telefones: Telefone[] = [{
+    nome: 'Principal',
+    numero: formValues.telefonePrincipal,
+    principal: true,
+  }];
+
+  if (formValues.telefonesAdicionais) {
+    telefones.push(...formValues.telefonesAdicionais
+      .filter(t => t.numero?.trim())
+      .map(t => ({ ...t, principal: false }))
+    );
+  }
+
+  return {
+    nome: formValues.nome,
+    cpfCnpj: formValues.cpfCnpj || '',
+    email: formValues.email || '',
+    endereco: formValues.endereco || '',
+    telefones,
+  };
+};
+
+/**
+ * Converte o modelo de dados do banco (ClienteData)
+ * para o modelo de dados do formulário (ClientFormValues).
+ */
+export const clienteToFormValues = (cliente: ClienteData): ClientFormValues => {
+  const principal = cliente.telefones.find(t => t.principal) || cliente.telefones[0];
+  const adicionais = cliente.telefones.filter(t => t !== principal);
+
+  return {
+    nome: cliente.nome || '',
+    telefonePrincipal: principal?.numero || '',
+    cpfCnpj: cliente.cpfCnpj || '',
+    endereco: cliente.endereco || '',
+    email: cliente.email || '',
+    telefonesAdicionais: adicionais.map(t => ({ nome: t.nome, numero: t.numero })) || [],
+  };
+};
+
 
 export default function ClientesPage() {
   const [user, loadingAuth] = useAuthState(auth);
@@ -83,7 +132,7 @@ export default function ClientesPage() {
   /* STATES                                                                     */
   /* -------------------------------------------------------------------------- */
   
-  const addClientForm = useForm<ClientFormValues>();
+  const [addClientInitialData, setAddClientInitialData] = useState<Partial<ClientFormValues>>({});
 
   const [editingClient, setEditingClient] = useState<ClienteData | null>(null);
   const [clientToDelete, setClientToDelete] = useState<ClienteData | null>(null);
@@ -163,26 +212,11 @@ export default function ClientesPage() {
   /* CRUD CLIENTE                                                               */
   /* -------------------------------------------------------------------------- */
 
-  // Transforma os dados do formulário para o formato ClienteData
-  const transformFormDataToClienteData = (data: ClientFormValues): Omit<ClienteData, 'id' | 'userId'> => {
-    const telefones = [{ nome: 'Principal', numero: data.telefonePrincipal, principal: true }];
-    if (data.telefonesAdicionais) {
-        telefones.push(...data.telefonesAdicionais.filter(t => t.numero?.trim()).map(t => ({ ...t, principal: false })));
-    }
-    return {
-        nome: data.nome,
-        cpfCnpj: data.cpfCnpj,
-        email: data.email,
-        endereco: data.endereco,
-        telefones,
-    };
-  }
-
   const handleAdicionarCliente = useCallback(
     async (data: ClientFormValues) => {
       if (!user || !clientes) return;
 
-      const clienteParaVerificar = transformFormDataToClienteData(data);
+      const clienteParaVerificar = formValuesToCliente(data);
       const duplicate = findDuplicateClient(clienteParaVerificar, clientes);
 
       if (duplicate) {
@@ -197,7 +231,7 @@ export default function ClientesPage() {
       try {
         await addCliente(user.uid, clienteParaVerificar);
 
-        addClientForm.reset();
+        setAddClientInitialData({}); // Reseta o formulário
         toast({ title: 'Cliente adicionado com sucesso' });
       } catch {
         toast({
@@ -208,21 +242,18 @@ export default function ClientesPage() {
         setIsSubmitting(false);
       }
     },
-    [user, clientes, toast, addClientForm]
+    [user, clientes, toast]
   );
 
   const handleSalvarEdicao = useCallback(
-    async (client: ClienteData) => {
-      if (!client.id) return;
+    async (formData: ClientFormValues) => {
+      if (!editingClient?.id) return;
 
       setIsSubmitting(true);
       try {
-        const { id, userId, ...data } = client;
-
-        await updateCliente(id, {
-          ...data,
-          telefones: data.telefones.filter(t => t.numero.trim()),
-        });
+        const dataToUpdate = formValuesToCliente(formData);
+        
+        await updateCliente(editingClient.id, dataToUpdate);
 
         setEditingClient(null);
         toast({ title: 'Cliente atualizado' });
@@ -235,7 +266,7 @@ export default function ClientesPage() {
         setIsSubmitting(false);
       }
     },
-    [toast]
+    [editingClient, toast]
   );
 
   const handleConfirmarRemocao = useCallback(async () => {
@@ -262,7 +293,6 @@ export default function ClientesPage() {
   /* -------------------------------------------------------------------------- */
   const processSelectedContact = useCallback((contact: any) => {
     
-    // Normaliza os dados, pois a API do Capacitor e a da Web retornam formatos diferentes
     const contactPhones = (contact.phones || contact.tel || []).map((p: any) => typeof p === 'string' ? p : p.number).filter(Boolean);
     const contactEmails = (contact.emails || contact.email || []).map((e: any) => typeof e === 'string' ? e : e.address).filter(Boolean);
     const contactAddresses = (contact.postalAddresses || contact.address || []).map((a: any) => typeof a === 'string' ? a : a.street).filter(Boolean);
@@ -296,8 +326,7 @@ export default function ClientesPage() {
       });
       setIsContactSelectionModalOpen(true);
     } else {
-      // Adapta para o novo formato do formulário
-      addClientForm.reset({
+      setAddClientInitialData({
         nome: contactData.nome || '',
         telefonePrincipal: contactData.telefones?.[0]?.numero || '',
         cpfCnpj: '',
@@ -307,11 +336,10 @@ export default function ClientesPage() {
       });
       toast({ title: 'Contato pronto para ser salvo!' });
     }
-  }, [clientes, addClientForm, toast]);
+  }, [clientes, toast]);
 
 
   const handleImportContacts = useCallback(async () => {
-    // Primeiro, tenta a API Nativa do Capacitor
     if (Capacitor.isNativePlatform()) {
       try {
         const permission = await Contacts.requestPermissions();
@@ -327,16 +355,14 @@ export default function ClientesPage() {
         processSelectedContact(result.contact);
       } catch (e) {
           if (e instanceof Error && e.message.includes('cancelled')) {
-               // Ação cancelada pelo usuário, não mostrar erro
           } else {
               console.error("Erro ao usar API de Contatos do Capacitor:", e);
               setIsApiNotSupportedAlertOpen(true);
           }
       }
-      return; // Termina aqui para plataformas nativas
+      return;
     }
 
-    // Se não for nativo, tenta a API Web (PWA)
     if ('contacts' in navigator && 'select' in (navigator as any).contacts) {
       try {
         const contacts = await (navigator as any).contacts.select(['name', 'email', 'tel'], { multiple: false });
@@ -345,7 +371,6 @@ export default function ClientesPage() {
         }
       } catch (e) {
         if (e instanceof Error && e.message.includes('cancelled')) {
-          // Ação cancelada pelo usuário, não mostrar erro
         } else {
           console.error("Erro ao usar a API Web de Contatos (PWA):", e);
           setIsApiNotSupportedAlertOpen(true);
@@ -354,13 +379,12 @@ export default function ClientesPage() {
       return;
     }
     
-    // Se chegou até aqui, nenhuma das APIs está disponível ou funcionou
     setIsApiNotSupportedAlertOpen(true);
 
   }, [toast, processSelectedContact]);
   
   const handleConfirmContactSelection = useCallback((selectedData: Partial<ClienteData>) => {
-    const dataToSet = {
+    const dataToSet: ClientFormValues = {
       nome: selectedData.nome || '',
       telefonePrincipal: selectedData.telefones?.[0]?.numero || '',
       cpfCnpj: '',
@@ -368,10 +392,10 @@ export default function ClientesPage() {
       email: selectedData.email || '',
       telefonesAdicionais: selectedData.telefones?.slice(1).map(t => ({ nome: t.nome || 'Outro', numero: t.numero })) || [],
     };
-    addClientForm.reset(dataToSet);
+    setAddClientInitialData(dataToSet);
     setIsContactSelectionModalOpen(false);
     toast({ title: 'Contato pronto para ser salvo!' });
-  }, [addClientForm, toast]);
+  }, [toast]);
 
 
   /* -------------------------------------------------------------------------- */
@@ -404,8 +428,8 @@ export default function ClientesPage() {
 
           <Accordion type="single" collapsible>
              <ClientForm
-              initialData={{}} // Passa objeto vazio pois os valores padrão estão no form
-              formControl={addClientForm.control}
+              key={JSON.stringify(addClientInitialData)} // Força remontagem ao resetar
+              initialData={addClientInitialData}
               onSubmit={handleAdicionarCliente}
               onImportContacts={handleImportContacts}
               isSubmitting={isSubmitting}
