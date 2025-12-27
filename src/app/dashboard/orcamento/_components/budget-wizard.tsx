@@ -83,13 +83,21 @@ const initialClientState: ClienteData = {
 /* =========================
    PROPS
 ========================= */
+export type BudgetSaveData = {
+    client: ClienteData;
+    itens: OrcamentoItem[];
+    totalVenda: number;
+    validadeDias: string;
+    observacoes: string;
+    observacoesInternas: string;
+};
 
 interface BudgetWizardProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   clientes: ClienteData[];
   materiais: MaterialItem[];
-  onSaveBudget: (budget: Omit<Orcamento, 'id'>, saveNewClient: boolean) => void;
+  onSaveBudget: (budget: BudgetSaveData, saveNewClient: boolean) => void;
 }
 
 /* =========================
@@ -336,19 +344,13 @@ export function BudgetWizard({
   const handleFinalSave = async (saveClient: boolean = false) => {
     setIsSubmitting(true);
     try {
-      const budgetData: Omit<Orcamento, 'id'> = {
-        userId: '', // Será preenchido na página pai
-        numeroOrcamento: '', // Será gerado na página pai
-        cliente: clienteData,
+      const budgetData: BudgetSaveData = {
+        client: clienteData,
         itens: orcamentoItens,
         totalVenda: finalTotal,
-        dataCriacao: new Date().toISOString(),
-        status: 'Pendente',
         validadeDias,
         observacoes,
         observacoesInternas,
-        dataAceite: null,
-        dataRecusa: null,
       };
 
       onSaveBudget(budgetData, saveClient);
@@ -429,10 +431,14 @@ export function BudgetWizard({
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <PopoverContent
+                        className="w-[--radix-popover-trigger-width] p-0"
+                        onWheelCapture={(e) => e.stopPropagation()}
+                        onTouchMoveCapture={(e) => e.stopPropagation()}
+                      >
                         <Command>
                           <CommandInput placeholder="Buscar cliente..." />
-                          <CommandList>
+                          <CommandList className="max-h-[300px] overflow-y-auto overscroll-contain">
                             <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                             <CommandGroup>
                               {clientes.map(c => (
@@ -559,10 +565,14 @@ export function BudgetWizard({
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <PopoverContent
+                          className="w-[--radix-popover-trigger-width] p-0"
+                          onWheelCapture={(e) => e.stopPropagation()}
+                          onTouchMoveCapture={(e) => e.stopPropagation()}
+                        >
                           <Command>
                             <CommandInput placeholder="Buscar item..." />
-                            <CommandList>
+                            <CommandList className="max-h-[300px] overflow-y-auto overscroll-contain">
                               <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
                               <CommandGroup>
                                 {materiais.map(m => (
