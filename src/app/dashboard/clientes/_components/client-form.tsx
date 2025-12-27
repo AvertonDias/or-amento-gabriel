@@ -103,7 +103,7 @@ export default function ClientForm({
   });
   
   const control = formControl || form.control;
-  const { handleSubmit, reset } = form;
+  const { reset } = form;
 
   /* ------------------------------------------------------------------------ */
   /* SINCRONIZA initialData                                                    */
@@ -299,7 +299,7 @@ export default function ClientForm({
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => append({ nome: 'Outro', numero: '' })}
+            onClick={() => append({ nome: '', numero: '' })}
           >
             <PlusCircle className="mr-2 h-4 w-4" />
             Adicionar Telefone

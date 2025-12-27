@@ -275,7 +275,7 @@ export default function ClientesPage() {
 
     const contactData: Partial<ClienteData> = {
       nome: contactName,
-      telefones: contactPhones.length > 0 ? [{ nome: 'Principal', numero: contactPhones[0], principal: true }] : [],
+      telefones: contactPhones.map((p, i) => ({ nome: i === 0 ? 'Principal' : 'Outro', numero: p, principal: i === 0 })),
       email: contactEmails.length > 0 ? contactEmails[0] : '',
       endereco: contactAddresses.length > 0 ? contactAddresses[0] : '',
     };
@@ -303,7 +303,7 @@ export default function ClientesPage() {
         cpfCnpj: '',
         endereco: contactData.endereco || '',
         email: contactData.email || '',
-        telefonesAdicionais: contactData.telefones?.slice(1) || [],
+        telefonesAdicionais: contactData.telefones?.slice(1).map(t => ({ nome: t.nome || 'Outro', numero: t.numero })) || [],
       });
       toast({ title: 'Contato pronto para ser salvo!' });
     }
@@ -366,7 +366,7 @@ export default function ClientesPage() {
       cpfCnpj: '',
       endereco: selectedData.endereco || '',
       email: selectedData.email || '',
-      telefonesAdicionais: selectedData.telefones?.slice(1) || [],
+      telefonesAdicionais: selectedData.telefones?.slice(1).map(t => ({ nome: t.nome || 'Outro', numero: t.numero })) || [],
     };
     addClientForm.reset(dataToSet);
     setIsContactSelectionModalOpen(false);
