@@ -56,6 +56,12 @@ export function BudgetDetailsModal({
   const subtotal = budget.itens.reduce((acc, item) => acc + item.precoVenda, 0);
   const totalEditado = Math.abs(subtotal - budget.totalVenda) > 0.01;
   const ajuste = budget.totalVenda - subtotal;
+  
+  const handleEditClick = () => {
+    onOpenChange(false); // Primeiro, fecha o modal atual
+    onEdit(budget);      // Depois, pede ao pai para abrir o de edição
+  };
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -77,7 +83,7 @@ export function BudgetDetailsModal({
             </div>
 
             {budget.status === 'Pendente' && (
-                <Button variant="outline" onClick={() => onEdit(budget)}>
+                <Button variant="outline" onClick={handleEditClick}>
                     <Pencil className="mr-2 h-4 w-4" />
                     Editar
                 </Button>
