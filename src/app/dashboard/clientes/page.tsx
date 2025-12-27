@@ -304,25 +304,24 @@ export default function ClientesPage() {
         });
   
         processSelectedContact(result.contact);
-        return; // Sucesso, termina aqui
       } catch (e) {
           if (e instanceof Error && e.message.includes('cancelled')) {
                // Ação cancelada pelo usuário, não mostrar erro
           } else {
               console.error("Erro ao usar API de Contatos do Capacitor:", e);
-              // Deixa continuar para tentar a API web como fallback se disponível
+              setIsApiNotSupportedAlertOpen(true);
           }
       }
+      return; // Termina aqui para plataformas nativas
     }
 
-    // Se não for nativo ou a API nativa falhar, tenta a API Web (PWA)
+    // Se não for nativo, tenta a API Web (PWA)
     if ('contacts' in navigator && 'select' in (navigator as any).contacts) {
       try {
         const contacts = await (navigator as any).contacts.select(['name', 'email', 'tel'], { multiple: false });
         if (contacts.length > 0) {
           processSelectedContact(contacts[0]);
         }
-        return; // Sucesso com a API web
       } catch (e) {
         if (e instanceof Error && e.message.includes('cancelled')) {
           // Ação cancelada pelo usuário, não mostrar erro
@@ -330,8 +329,8 @@ export default function ClientesPage() {
           console.error("Erro ao usar a API Web de Contatos (PWA):", e);
           setIsApiNotSupportedAlertOpen(true);
         }
-        return;
       }
+      return;
     }
     
     // Se chegou até aqui, nenhuma das APIs está disponível ou funcionou
