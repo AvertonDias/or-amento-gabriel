@@ -32,6 +32,11 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
+// Adiciona uma rota de ícone vazia para evitar o erro de build do favicon.ico
+export function icon() {
+  return null;
+}
+
 export default function RootLayout({
   children,
 }: {
