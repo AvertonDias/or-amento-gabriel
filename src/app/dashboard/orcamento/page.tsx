@@ -41,7 +41,7 @@ import { db } from '@/lib/dexie';
 
 import { BudgetHeader } from './_components/budget-header';
 import { BudgetList } from './_components/budget-list';
-import { BudgetWizard } from './_components/budget-wizard';
+import { BudgetWizard, type BudgetSaveData } from './_components/budget-wizard';
 import { BudgetEditDialog } from './_components/budget-edit-dialog';
 import { BudgetPDFs } from './_components/budget-pdfs';
 import { SyncStatusIndicator } from './_components/sync-status-indicator';
@@ -231,34 +231,60 @@ export default function OrcamentoPage() {
   };
   
   const handleSaveBudget = async (
-    data: Omit<Orcamento, 'id'>,
+    data: BudgetSaveData,
     saveNewClient: boolean
   ) => {
     if (!user) return;
   
-    let finalClientData = data.cliente;
+    let finalClientData: ClienteData;
   
-    // Se for um novo cliente a ser salvo
-    if (saveNewClient && !data.cliente.id) {
-      try {
-        const newClientId = await addCliente(user.uid, data.cliente);
-        finalClientData = { ...data.cliente, id: newClientId };
-        toast({ title: 'Novo cliente salvo com sucesso!' });
-      } catch (error) {
-        console.error("Erro ao salvar novo cliente:", error);
-        toast({ title: 'Erro ao salvar o novo cliente', variant: 'destructive' });
-        return; // Interrompe se não conseguir salvar o cliente
+    if (data.client.id) {
+      // Cliente existente
+      finalClientData = data.client as ClienteData;
+    } else {
+      // Novo cliente
+      const newClientPayload: Omit<ClienteData, 'id' | 'userId'> = {
+        nome: data.client.nome,
+        telefones: [{ nome: 'Principal', numero: data.client.telefonePrincipal, principal: true }],
+        cpfCnpj: data.client.cpfCnpj || '',
+        email: data.client.email || '',
+        endereco: data.client.endereco || '',
+      };
+      
+      if (saveNewClient) {
+        try {
+          const newClientId = await addCliente(user.uid, newClientPayload);
+          finalClientData = { ...newClientPayload, id: newClientId, userId: user.uid };
+          toast({ title: 'Novo cliente salvo com sucesso!' });
+        } catch (error) {
+          console.error("Erro ao salvar novo cliente:", error);
+          toast({ title: 'Erro ao salvar o novo cliente', variant: 'destructive' });
+          return;
+        }
+      } else {
+        // Usar cliente só neste orçamento, sem salvar
+        finalClientData = { ...newClientPayload, id: `temp-${Date.now()}`, userId: user.uid };
       }
     }
     
     const numero = await getNextOrcamentoNumber(user.uid);
   
-    await addOrcamento({
-      ...data,
-      cliente: finalClientData, // Usa os dados do cliente (novo ou existente)
-      numeroOrcamento: numero,
+    const orcamentoPayload: Omit<Orcamento, 'id'> = {
       userId: user.uid,
-    });
+      numeroOrcamento: numero,
+      cliente: finalClientData,
+      itens: data.itens,
+      totalVenda: data.totalVenda,
+      dataCriacao: new Date().toISOString(),
+      status: 'Pendente',
+      validadeDias: data.validadeDias,
+      observacoes: data.observacoes,
+      observacoesInternas: data.observacoesInternas,
+      dataAceite: null,
+      dataRecusa: null,
+    };
+
+    await addOrcamento(orcamentoPayload);
   
     toast({ title: 'Orçamento salvo com sucesso' });
     setIsWizardOpen(false);

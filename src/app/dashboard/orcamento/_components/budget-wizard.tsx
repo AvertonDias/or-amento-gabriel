@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
@@ -48,7 +49,30 @@ import { Capacitor } from '@capacitor/core';
 import { EditItemModal } from './edit-item-modal';
 import { Badge } from '@/components/ui/badge';
 import { useDebounce } from '@/hooks/use-debounce';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
+/* =========================
+   MODELOS DE DADOS (FORMULÁRIO)
+========================= */
+
+// Representa os dados do cliente DENTRO do formulário do wizard
+interface BudgetWizardClientForm {
+  id?: string; // Preenchido apenas se for um cliente existente
+  nome: string;
+  telefonePrincipal: string;
+  email: string;
+  cpfCnpj: string;
+  endereco: string;
+}
+
+// Representa o payload completo que o wizard envia para a página pai
+export interface BudgetSaveData {
+  client: Partial<ClienteData> | BudgetWizardClientForm;
+  itens: OrcamentoItem[];
+  totalVenda: number;
+  validadeDias: string;
+  observacoes: string;
+  observacoesInternas: string;
+}
 
 /* =========================
    CONSTANTES
@@ -77,7 +101,7 @@ interface BudgetWizardProps {
   onOpenChange: (open: boolean) => void;
   clientes: ClienteData[];
   materiais: MaterialItem[];
-  onSaveBudget: (budget: Omit<Orcamento, 'id'>, saveNewClient: boolean) => void;
+  onSaveBudget: (budget: BudgetSaveData, saveNewClient: boolean) => void;
 }
 
 /* =========================
@@ -102,20 +126,13 @@ export function BudgetWizard({
   
   const [clientSelectionType, setClientSelectionType] = useState<'existente' | 'novo'>('novo');
 
-  const [clienteData, setClienteData] = useState<{
-    id?: string;
-    nome: string;
-    endereco?: string;
-    email?: string;
-    cpfCnpj?: string;
-    telefones: { nome?: string; numero: string; principal?: boolean }[];
-  }>({
+  const [formClient, setFormClient] = useState<BudgetWizardClientForm>({
     id: undefined,
     nome: '',
-    endereco: '',
+    telefonePrincipal: '',
     email: '',
     cpfCnpj: '',
-    telefones: [{ nome: 'Principal', numero: '', principal: true }]
+    endereco: '',
   });
 
   const [validadeDias, setValidadeDias] = useState('7');
@@ -155,7 +172,7 @@ export function BudgetWizard({
   const [manualTotalStr, setManualTotalStr] = useState('');
 
   const [potentialDuplicate, setPotentialDuplicate] = useState<ClienteData | null>(null);
-  const debouncedClienteData = useDebounce(clienteData, 500);
+  const debouncedFormClient = useDebounce(formClient, 500);
 
   /* ---------- MEMOS ---------- */
 
@@ -187,13 +204,18 @@ export function BudgetWizard({
   /* ---------- EFEITOS ---------- */
   
   useEffect(() => {
-    if (clientSelectionType === 'novo' && (debouncedClienteData.nome || debouncedClienteData.telefones[0]?.numero)) {
-      const duplicate = findDuplicateClient(debouncedClienteData, clientes);
+    if (clientSelectionType === 'novo' && (debouncedFormClient.nome || debouncedFormClient.telefonePrincipal)) {
+      const clientToCheck: Partial<Omit<ClienteData, 'id' | 'userId'>> = {
+        nome: debouncedFormClient.nome,
+        telefones: [{ numero: debouncedFormClient.telefonePrincipal }],
+        email: debouncedFormClient.email,
+      };
+      const duplicate = findDuplicateClient(clientToCheck, clientes);
       setPotentialDuplicate(duplicate);
     } else {
       setPotentialDuplicate(null);
     }
-  }, [debouncedClienteData, clientSelectionType, clientes]);
+  }, [debouncedFormClient, clientSelectionType, clientes]);
 
   /* ---------- FUNÇÕES PRINCIPAIS ---------- */
 
@@ -201,13 +223,13 @@ export function BudgetWizard({
     setWizardStep(1);
     setOrcamentoItens([]);
     setClientSelectionType('novo');
-    setClienteData({
+    setFormClient({
       id: undefined,
       nome: '',
-      endereco: '',
+      telefonePrincipal: '',
       email: '',
       cpfCnpj: '',
-      telefones: [{ nome: 'Principal', numero: '', principal: true }]
+      endereco: '',
     });
     setValidadeDias('7');
     setObservacoes('');
@@ -231,20 +253,27 @@ export function BudgetWizard({
   
   const handleClientSelectionTypeChange = (value: 'existente' | 'novo') => {
     setClientSelectionType(value);
-    setClienteData({
+    setFormClient({
       id: undefined,
       nome: '',
-      endereco: '',
+      telefonePrincipal: '',
       email: '',
       cpfCnpj: '',
-      telefones: [{ nome: 'Principal', numero: '', principal: true }],
+      endereco: '',
     });
   };
 
-  const handleClienteTelefoneChange = (index: number, value: string) => {
-    const telefones = [...clienteData.telefones];
-    telefones[index].numero = maskTelefone(value);
-    setClienteData({ ...clienteData, telefones });
+  const handleSelectExistingClient = (c: ClienteData) => {
+    const principalPhone = c.telefones.find(t => t.principal) || c.telefones[0];
+    setFormClient({
+      id: c.id,
+      nome: c.nome,
+      telefonePrincipal: principalPhone?.numero || '',
+      email: c.email || '',
+      cpfCnpj: c.cpfCnpj || '',
+      endereco: c.endereco || '',
+    });
+    setIsClientPopoverOpen(false);
   };
 
   const handleAddItem = () => {
@@ -355,26 +384,16 @@ export function BudgetWizard({
   const handleFinalSave = async (saveClient: boolean = false) => {
     setIsSubmitting(true);
     try {
-      const budgetData: Omit<Orcamento, 'id'> = {
-        userId: '',
-        numeroOrcamento: '',
-        cliente: {
-          ...clienteData,
-          id: clienteData.id, 
-          telefones: clienteData.telefones.filter(t => t.numero)
-        } as ClienteData,
+      const saveData: BudgetSaveData = {
+        client: formClient,
         itens: orcamentoItens,
         totalVenda: finalTotal,
-        dataCriacao: new Date().toISOString(),
-        status: 'Pendente',
         validadeDias,
         observacoes,
         observacoesInternas,
-        dataAceite: null,
-        dataRecusa: null,
       };
       
-      onSaveBudget(budgetData, saveClient);
+      onSaveBudget(saveData, saveClient);
 
     } catch (e) {
       console.error(e);
@@ -385,7 +404,7 @@ export function BudgetWizard({
   };
 
   const stepNext = () => {
-    if (wizardStep === 1 && (!clienteData.nome || !clienteData.telefones[0].numero)) {
+    if (wizardStep === 1 && (!formClient.nome || !formClient.telefonePrincipal)) {
       toast({ title: "Dados incompletos", description: "Nome e Telefone do cliente são obrigatórios.", variant: "destructive" });
       return;
     }
@@ -398,8 +417,7 @@ export function BudgetWizard({
 
   const useExistingDuplicate = () => {
     if (potentialDuplicate) {
-      setClienteData(potentialDuplicate);
-      setClientSelectionType('existente');
+      handleSelectExistingClient(potentialDuplicate);
       setPotentialDuplicate(null);
     }
   };
@@ -440,7 +458,7 @@ export function BudgetWizard({
                     <Popover open={isClientPopoverOpen} onOpenChange={setIsClientPopoverOpen}>
                       <PopoverTrigger asChild>
                         <Button variant="outline" role="combobox" aria-expanded={isClientPopoverOpen} className="w-full justify-between">
-                          {clienteData.nome || "Selecione um cliente..."}
+                          {formClient.nome || "Selecione um cliente..."}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
@@ -451,11 +469,8 @@ export function BudgetWizard({
                             <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                             <CommandGroup>
                               {clientes.map(c => (
-                                <CommandItem key={c.id} value={c.nome} onSelect={() => {
-                                  setClienteData(c);
-                                  setIsClientPopoverOpen(false);
-                                }}>
-                                  <Check className={cn("mr-2 h-4 w-4", clienteData.id === c.id ? "opacity-100" : "opacity-0")} />
+                                <CommandItem key={c.id} value={c.nome} onSelect={() => handleSelectExistingClient(c)}>
+                                  <Check className={cn("mr-2 h-4 w-4", formClient.id === c.id ? "opacity-100" : "opacity-0")} />
                                   {c.nome}
                                 </CommandItem>
                               ))}
@@ -465,17 +480,13 @@ export function BudgetWizard({
                       </PopoverContent>
                     </Popover>
 
-                    {clienteData.id && (
+                    {formClient.id && (
                       <div className="border rounded-md p-4 space-y-2 bg-muted/50 text-sm">
                         <h3 className="font-semibold text-base mb-2">Dados do Cliente</h3>
-                        <p><strong>Nome:</strong> {clienteData.nome}</p>
-                        {clienteData.telefones?.map((tel, index) => (
-                            <p key={index}>
-                                <strong>{tel.nome || `Telefone ${index + 1}`}:</strong> {tel.numero}
-                            </p>
-                        ))}
-                        {clienteData.email && <p><strong>Email:</strong> {clienteData.email}</p>}
-                        {clienteData.endereco && <p><strong>Endereço:</strong> {clienteData.endereco}</p>}
+                        <p><strong>Nome:</strong> {formClient.nome}</p>
+                        <p><strong>Telefone:</strong> {formClient.telefonePrincipal}</p>
+                        {formClient.email && <p><strong>Email:</strong> {formClient.email}</p>}
+                        {formClient.endereco && <p><strong>Endereço:</strong> {formClient.endereco}</p>}
                       </div>
                     )}
                    </div>
@@ -500,24 +511,24 @@ export function BudgetWizard({
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div>
                         <Label>Nome Completo*</Label>
-                        <Input value={clienteData.nome} onChange={e => setClienteData({ ...clienteData, nome: e.target.value })} />
+                        <Input value={formClient.nome} onChange={e => setFormClient({ ...formClient, nome: e.target.value })} />
                       </div>
                       <div>
                         <Label>CPF/CNPJ</Label>
-                        <Input value={clienteData.cpfCnpj} onChange={e => setClienteData({ ...clienteData, cpfCnpj: maskCpfCnpj(e.target.value) })} />
+                        <Input value={formClient.cpfCnpj} onChange={e => setFormClient({ ...formClient, cpfCnpj: maskCpfCnpj(e.target.value) })} />
                       </div>
                     </div>
                     <div>
                       <Label>Telefone Principal*</Label>
-                      <Input value={clienteData.telefones[0].numero} onChange={e => handleClienteTelefoneChange(0, e.target.value)} />
+                      <Input value={formClient.telefonePrincipal} onChange={e => setFormClient({ ...formClient, telefonePrincipal: maskTelefone(e.target.value) })} />
                     </div>
                     <div>
                       <Label>Email</Label>
-                      <Input type="email" value={clienteData.email ?? ''} onChange={e => setClienteData({ ...clienteData, email: e.target.value })} />
+                      <Input type="email" value={formClient.email ?? ''} onChange={e => setFormClient({ ...formClient, email: e.target.value })} />
                     </div>
                     <div>
                       <Label>Endereço</Label>
-                      <Input value={clienteData.endereco ?? ''} onChange={e => setClienteData({ ...clienteData, endereco: e.target.value })} />
+                      <Input value={formClient.endereco ?? ''} onChange={e => setFormClient({ ...formClient, endereco: e.target.value })} />
                     </div>
                   </div>
                 )}
@@ -711,15 +722,11 @@ export function BudgetWizard({
               <div className="space-y-6">
                 <div className="border rounded-md p-4 space-y-2">
                   <h3 className="font-semibold">Resumo do Cliente</h3>
-                  <p><strong>Nome:</strong> {clienteData.nome}</p>
-                  {clienteData.cpfCnpj && <p><strong>CPF/CNPJ:</strong> {clienteData.cpfCnpj}</p>}
-                   {clienteData.telefones?.map((tel, index) => (
-                      <p key={index}>
-                        <strong>{tel.nome || `Telefone ${index + 1}`}:</strong> {tel.numero}
-                      </p>
-                    ))}
-                  {clienteData.email && <p><strong>Email:</strong> {clienteData.email}</p>}
-                  {clienteData.endereco && <p><strong>Endereço:</strong> {clienteData.endereco}</p>}
+                  <p><strong>Nome:</strong> {formClient.nome}</p>
+                  {formClient.cpfCnpj && <p><strong>CPF/CNPJ:</strong> {formClient.cpfCnpj}</p>}
+                  <p><strong>Telefone:</strong> {formClient.telefonePrincipal}</p>
+                  {formClient.email && <p><strong>Email:</strong> {formClient.email}</p>}
+                  {formClient.endereco && <p><strong>Endereço:</strong> {formClient.endereco}</p>}
                 </div>
                 <div className="border rounded-md p-4">
                   <h3 className="font-semibold mb-2">Itens do Orçamento</h3>
@@ -775,7 +782,7 @@ export function BudgetWizard({
             {wizardStep === 3 && (
               <Button
                 onClick={() => {
-                  if (clientSelectionType === 'novo' && !clienteData.id) {
+                  if (clientSelectionType === 'novo' && !formClient.id) {
                     setIsConfirmSaveClientOpen(true);
                   } else {
                     handleFinalSave(false);
@@ -805,7 +812,7 @@ export function BudgetWizard({
           <AlertDialogHeader>
             <AlertDialogTitle>Salvar novo cliente?</AlertDialogTitle>
             <AlertDialogDescription>
-              O cliente &quot;{clienteData.nome}&quot; não está cadastrado. Deseja salvá-lo na sua lista de clientes para uso futuro?
+              O cliente &quot;{formClient.nome}&quot; não está cadastrado. Deseja salvá-lo na sua lista de clientes para uso futuro?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
