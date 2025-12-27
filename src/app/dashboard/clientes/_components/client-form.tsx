@@ -230,6 +230,7 @@ export default function ClientForm({
                       <Input
                         placeholder="Ex: Principal"
                         {...field}
+                        value={field.value ?? ''}
                       />
                     </FormControl>
                     <FormMessage />

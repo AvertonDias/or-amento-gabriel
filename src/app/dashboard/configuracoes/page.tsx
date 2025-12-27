@@ -101,7 +101,10 @@ export default function ConfiguracoesPage() {
         userId: user.uid,
       };
     }
-    setEmpresa(loadedData);
+    setEmpresa({
+      ...loadedData,
+      cnpj: loadedData.cnpj || '',
+    });
     setInitialData(JSON.parse(JSON.stringify(loadedData))); // Deep copy
     setIsDirty(false); // Reseta o estado 'dirty'
   }, [empresaDexie, user, isLoadingData]);
