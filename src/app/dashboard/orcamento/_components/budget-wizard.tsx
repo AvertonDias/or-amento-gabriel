@@ -49,6 +49,7 @@ import { Capacitor } from '@capacitor/core';
 import { EditItemModal } from './edit-item-modal';
 import { Badge } from '@/components/ui/badge';
 import { useDebounce } from '@/hooks/use-debounce';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 /* =========================
    CONSTANTES
@@ -584,29 +585,31 @@ export function BudgetWizard({
                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                           <Command>
                             <CommandInput placeholder="Buscar item..." />
-                            <CommandList className="max-h-[300px]">
-                              <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
-                              <CommandGroup>
-                                {materiais.map(m => (
-                                  <CommandItem key={m.id} value={m.descricao} onSelect={() => {
-                                    setNovoItem({ ...novoItem, materialId: m.id });
-                                    setIsMaterialPopoverOpen(false);
-                                    setTimeout(() => quantidadeInputRef.current?.focus(), 100);
-                                  }}>
-                                    <Check className={cn("mr-2 h-4 w-4", novoItem.materialId === m.id ? "opacity-100" : "opacity-0")} />
-                                     <div className="flex flex-col">
-                                      <span>{m.descricao}</span>
-                                      <span className="text-xs text-muted-foreground">
-                                        {formatCurrency(m.precoUnitario)}/{m.unidade}
-                                        {m.tipo === 'item' && m.quantidade !== null && (
-                                          ` (Estoque: ${formatNumber(m.quantidade, integerUnits.includes(m.unidade) ? 0 : 2)})`
-                                        )}
-                                      </span>
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
+                            <ScrollArea className="h-[300px]">
+                              <CommandList>
+                                <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
+                                <CommandGroup>
+                                  {materiais.map(m => (
+                                    <CommandItem key={m.id} value={m.descricao} onSelect={() => {
+                                      setNovoItem({ ...novoItem, materialId: m.id });
+                                      setIsMaterialPopoverOpen(false);
+                                      setTimeout(() => quantidadeInputRef.current?.focus(), 100);
+                                    }}>
+                                      <Check className={cn("mr-2 h-4 w-4", novoItem.materialId === m.id ? "opacity-100" : "opacity-0")} />
+                                      <div className="flex flex-col">
+                                        <span>{m.descricao}</span>
+                                        <span className="text-xs text-muted-foreground">
+                                          {formatCurrency(m.precoUnitario)}/{m.unidade}
+                                          {m.tipo === 'item' && m.quantidade !== null && (
+                                            ` (Estoque: ${formatNumber(m.quantidade, integerUnits.includes(m.unidade) ? 0 : 2)})`
+                                          )}
+                                        </span>
+                                      </div>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </ScrollArea>
                           </Command>
                         </PopoverContent>
                       </Popover>
