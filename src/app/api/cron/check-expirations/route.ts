@@ -1,21 +1,23 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { initializeApp, cert } from 'firebase-admin/app';
+import { initializeApp, cert, getApps, getApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { addDays, differenceInHours, isPast, parseISO } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import type { Orcamento, EmpresaData } from '@/lib/types';
 
-// Evita reinicialização em ambiente de desenvolvimento
-try {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string);
-  initializeApp({
-    credential: cert(serviceAccount),
-  });
-} catch (error: any) {
-  if (!/already exists/.test(error.message)) {
-    console.error('Firebase Admin initialization error', error.stack);
+// Garante que a inicialização aconteça apenas uma vez.
+if (getApps().length === 0) {
+  try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string);
+    initializeApp({
+      credential: cert(serviceAccount),
+    });
+  } catch (error: any) {
+    if (!/already exists/.test(error.message)) {
+      console.error('Firebase Admin initialization error', error.stack);
+    }
   }
 }
 
