@@ -399,9 +399,9 @@ export default function OrcamentoPage() {
         onViewDetails={setViewingBudget}
       />
 
-      {isWizardOpen && clientes && materiais && (
+       {clientes && materiais && (
         <BudgetWizard
-          isOpen
+          isOpen={isWizardOpen}
           onOpenChange={setIsWizardOpen}
           clientes={clientes}
           materiais={materiais}
