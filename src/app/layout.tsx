@@ -16,10 +16,7 @@ export const metadata: Metadata = {
   title: 'Meu orçamento',
   description: 'Gere orçamentos de serviços de forma rápida, precisa e profissional.',
   manifest: '/manifest.json',
-  icons: {
-    icon: '/ico_v2.jpg',
-    apple: '/ico_v2.jpg',
-  },
+  icons: null, // Evita que o Next.js procure por um favicon.ico e cause erro no build
 };
 
 export const viewport: Viewport = {
@@ -31,11 +28,6 @@ export const viewport: Viewport = {
   userScalable: false,
   viewportFit: 'cover',
 };
-
-// Adiciona uma rota de ícone vazia para evitar o erro de build do favicon.ico
-export function icon() {
-  return null;
-}
 
 export default function RootLayout({
   children,
