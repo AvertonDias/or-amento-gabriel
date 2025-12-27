@@ -581,7 +581,7 @@ export function BudgetWizard({
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <PopoverContent className="w-[--radix-popover-trigger-width] max-h-96 p-0">
                           <Command>
                             <CommandInput placeholder="Buscar item..." />
                             <CommandList>
