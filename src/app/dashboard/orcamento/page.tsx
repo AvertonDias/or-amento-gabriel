@@ -8,7 +8,7 @@ import React, {
   useRef,
 } from 'react';
 
-import type { ClienteData, Orcamento, Telefone } from '@/lib/types';
+import type { ClienteData, Orcamento, Telefone, MaterialItem } from '@/lib/types';
 
 import {
   Card,
@@ -238,7 +238,8 @@ export default function OrcamentoPage() {
   
     let finalClientData: ClienteData = data.cliente;
   
-    if (saveNewClient) {
+    // Se o cliente é novo (não tem ID) e o usuário optou por salvar
+    if (!data.cliente.id && saveNewClient) {
       const { id, userId, ...newClientPayload } = data.cliente;
       try {
         const newClientId = await addCliente(user.uid, newClientPayload);
@@ -247,7 +248,7 @@ export default function OrcamentoPage() {
       } catch (error) {
         console.error("Erro ao salvar novo cliente:", error);
         toast({ title: 'Erro ao salvar o novo cliente', variant: 'destructive' });
-        return;
+        return; // Aborta se não conseguir salvar o cliente
       }
     }
     
@@ -257,7 +258,8 @@ export default function OrcamentoPage() {
       ...data,
       userId: user.uid,
       numeroOrcamento: numero,
-      cliente: { ...finalClientData, userId: user.uid },
+      // Usa o cliente final (novo ou existente)
+      cliente: { ...finalClientData, userId: user.uid }, 
     };
 
     await addOrcamento(orcamentoPayload);
