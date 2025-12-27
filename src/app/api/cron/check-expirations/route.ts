@@ -1,28 +1,34 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { initializeApp, cert, getApps, getApp } from 'firebase-admin/app';
+import { initializeApp, cert, getApps, getApp, deleteApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { addDays, differenceInHours, isPast, parseISO } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import type { Orcamento, EmpresaData } from '@/lib/types';
 
-// Garante que a inicialização aconteça apenas uma vez.
-if (getApps().length === 0) {
+// Função para inicializar o Firebase Admin de forma segura
+const initializeFirebaseAdmin = () => {
+  // Se já existe uma instância, use-a
+  if (getApps().length > 0) {
+    return getApp();
+  }
+  // Se não, inicialize uma nova
   try {
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string);
-    initializeApp({
+    return initializeApp({
       credential: cert(serviceAccount),
     });
   } catch (error: any) {
+    // Loga o erro, mas não quebra a aplicação se já existir
     if (!/already exists/.test(error.message)) {
       console.error('Firebase Admin initialization error', error.stack);
     }
+    // Retorna a app existente em caso de erro de inicialização concorrente
+    return getApp();
   }
-}
+};
 
-const db = getFirestore();
-const messaging = getMessaging();
 
 export async function GET(request: NextRequest) {
   // Protege o endpoint para ser chamado apenas pelo Cloud Scheduler
@@ -31,6 +37,12 @@ export async function GET(request: NextRequest) {
   if (process.env.NODE_ENV === 'production' && schedulerToken !== process.env.CRON_SECRET) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
   }
+
+  // A inicialização agora acontece DENTRO da função GET
+  const app = initializeFirebaseAdmin();
+  const db = getFirestore(app);
+  const messaging = getMessaging(app);
+
 
   console.log('Verificando orçamentos prestes a vencer...');
 
