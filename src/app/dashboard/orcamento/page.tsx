@@ -236,34 +236,20 @@ export default function OrcamentoPage() {
   ) => {
     if (!user) return;
   
-    let finalClientData: ClienteData;
+    let finalClientData: ClienteData = data.client;
   
-    if (data.client.id) {
-      // Cliente existente
-      finalClientData = data.client as ClienteData;
-    } else {
-      // Novo cliente
-      const newClientPayload: Omit<ClienteData, 'id' | 'userId'> = {
-        nome: data.client.nome,
-        telefones: [{ nome: 'Principal', numero: data.client.telefonePrincipal, principal: true }],
-        cpfCnpj: data.client.cpfCnpj || '',
-        email: data.client.email || '',
-        endereco: data.client.endereco || '',
-      };
-      
-      if (saveNewClient) {
-        try {
-          const newClientId = await addCliente(user.uid, newClientPayload);
-          finalClientData = { ...newClientPayload, id: newClientId, userId: user.uid };
-          toast({ title: 'Novo cliente salvo com sucesso!' });
-        } catch (error) {
-          console.error("Erro ao salvar novo cliente:", error);
-          toast({ title: 'Erro ao salvar o novo cliente', variant: 'destructive' });
-          return;
-        }
-      } else {
-        // Usar cliente só neste orçamento, sem salvar
-        finalClientData = { ...newClientPayload, id: `temp-${Date.now()}`, userId: user.uid };
+    // Se for um novo cliente a ser salvo, crie-o no banco de dados.
+    if (saveNewClient) {
+      // Remove o ID temporário se houver, o serviço se encarrega de gerar um novo.
+      const { id, userId, ...newClientPayload } = data.client;
+      try {
+        const newClientId = await addCliente(user.uid, newClientPayload);
+        finalClientData = { ...newClientPayload, id: newClientId, userId: user.uid };
+        toast({ title: 'Novo cliente salvo com sucesso!' });
+      } catch (error) {
+        console.error("Erro ao salvar novo cliente:", error);
+        toast({ title: 'Erro ao salvar o novo cliente', variant: 'destructive' });
+        return; // Interrompe o processo se o cliente não puder ser salvo.
       }
     }
     
@@ -272,7 +258,7 @@ export default function OrcamentoPage() {
     const orcamentoPayload: Omit<Orcamento, 'id'> = {
       userId: user.uid,
       numeroOrcamento: numero,
-      cliente: finalClientData,
+      cliente: { ...finalClientData, userId: user.uid }, // Garante o userId no cliente
       itens: data.itens,
       totalVenda: data.totalVenda,
       dataCriacao: new Date().toISOString(),

@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { MaterialItem, ClienteData, Orcamento, OrcamentoItem } from '@/lib/types';
 
 import {
@@ -32,8 +31,8 @@ import {
 } from '@/components/ui/alert-dialog';
 
 import {
-  Loader2, PlusCircle, Trash2, Pencil, ArrowLeft, ArrowRight,
-  FileText, ArrowRightLeft, ChevronsUpDown, Check, Lock, Unlock, RotateCcw
+  Loader2, Trash2, Pencil, ArrowLeft, ArrowRight,
+  FileText, ChevronsUpDown, Check, Lock, Unlock, RotateCcw
 } from 'lucide-react';
 
 import { useToast } from '@/hooks/use-toast';
@@ -51,22 +50,12 @@ import { Badge } from '@/components/ui/badge';
 import { useDebounce } from '@/hooks/use-debounce';
 
 /* =========================
-   MODELOS DE DADOS (FORMULÁRIO)
+   CONSTANTES E TIPOS
 ========================= */
-
-// Representa os dados do cliente DENTRO do formulário do wizard
-interface BudgetWizardClientForm {
-  id?: string; // Preenchido apenas se for um cliente existente
-  nome: string;
-  telefonePrincipal: string;
-  email: string;
-  cpfCnpj: string;
-  endereco: string;
-}
 
 // Representa o payload completo que o wizard envia para a página pai
 export interface BudgetSaveData {
-  client: Partial<ClienteData> | BudgetWizardClientForm;
+  client: ClienteData;
   itens: OrcamentoItem[];
   totalVenda: number;
   validadeDias: string;
@@ -74,10 +63,8 @@ export interface BudgetSaveData {
   observacoesInternas: string;
 }
 
-/* =========================
-   CONSTANTES
-========================= */
-const generateId = () => crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const generateId = () =>
+  crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 const unidadesDeMedida = [
   { value: 'un', label: 'Unidade (un)' },
@@ -91,6 +78,16 @@ const unidadesDeMedida = [
 ];
 
 const integerUnits = ['un', 'h', 'serv', 'dia'];
+
+const initialClientState: ClienteData = {
+  id: '',
+  userId: '',
+  nome: '',
+  endereco: '',
+  email: '',
+  cpfCnpj: '',
+  telefones: [{ nome: 'Principal', numero: '', principal: true }],
+};
 
 /* =========================
    PROPS
@@ -126,14 +123,7 @@ export function BudgetWizard({
   
   const [clientSelectionType, setClientSelectionType] = useState<'existente' | 'novo'>('novo');
 
-  const [formClient, setFormClient] = useState<BudgetWizardClientForm>({
-    id: undefined,
-    nome: '',
-    telefonePrincipal: '',
-    email: '',
-    cpfCnpj: '',
-    endereco: '',
-  });
+  const [clienteData, setClienteData] = useState<ClienteData>(initialClientState);
 
   const [validadeDias, setValidadeDias] = useState('7');
   const [observacoes, setObservacoes] = useState('');
@@ -162,7 +152,6 @@ export function BudgetWizard({
   const [isEditItemModalOpen, setIsEditItemModalOpen] = useState(false);
 
   const [isConfirmSaveClientOpen, setIsConfirmSaveClientOpen] = useState(false);
-  const [clientToSave, setClientToSave] = useState<any>(null);
 
   const [isClientPopoverOpen, setIsClientPopoverOpen] = useState(false);
   const [isMaterialPopoverOpen, setIsMaterialPopoverOpen] = useState(false);
@@ -172,7 +161,7 @@ export function BudgetWizard({
   const [manualTotalStr, setManualTotalStr] = useState('');
 
   const [potentialDuplicate, setPotentialDuplicate] = useState<ClienteData | null>(null);
-  const debouncedFormClient = useDebounce(formClient, 500);
+  const debouncedClienteData = useDebounce(clienteData, 500);
 
   /* ---------- MEMOS ---------- */
 
@@ -204,18 +193,13 @@ export function BudgetWizard({
   /* ---------- EFEITOS ---------- */
   
   useEffect(() => {
-    if (clientSelectionType === 'novo' && (debouncedFormClient.nome || debouncedFormClient.telefonePrincipal)) {
-      const clientToCheck: Partial<Omit<ClienteData, 'id' | 'userId'>> = {
-        nome: debouncedFormClient.nome,
-        telefones: [{ numero: debouncedFormClient.telefonePrincipal }],
-        email: debouncedFormClient.email,
-      };
-      const duplicate = findDuplicateClient(clientToCheck, clientes);
+    if (clientSelectionType === 'novo' && (debouncedClienteData.nome || debouncedClienteData.telefones[0]?.numero)) {
+      const duplicate = findDuplicateClient(debouncedClienteData, clientes);
       setPotentialDuplicate(duplicate);
     } else {
       setPotentialDuplicate(null);
     }
-  }, [debouncedFormClient, clientSelectionType, clientes]);
+  }, [debouncedClienteData, clientSelectionType, clientes]);
 
   /* ---------- FUNÇÕES PRINCIPAIS ---------- */
 
@@ -223,14 +207,7 @@ export function BudgetWizard({
     setWizardStep(1);
     setOrcamentoItens([]);
     setClientSelectionType('novo');
-    setFormClient({
-      id: undefined,
-      nome: '',
-      telefonePrincipal: '',
-      email: '',
-      cpfCnpj: '',
-      endereco: '',
-    });
+    setClienteData(initialClientState);
     setValidadeDias('7');
     setObservacoes('');
     setObservacoesInternas('');
@@ -253,26 +230,11 @@ export function BudgetWizard({
   
   const handleClientSelectionTypeChange = (value: 'existente' | 'novo') => {
     setClientSelectionType(value);
-    setFormClient({
-      id: undefined,
-      nome: '',
-      telefonePrincipal: '',
-      email: '',
-      cpfCnpj: '',
-      endereco: '',
-    });
+    setClienteData(initialClientState);
   };
 
   const handleSelectExistingClient = (c: ClienteData) => {
-    const principalPhone = c.telefones.find(t => t.principal) || c.telefones[0];
-    setFormClient({
-      id: c.id,
-      nome: c.nome,
-      telefonePrincipal: principalPhone?.numero || '',
-      email: c.email || '',
-      cpfCnpj: c.cpfCnpj || '',
-      endereco: c.endereco || '',
-    });
+    setClienteData(c);
     setIsClientPopoverOpen(false);
   };
 
@@ -283,7 +245,6 @@ export function BudgetWizard({
       return;
     }
 
-    // Verifica estoque mínimo
     if (
       selectedMaterial.tipo === 'item' &&
       selectedMaterial.quantidade !== null &&
@@ -380,12 +341,11 @@ export function BudgetWizard({
     setIsTotalLocked(true);
   };
 
-
   const handleFinalSave = async (saveClient: boolean = false) => {
     setIsSubmitting(true);
     try {
       const saveData: BudgetSaveData = {
-        client: formClient,
+        client: clienteData,
         itens: orcamentoItens,
         totalVenda: finalTotal,
         validadeDias,
@@ -404,7 +364,7 @@ export function BudgetWizard({
   };
 
   const stepNext = () => {
-    if (wizardStep === 1 && (!formClient.nome || !formClient.telefonePrincipal)) {
+    if (wizardStep === 1 && (!clienteData.nome || !clienteData.telefones[0]?.numero)) {
       toast({ title: "Dados incompletos", description: "Nome e Telefone do cliente são obrigatórios.", variant: "destructive" });
       return;
     }
@@ -421,6 +381,8 @@ export function BudgetWizard({
       setPotentialDuplicate(null);
     }
   };
+
+  const principalPhone = clienteData.telefones.find(t => t.principal) || clienteData.telefones[0];
 
   return (
     <>
@@ -458,7 +420,7 @@ export function BudgetWizard({
                     <Popover open={isClientPopoverOpen} onOpenChange={setIsClientPopoverOpen}>
                       <PopoverTrigger asChild>
                         <Button variant="outline" role="combobox" aria-expanded={isClientPopoverOpen} className="w-full justify-between">
-                          {formClient.nome || "Selecione um cliente..."}
+                          {clienteData.nome || "Selecione um cliente..."}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
@@ -470,7 +432,7 @@ export function BudgetWizard({
                             <CommandGroup>
                               {clientes.map(c => (
                                 <CommandItem key={c.id} value={c.nome} onSelect={() => handleSelectExistingClient(c)}>
-                                  <Check className={cn("mr-2 h-4 w-4", formClient.id === c.id ? "opacity-100" : "opacity-0")} />
+                                  <Check className={cn("mr-2 h-4 w-4", clienteData.id === c.id ? "opacity-100" : "opacity-0")} />
                                   {c.nome}
                                 </CommandItem>
                               ))}
@@ -480,13 +442,13 @@ export function BudgetWizard({
                       </PopoverContent>
                     </Popover>
 
-                    {formClient.id && (
+                    {clienteData.id && (
                       <div className="border rounded-md p-4 space-y-2 bg-muted/50 text-sm">
                         <h3 className="font-semibold text-base mb-2">Dados do Cliente</h3>
-                        <p><strong>Nome:</strong> {formClient.nome}</p>
-                        <p><strong>Telefone:</strong> {formClient.telefonePrincipal}</p>
-                        {formClient.email && <p><strong>Email:</strong> {formClient.email}</p>}
-                        {formClient.endereco && <p><strong>Endereço:</strong> {formClient.endereco}</p>}
+                        <p><strong>Nome:</strong> {clienteData.nome}</p>
+                        <p><strong>Telefone:</strong> {principalPhone?.numero ? maskTelefone(principalPhone.numero) : ''}</p>
+                        {clienteData.email && <p><strong>Email:</strong> {clienteData.email}</p>}
+                        {clienteData.endereco && <p><strong>Endereço:</strong> {clienteData.endereco}</p>}
                       </div>
                     )}
                    </div>
@@ -511,24 +473,24 @@ export function BudgetWizard({
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div>
                         <Label>Nome Completo*</Label>
-                        <Input value={formClient.nome} onChange={e => setFormClient({ ...formClient, nome: e.target.value })} />
+                        <Input value={clienteData.nome} onChange={e => setClienteData({ ...clienteData, nome: e.target.value })} />
                       </div>
                       <div>
                         <Label>CPF/CNPJ</Label>
-                        <Input value={formClient.cpfCnpj} onChange={e => setFormClient({ ...formClient, cpfCnpj: maskCpfCnpj(e.target.value) })} />
+                        <Input value={clienteData.cpfCnpj || ''} onChange={e => setClienteData({ ...clienteData, cpfCnpj: maskCpfCnpj(e.target.value) })} />
                       </div>
                     </div>
                     <div>
                       <Label>Telefone Principal*</Label>
-                      <Input value={formClient.telefonePrincipal} onChange={e => setFormClient({ ...formClient, telefonePrincipal: maskTelefone(e.target.value) })} />
+                      <Input value={principalPhone?.numero || ''} onChange={e => handleClienteTelefoneChange(0, e.target.value)} />
                     </div>
                     <div>
                       <Label>Email</Label>
-                      <Input type="email" value={formClient.email ?? ''} onChange={e => setFormClient({ ...formClient, email: e.target.value })} />
+                      <Input type="email" value={clienteData.email || ''} onChange={e => setClienteData({ ...clienteData, email: e.target.value })} />
                     </div>
                     <div>
                       <Label>Endereço</Label>
-                      <Input value={formClient.endereco ?? ''} onChange={e => setFormClient({ ...formClient, endereco: e.target.value })} />
+                      <Input value={clienteData.endereco || ''} onChange={e => setClienteData({ ...clienteData, endereco: e.target.value })} />
                     </div>
                   </div>
                 )}
@@ -722,11 +684,11 @@ export function BudgetWizard({
               <div className="space-y-6">
                 <div className="border rounded-md p-4 space-y-2">
                   <h3 className="font-semibold">Resumo do Cliente</h3>
-                  <p><strong>Nome:</strong> {formClient.nome}</p>
-                  {formClient.cpfCnpj && <p><strong>CPF/CNPJ:</strong> {formClient.cpfCnpj}</p>}
-                  <p><strong>Telefone:</strong> {formClient.telefonePrincipal}</p>
-                  {formClient.email && <p><strong>Email:</strong> {formClient.email}</p>}
-                  {formClient.endereco && <p><strong>Endereço:</strong> {formClient.endereco}</p>}
+                  <p><strong>Nome:</strong> {clienteData.nome}</p>
+                  {clienteData.cpfCnpj && <p><strong>CPF/CNPJ:</strong> {clienteData.cpfCnpj}</p>}
+                  <p><strong>Telefone:</strong> {principalPhone?.numero ? maskTelefone(principalPhone.numero) : ''}</p>
+                  {clienteData.email && <p><strong>Email:</strong> {clienteData.email}</p>}
+                  {clienteData.endereco && <p><strong>Endereço:</strong> {clienteData.endereco}</p>}
                 </div>
                 <div className="border rounded-md p-4">
                   <h3 className="font-semibold mb-2">Itens do Orçamento</h3>
@@ -782,7 +744,7 @@ export function BudgetWizard({
             {wizardStep === 3 && (
               <Button
                 onClick={() => {
-                  if (clientSelectionType === 'novo' && !formClient.id) {
+                  if (clientSelectionType === 'novo' && !clienteData.id) {
                     setIsConfirmSaveClientOpen(true);
                   } else {
                     handleFinalSave(false);
@@ -812,7 +774,7 @@ export function BudgetWizard({
           <AlertDialogHeader>
             <AlertDialogTitle>Salvar novo cliente?</AlertDialogTitle>
             <AlertDialogDescription>
-              O cliente &quot;{formClient.nome}&quot; não está cadastrado. Deseja salvá-lo na sua lista de clientes para uso futuro?
+              O cliente &quot;{clienteData.nome}&quot; não está cadastrado. Deseja salvá-lo na sua lista de clientes para uso futuro?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
