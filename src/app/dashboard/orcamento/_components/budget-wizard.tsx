@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
@@ -49,6 +48,7 @@ import { Capacitor } from '@capacitor/core';
 import { EditItemModal } from './edit-item-modal';
 import { Badge } from '@/components/ui/badge';
 import { useDebounce } from '@/hooks/use-debounce';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 /* =========================
    CONSTANTES
@@ -584,7 +584,8 @@ export function BudgetWizard({
                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                           <Command>
                             <CommandInput placeholder="Buscar item..." />
-                              <CommandList className="max-h-[300px]">
+                            <ScrollArea className="h-[250px]">
+                              <CommandList>
                                 <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
                                 <CommandGroup>
                                   {materiais.map(m => (
@@ -607,6 +608,7 @@ export function BudgetWizard({
                                   ))}
                                 </CommandGroup>
                               </CommandList>
+                            </ScrollArea>
                           </Command>
                         </PopoverContent>
                       </Popover>
