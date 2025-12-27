@@ -41,7 +41,7 @@ import { db } from '@/lib/dexie';
 
 import { BudgetHeader } from './_components/budget-header';
 import { BudgetList } from './_components/budget-list';
-import { BudgetWizard, type BudgetSaveData } from './_components/budget-wizard';
+import { BudgetWizard } from './_components/budget-wizard';
 import { BudgetEditDialog } from './_components/budget-edit-dialog';
 import { BudgetPDFs } from './_components/budget-pdfs';
 import { SyncStatusIndicator } from './_components/sync-status-indicator';
@@ -231,17 +231,15 @@ export default function OrcamentoPage() {
   };
   
   const handleSaveBudget = async (
-    data: BudgetSaveData,
+    data: Omit<Orcamento, 'id'>,
     saveNewClient: boolean
   ) => {
     if (!user) return;
   
-    let finalClientData: ClienteData = data.client;
+    let finalClientData: ClienteData = data.cliente;
   
-    // Se for um novo cliente a ser salvo, crie-o no banco de dados.
     if (saveNewClient) {
-      // Remove o ID temporário se houver, o serviço se encarrega de gerar um novo.
-      const { id, userId, ...newClientPayload } = data.client;
+      const { id, userId, ...newClientPayload } = data.cliente;
       try {
         const newClientId = await addCliente(user.uid, newClientPayload);
         finalClientData = { ...newClientPayload, id: newClientId, userId: user.uid };
@@ -249,25 +247,17 @@ export default function OrcamentoPage() {
       } catch (error) {
         console.error("Erro ao salvar novo cliente:", error);
         toast({ title: 'Erro ao salvar o novo cliente', variant: 'destructive' });
-        return; // Interrompe o processo se o cliente não puder ser salvo.
+        return;
       }
     }
     
     const numero = await getNextOrcamentoNumber(user.uid);
   
     const orcamentoPayload: Omit<Orcamento, 'id'> = {
+      ...data,
       userId: user.uid,
       numeroOrcamento: numero,
-      cliente: { ...finalClientData, userId: user.uid }, // Garante o userId no cliente
-      itens: data.itens,
-      totalVenda: data.totalVenda,
-      dataCriacao: new Date().toISOString(),
-      status: 'Pendente',
-      validadeDias: data.validadeDias,
-      observacoes: data.observacoes,
-      observacoesInternas: data.observacoesInternas,
-      dataAceite: null,
-      dataRecusa: null,
+      cliente: { ...finalClientData, userId: user.uid },
     };
 
     await addOrcamento(orcamentoPayload);
