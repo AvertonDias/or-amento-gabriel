@@ -36,11 +36,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -51,13 +46,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const { requestPermission } = usePermissionDialog();
-  const [showInstructions, setShowInstructions] = useState(false);
-
-  // Estados para o novo diálogo de notificação
-  const [showNotifyDialog, setShowNotifyDialog] = useState(false);
-  const [dontShowNotifyAgain, setDontShowNotifyAgain] = useLocalStorage<boolean>('hide-notif-alert', false);
-  const [checkboxChecked, setCheckboxChecked] = useState(false);
-
+  
   // Inicializa sincronização offline/online
   useSync();
 
@@ -145,18 +134,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     } 
     /* ---------- WEB / PWA ---------- */
     else {
-      if ('Notification' in window && Notification.permission !== 'granted') {
-         if (Notification.permission === 'denied' && !dontShowNotifyAgain) {
-            setShowNotifyDialog(true);
-         } else if (Notification.permission === 'default') {
-            const granted = await requestPermission({
-              title: 'Receber Alertas Importantes?',
-              description: 'Deseja receber notificações sobre orçamentos, como lembretes de vencimento e alertas de estoque?',
-            });
+      if ('Notification' in window && Notification.permission === 'default') {
+         const granted = await requestPermission({
+            title: 'Receber Alertas Importantes?',
+            description: 'Deseja receber notificações sobre orçamentos, como lembretes de vencimento e alertas de estoque?',
+         });
 
-            if (granted) {
-              await Notification.requestPermission();
-            }
+         if (granted) {
+            await Notification.requestPermission();
          }
       }
     }
@@ -194,14 +179,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return () => unsubscribe();
   }, [router, isCheckingAuth]);
 
-  // Função para fechar o modal
-  const handleCloseModal = () => {
-    if (checkboxChecked) {
-      setDontShowNotifyAgain(true); // Salva no navegador para nunca mais abrir
-    }
-    setShowNotifyDialog(false);
-  };
-
 
   /* =====================================================
      LOADING
@@ -220,88 +197,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   return (
     <TooltipProvider>
       <PwaManager />
-
-      {/* Diálogo para quando as notificações estão bloqueadas */}
-      <Dialog open={showNotifyDialog} onOpenChange={(open) => !open && handleCloseModal()}>
-        <DialogContent className="sm:max-w-[400px] text-center">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-center">
-              Receber Alertas Importantes?
-            </DialogTitle>
-            <DialogDescription className="text-center text-base pt-2">
-              Você bloqueou as notificações. Para reativá-las, siga as instruções para o seu navegador.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex items-center justify-center space-x-2 py-4">
-            <Checkbox 
-              id="dont-show-again" 
-              checked={checkboxChecked} 
-              onCheckedChange={(checked) => setCheckboxChecked(!!checked)} 
-            />
-            <Label 
-              htmlFor="dont-show-again" 
-              className="text-sm font-medium text-muted-foreground cursor-pointer"
-            >
-              Não mostrar esta mensagem novamente
-            </Label>
-          </div>
-
-          <div className="flex flex-col gap-3 pt-2">
-            <Button 
-              className="w-full h-12 text-lg"
-              onClick={() => {
-                  setShowInstructions(true);
-                  setShowNotifyDialog(false);
-              }}
-            >
-              Ver Instruções
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="w-full h-12 text-lg"
-              onClick={handleCloseModal}
-            >
-              Agora não
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Diálogo com as instruções detalhadas */}
-      <AlertDialog open={showInstructions} onOpenChange={setShowInstructions}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Como Ativar as Notificações</AlertDialogTitle>
-            <AlertDialogDescription className="text-left space-y-2">
-              <p>Para reativar as notificações, você precisa acessar as configurações do seu navegador.</p>
-              
-              {isMobile ? (
-                  <div className="text-sm space-y-2 pt-2">
-                     <p>1. Toque no ícone de <strong>cadeado (🔒)</strong> ou no menu de opções (<strong>⋮</strong>) na barra de endereço.</p>
-                     <p>2. Procure por <strong>&quot;Permissões&quot;</strong> ou <strong>&quot;Configurações do site&quot;</strong>.</p>
-                     <p>3. Encontre <strong>&quot;Notificações&quot;</strong> e mude a opção de &quot;Bloqueado&quot; para &quot;Permitido&quot;.</p>
-                     <p>4. Recarregue a página.</p>
-                  </div>
-              ) : (
-                <>
-                  <ul className="list-disc pl-5 space-y-1 text-xs">
-                    <li><strong>Chrome:</strong> Copie e cole <code className="bg-muted px-1 rounded">chrome://settings/content/notifications</code> na barra de endereço.</li>
-                    <li><strong>Firefox:</strong> Vá em &quot;Configurações&quot; &gt; &quot;Privacidade e Segurança&quot; &gt; &quot;Permissões&quot; &gt; &quot;Notificações&quot;.</li>
-                    <li><strong>Safari (Mac):</strong> Vá em &quot;Safari&quot; &gt; &quot;Ajustes...&quot; &gt; &quot;Sites&quot; &gt; &quot;Notificações&quot;.</li>
-                  </ul>
-                  <p>Depois, encontre este site na lista e altere a permissão de &quot;Bloqueado&quot; para &quot;Permitido&quot;.</p>
-                </>
-              )}
-
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction>Entendi</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <div className="flex min-h-screen w-full">
 
