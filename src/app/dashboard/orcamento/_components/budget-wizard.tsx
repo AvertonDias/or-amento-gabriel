@@ -314,11 +314,7 @@ export function BudgetWizard({
 
 
   const handleNextStep = () => {
-    if (wizardStep === 1 && orcamentoItens.length === 0) {
-      toast({ title: "Nenhum item adicionado", description: "Adicione ao menos um item para prosseguir.", variant: 'destructive' });
-      return;
-    }
-    if (wizardStep === 2) {
+    if (wizardStep === 1) {
       if (clientSelectionType === 'novo' && !clienteData.nome) {
         toast({ title: "Nome do cliente obrigatório", variant: 'destructive' });
         return;
@@ -327,6 +323,10 @@ export function BudgetWizard({
         toast({ title: "Selecione um cliente", variant: 'destructive' });
         return;
       }
+    }
+    if (wizardStep === 2 && orcamentoItens.length === 0) {
+      toast({ title: "Nenhum item adicionado", description: "Adicione ao menos um item para prosseguir.", variant: 'destructive' });
+      return;
     }
 
     setWizardStep(prev => prev + 1);
@@ -383,143 +383,15 @@ export function BudgetWizard({
           <DialogHeader className="p-6 pb-2">
             <DialogTitle className="text-2xl">Novo Orçamento - Passo {wizardStep} de 3</DialogTitle>
             <DialogDescription>
-              {wizardStep === 1 && "Adicione itens ou serviços ao orçamento."}
-              {wizardStep === 2 && "Selecione ou cadastre os dados do cliente."}
+              {wizardStep === 1 && "Selecione ou cadastre os dados do cliente."}
+              {wizardStep === 2 && "Adicione itens ou serviços ao orçamento."}
               {wizardStep === 3 && "Revise e finalize o orçamento."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto space-y-6 px-6">
-            {/* ETAPA 1: ITENS */}
-            {wizardStep === 1 && (
-              <div className="space-y-4">
-                <div className="border p-4 rounded-md space-y-4">
-                  <h3 className="font-semibold">Adicionar Item</h3>
-                   <RadioGroup value={isAddingAvulso ? 'avulso' : 'catalogo'} onValueChange={v => setIsAddingAvulso(v === 'avulso')}>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="catalogo" id="r-catalogo" />
-                      <Label htmlFor="r-catalogo">Item do Catálogo</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="avulso" id="r-avulso" />
-                      <Label htmlFor="r-avulso">Item Avulso</Label>
-                    </div>
-                  </RadioGroup>
-
-                  {isAddingAvulso ? (
-                    // Formulário Item Avulso
-                    <div className="space-y-2">
-                      <Input placeholder="Descrição do item" value={itemAvulso.descricao} onChange={e => setItemAvulso({ ...itemAvulso, descricao: e.target.value })} />
-                      <div className="grid grid-cols-3 gap-2">
-                        <Select value={itemAvulso.unidade} onValueChange={v => setItemAvulso({ ...itemAvulso, unidade: v })}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {unidadesDeMedida.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        <Input 
-                          placeholder="Qtd" 
-                          value={itemAvulso.quantidade} 
-                          onChange={e => setItemAvulso({ ...itemAvulso, quantidade: isCurrentUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value) })}
-                        />
-                        <Input placeholder="Preço Final" value={itemAvulsoPrecoStr} onChange={e => setItemAvulsoPrecoStr(maskCurrency(e.target.value))} />
-                      </div>
-                      <Button onClick={handleAddAvulso} className="w-full">Adicionar Item Avulso</Button>
-                    </div>
-                  ) : (
-                    // Formulário Item Catálogo
-                    <div className="space-y-2">
-                        <Popover open={isMaterialPopoverOpen} onOpenChange={setIsMaterialPopoverOpen}>
-                            <PopoverTrigger asChild>
-                            <Button variant="outline" role="combobox" aria-expanded={isMaterialPopoverOpen} className="w-full justify-between text-left h-auto">
-                                <span className="truncate">{selectedMaterial?.descricao || "Selecione um item..."}</span>
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command>
-                                <CommandInput placeholder="Buscar item..." />
-                                <CommandList>
-                                  <ScrollArea className="h-[250px]">
-                                    <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
-                                    <CommandGroup>
-                                    {materiais.map(m => (
-                                        <CommandItem key={m.id} value={m.descricao} onSelect={() => {
-                                        setNewItem({ ...newItem, materialId: m.id });
-                                        setIsMaterialPopoverOpen(false);
-                                        setTimeout(() => quantidadeInputRef.current?.focus(), 100);
-                                        }}>
-                                        <Check className={cn("mr-2 h-4 w-4", newItem.materialId === m.id ? "opacity-100" : "opacity-0")} />
-                                        <div className="flex flex-col">
-                                            <span>{m.descricao}</span>
-                                            <span className="text-xs text-muted-foreground">{formatCurrency(m.precoUnitario)}/{m.unidade} {m.tipo === 'item' && m.quantidade !== null ? `(Estoque: ${formatNumber(m.quantidade, integerUnits.includes(m.unidade) ? 0 : 2)})` : ''}</span>
-                                        </div>
-                                        </CommandItem>
-                                    ))}
-                                    </CommandGroup>
-                                  </ScrollArea>
-                                </CommandList>
-                            </Command>
-                            </PopoverContent>
-                        </Popover>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Input
-                          ref={quantidadeInputRef}
-                          placeholder={`Qtd (${selectedMaterial?.unidade || 'un'})`}
-                          value={quantidadeStr}
-                          onChange={(e) => setQuantidadeStr(isCurrentUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value))}
-                        />
-                        <Input placeholder="Acréscimo % (Opcional)" value={margemLucroStr} onChange={e => setMargemLucroStr(maskDecimal(e.target.value))} />
-                      </div>
-                      <Button onClick={handleAddItem} className="w-full" disabled={!selectedMaterial}>Adicionar ao Orçamento</Button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="border rounded-md">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Item</TableHead>
-                        <TableHead className="text-right">Valor Final</TableHead>
-                        <TableHead className="w-[120px] text-center">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {orcamentoItens.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={3} className="text-center text-muted-foreground h-24">Nenhum item adicionado</TableCell>
-                        </TableRow>
-                      ) : (
-                        orcamentoItens.map(item => (
-                          <TableRow key={item.id}>
-                            <TableCell>
-                              <p className="font-medium">{item.materialNome}</p>
-                              <p className="text-xs text-muted-foreground">{formatNumber(item.quantidade, 2)} {item.unidade} x {formatCurrency(item.precoUnitario)}</p>
-                            </TableCell>
-                            <TableCell className="text-right font-semibold">{formatCurrency(item.precoVenda)}</TableCell>
-                            <TableCell className="text-center">
-                              <Button variant="ghost" size="icon" onClick={() => { setEditingItem(item); setIsEditItemModalOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                              <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                    <TableFooter>
-                      <TableRow>
-                        <TableCell colSpan={2} className="text-right font-bold">Total</TableCell>
-                        <TableCell className="text-right font-bold">{formatCurrency(calculatedTotal)}</TableCell>
-                        <TableCell></TableCell>
-                      </TableRow>
-                    </TableFooter>
-                  </Table>
-                </div>
-              </div>
-            )}
-
-            {/* ETAPA 2: CLIENTE */}
-            {wizardStep === 2 && (
+             {/* ETAPA 1: CLIENTE */}
+             {wizardStep === 1 && (
               <div className="space-y-4">
                 <RadioGroup value={clientSelectionType} onValueChange={(v) => setClientSelectionType(v as 'existente' | 'novo')}>
                   <div className="flex items-center space-x-2"><RadioGroupItem value="novo" id="r-novo" /><Label htmlFor="r-novo">Novo Cliente</Label></div>
@@ -587,6 +459,134 @@ export function BudgetWizard({
                     </Popover>
                    </div>
                 )}
+              </div>
+            )}
+
+            {/* ETAPA 2: ITENS */}
+            {wizardStep === 2 && (
+              <div className="space-y-4">
+                <div className="border p-4 rounded-md space-y-4">
+                  <h3 className="font-semibold">Adicionar Item</h3>
+                   <RadioGroup value={isAddingAvulso ? 'avulso' : 'catalogo'} onValueChange={v => setIsAddingAvulso(v === 'avulso')}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="catalogo" id="r-catalogo" />
+                      <Label htmlFor="r-catalogo">Item do Catálogo</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="avulso" id="r-avulso" />
+                      <Label htmlFor="r-avulso">Item Avulso</Label>
+                    </div>
+                  </RadioGroup>
+
+                  {isAddingAvulso ? (
+                    // Formulário Item Avulso
+                    <div className="space-y-2">
+                      <Input placeholder="Descrição do item" value={itemAvulso.descricao} onChange={e => setItemAvulso({ ...itemAvulso, descricao: e.target.value })} />
+                      <div className="grid grid-cols-3 gap-2">
+                        <Select value={itemAvulso.unidade} onValueChange={v => setItemAvulso({ ...itemAvulso, unidade: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {unidadesDeMedida.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Input 
+                          placeholder="Qtd" 
+                          value={itemAvulso.quantidade} 
+                          onChange={e => setItemAvulso({ ...itemAvulso, quantidade: isCurrentUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value) })}
+                        />
+                        <Input placeholder="Preço Final" value={itemAvulsoPrecoStr} onChange={e => setItemAvulsoPrecoStr(maskCurrency(e.target.value))} />
+                      </div>
+                      <Button onClick={handleAddAvulso} className="w-full">Adicionar Item Avulso</Button>
+                    </div>
+                  ) : (
+                    // Formulário Item Catálogo
+                    <div className="space-y-2">
+                        <Popover open={isMaterialPopoverOpen} onOpenChange={setIsMaterialPopoverOpen}>
+                            <PopoverTrigger asChild>
+                            <Button variant="outline" role="combobox" aria-expanded={isMaterialPopoverOpen} className="w-full justify-between text-left h-auto">
+                                <span className="truncate">{selectedMaterial?.descricao || "Selecione um item..."}</span>
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <Command>
+                                <CommandInput placeholder="Buscar item..." />
+                                <ScrollArea className="h-[250px]">
+                                <CommandList>
+                                    <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
+                                    <CommandGroup>
+                                    {materiais.map(m => (
+                                        <CommandItem key={m.id} value={m.descricao} onSelect={() => {
+                                        setNewItem({ ...newItem, materialId: m.id });
+                                        setIsMaterialPopoverOpen(false);
+                                        setTimeout(() => quantidadeInputRef.current?.focus(), 100);
+                                        }}>
+                                        <Check className={cn("mr-2 h-4 w-4", newItem.materialId === m.id ? "opacity-100" : "opacity-0")} />
+                                        <div className="flex flex-col">
+                                            <span>{m.descricao}</span>
+                                            <span className="text-xs text-muted-foreground">{formatCurrency(m.precoUnitario)}/{m.unidade} {m.tipo === 'item' && m.quantidade !== null ? `(Estoque: ${formatNumber(m.quantidade, integerUnits.includes(m.unidade) ? 0 : 2)})` : ''}</span>
+                                        </div>
+                                        </CommandItem>
+                                    ))}
+                                    </CommandGroup>
+                                </CommandList>
+                                </ScrollArea>
+                            </Command>
+                            </PopoverContent>
+                        </Popover>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input
+                          ref={quantidadeInputRef}
+                          placeholder={`Qtd (${selectedMaterial?.unidade || 'un'})`}
+                          value={quantidadeStr}
+                          onChange={(e) => setQuantidadeStr(isCurrentUnitInteger ? maskInteger(e.target.value) : maskDecimal(e.target.value))}
+                        />
+                        <Input placeholder="Acréscimo % (Opcional)" value={margemLucroStr} onChange={e => setMargemLucroStr(maskDecimal(e.target.value))} />
+                      </div>
+                      <Button onClick={handleAddItem} className="w-full" disabled={!selectedMaterial}>Adicionar ao Orçamento</Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Item</TableHead>
+                        <TableHead className="text-right">Valor Final</TableHead>
+                        <TableHead className="w-[120px] text-center">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {orcamentoItens.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center text-muted-foreground h-24">Nenhum item adicionado</TableCell>
+                        </TableRow>
+                      ) : (
+                        orcamentoItens.map(item => (
+                          <TableRow key={item.id}>
+                            <TableCell>
+                              <p className="font-medium">{item.materialNome}</p>
+                              <p className="text-xs text-muted-foreground">{formatNumber(item.quantidade, 2)} {item.unidade} x {formatCurrency(item.precoUnitario)}</p>
+                            </TableCell>
+                            <TableCell className="text-right font-semibold">{formatCurrency(item.precoVenda)}</TableCell>
+                            <TableCell className="text-center">
+                              <Button variant="ghost" size="icon" onClick={() => { setEditingItem(item); setIsEditItemModalOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                    <TableFooter>
+                      <TableRow>
+                        <TableCell colSpan={2} className="text-right font-bold">Total</TableCell>
+                        <TableCell className="text-right font-bold">{formatCurrency(calculatedTotal)}</TableCell>
+                        <TableCell></TableCell>
+                      </TableRow>
+                    </TableFooter>
+                  </Table>
+                </div>
               </div>
             )}
 
