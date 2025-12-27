@@ -172,7 +172,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         setIsCheckingAuth(false);
         // Solicita permissões e token FCM após a primeira autenticação bem-sucedida
         await requestAppPermissions();
-        await requestForToken();
+        // await requestForToken(); // Temporariamente desativado para evitar erro 401
       }
     });
 

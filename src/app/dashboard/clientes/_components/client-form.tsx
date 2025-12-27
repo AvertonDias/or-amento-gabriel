@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect } from 'react';
@@ -108,6 +109,12 @@ export default function ClientForm({
 
   useEffect(() => {
     if (!initialData) return;
+    
+    const telefonesNormalizados = (initialData.telefones || []).map(tel => ({
+        nome: tel.nome || '', // Garante que nome seja sempre uma string
+        numero: tel.numero || '',
+    }));
+
 
     const valuesToReset = {
       nome: initialData.nome || '',
@@ -115,9 +122,8 @@ export default function ClientForm({
       endereco: initialData.endereco || '',
       email: initialData.email || '',
       telefones:
-        Array.isArray(initialData.telefones) &&
-        initialData.telefones.length > 0
-          ? initialData.telefones
+        telefonesNormalizados.length > 0
+          ? telefonesNormalizados
           : [{ nome: 'Principal', numero: '' }],
     };
 

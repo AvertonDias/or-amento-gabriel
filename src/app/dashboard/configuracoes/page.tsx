@@ -103,7 +103,7 @@ export default function ConfiguracoesPage() {
     }
     setEmpresa({
       ...loadedData,
-      cnpj: loadedData.cnpj || '',
+      cnpj: loadedData.cnpj || '', // Garante que CNPJ seja sempre uma string
     });
     setInitialData(JSON.parse(JSON.stringify(loadedData))); // Deep copy
     setIsDirty(false); // Reseta o estado 'dirty'
