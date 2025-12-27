@@ -53,16 +53,6 @@ import { useDebounce } from '@/hooks/use-debounce';
    CONSTANTES E TIPOS
 ========================= */
 
-// Representa o payload completo que o wizard envia para a página pai
-export interface BudgetSaveData {
-  client: ClienteData;
-  itens: OrcamentoItem[];
-  totalVenda: number;
-  validadeDias: string;
-  observacoes: string;
-  observacoesInternas: string;
-}
-
 const generateId = () =>
   crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -89,6 +79,7 @@ const initialClientState: ClienteData = {
   telefones: [{ nome: 'Principal', numero: '', principal: true }],
 };
 
+
 /* =========================
    PROPS
 ========================= */
@@ -98,7 +89,7 @@ interface BudgetWizardProps {
   onOpenChange: (open: boolean) => void;
   clientes: ClienteData[];
   materiais: MaterialItem[];
-  onSaveBudget: (budget: BudgetSaveData, saveNewClient: boolean) => void;
+  onSaveBudget: (budget: Omit<Orcamento, 'id'>, saveNewClient: boolean) => void;
 }
 
 /* =========================
@@ -124,6 +115,7 @@ export function BudgetWizard({
   const [clientSelectionType, setClientSelectionType] = useState<'existente' | 'novo'>('novo');
 
   const [clienteData, setClienteData] = useState<ClienteData>(initialClientState);
+
 
   const [validadeDias, setValidadeDias] = useState('7');
   const [observacoes, setObservacoes] = useState('');
@@ -344,16 +336,22 @@ export function BudgetWizard({
   const handleFinalSave = async (saveClient: boolean = false) => {
     setIsSubmitting(true);
     try {
-      const saveData: BudgetSaveData = {
-        client: clienteData,
+      const budgetData: Omit<Orcamento, 'id'> = {
+        userId: '', // Será preenchido na página pai
+        numeroOrcamento: '', // Será gerado na página pai
+        cliente: clienteData,
         itens: orcamentoItens,
         totalVenda: finalTotal,
+        dataCriacao: new Date().toISOString(),
+        status: 'Pendente',
         validadeDias,
         observacoes,
         observacoesInternas,
+        dataAceite: null,
+        dataRecusa: null,
       };
-      
-      onSaveBudget(saveData, saveClient);
+
+      onSaveBudget(budgetData, saveClient);
 
     } catch (e) {
       console.error(e);
@@ -381,6 +379,13 @@ export function BudgetWizard({
       setPotentialDuplicate(null);
     }
   };
+
+  const handleClienteTelefoneChange = (index: number, value: string) => {
+    const telefones = [...clienteData.telefones];
+    telefones[index] = { ...telefones[index], numero: maskTelefone(value) };
+    setClienteData({ ...clienteData, telefones });
+  };
+
 
   const principalPhone = clienteData.telefones.find(t => t.principal) || clienteData.telefones[0];
 
@@ -417,10 +422,10 @@ export function BudgetWizard({
 
                 {clientSelectionType === 'existente' ? (
                    <div className="space-y-4">
-                    <Popover open={isClientPopoverOpen} onOpenChange={setIsClientPopoverOpen}>
+                    <Popover modal={false} open={isClientPopoverOpen} onOpenChange={setIsClientPopoverOpen}>
                       <PopoverTrigger asChild>
                         <Button variant="outline" role="combobox" aria-expanded={isClientPopoverOpen} className="w-full justify-between">
-                          {clienteData.nome || "Selecione um cliente..."}
+                          {clienteData.id ? clienteData.nome : "Selecione um cliente..."}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
@@ -535,7 +540,7 @@ export function BudgetWizard({
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <Popover open={isMaterialPopoverOpen} onOpenChange={setIsMaterialPopoverOpen}>
+                      <Popover modal={false} open={isMaterialPopoverOpen} onOpenChange={setIsMaterialPopoverOpen}>
                         <PopoverTrigger asChild>
                           <Button variant="outline" role="combobox" aria-expanded={isMaterialPopoverOpen} className="w-full justify-between text-left h-auto">
                            <span className="flex flex-col">
@@ -557,7 +562,7 @@ export function BudgetWizard({
                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                           <Command>
                             <CommandInput placeholder="Buscar item..." />
-                            <CommandList className="max-h-[300px]">
+                            <CommandList>
                               <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
                               <CommandGroup>
                                 {materiais.map(m => (
