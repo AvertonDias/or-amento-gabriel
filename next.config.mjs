@@ -1,26 +1,18 @@
 
-// Forçando a invalidação do cache
-import path from 'path';
-import { fileURLToPath } from 'url';
+/** @type {import('next').NextConfig} */
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import createNextPwa from '@ducanh2912/next-pwa';
 
-const withPWA = (await import('@ducanh2912/next-pwa')).default({
+const withPWA = createNextPwa({
   dest: 'public',
   disable: process.env.NODE_ENV === 'development',
+  // register: true, // Removido para usar registro manual
+  // skipWaiting: true, // Removido para controle manual
 });
 
-/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  webpack: (config) => {
-    config.externals.push({
-      'utf-8-validate': 'commonjs utf-8-validate',
-      'bufferutil': 'commonjs bufferutil',
-    });
-    return config;
-  },
+  // Adicione outras configurações do Next.js aqui, se necessário
 };
 
 export default withPWA(nextConfig);
