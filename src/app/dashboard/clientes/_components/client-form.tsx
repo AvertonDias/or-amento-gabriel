@@ -5,6 +5,7 @@ import React from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import type { ClienteData } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,6 +58,24 @@ const formSchema = z.object({
 });
 
 export type ClientFormValues = z.infer<typeof formSchema>;
+
+/**
+ * Converte o modelo de dados do banco (ClienteData)
+ * para o modelo de dados do formulário (ClientFormValues).
+ */
+export const clienteToFormValues = (cliente: ClienteData): ClientFormValues => {
+  const principal = cliente.telefones.find(t => t.principal) || cliente.telefones[0];
+  const adicionais = cliente.telefones.filter(t => t !== principal);
+
+  return {
+    nome: cliente.nome || '',
+    telefonePrincipal: principal?.numero || '',
+    cpfCnpj: cliente.cpfCnpj || '',
+    endereco: cliente.endereco || '',
+    email: cliente.email || '',
+    telefonesAdicionais: adicionais.map(t => ({ nome: t.nome, numero: t.numero })) || [],
+  };
+};
 
 /* -------------------------------------------------------------------------- */
 /* PROPS                                                                       */

@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import ClientForm from './client-form';
 import type { ClientFormValues } from './client-form';
-import { clienteToFormValues } from '../page';
+import { clienteToFormValues } from './client-form';
 
 interface EditClientDialogProps {
   isEditModalOpen: boolean;

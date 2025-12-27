@@ -77,24 +77,6 @@ const formValuesToCliente = (formValues: ClientFormValues): Omit<ClienteData, 'i
   };
 };
 
-/**
- * Converte o modelo de dados do banco (ClienteData)
- * para o modelo de dados do formulário (ClientFormValues).
- */
-export const clienteToFormValues = (cliente: ClienteData): ClientFormValues => {
-  const principal = cliente.telefones.find(t => t.principal) || cliente.telefones[0];
-  const adicionais = cliente.telefones.filter(t => t !== principal);
-
-  return {
-    nome: cliente.nome || '',
-    telefonePrincipal: principal?.numero || '',
-    cpfCnpj: cliente.cpfCnpj || '',
-    endereco: cliente.endereco || '',
-    email: cliente.email || '',
-    telefonesAdicionais: adicionais.map(t => ({ nome: t.nome, numero: t.numero })) || [],
-  };
-};
-
 
 export default function ClientesPage() {
   const [user, loadingAuth] = useAuthState(auth);
