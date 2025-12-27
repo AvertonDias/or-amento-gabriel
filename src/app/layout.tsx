@@ -24,12 +24,12 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: '#64B5F6',
-  // Adiciona a propriedade 'display' para PWA
-  viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',
   colorScheme: 'light dark',
+  width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
