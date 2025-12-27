@@ -1,19 +1,26 @@
-/** @type {import('next').NextConfig} */
-import withPWAInit from '@ducanh2912/next-pwa';
 
-const isDev = process.env.NODE_ENV === 'development';
+// Forçando a invalidação do cache
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const withPWA = withPWAInit({
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const withPWA = (await import('@ducanh2912/next-pwa')).default({
   dest: 'public',
-  disable: isDev, // Desativa o PWA em ambiente de desenvolvimento
-  register: true,
-  // skipWaiting é movido para dentro de runtimeCaching ou outra config específica se necessário,
-  // mas o padrão da lib já é um bom começo. Por agora, a configuração básica é suficiente.
-  // Apenas registrar o service worker já melhora o cache.
+  disable: process.env.NODE_ENV === 'development',
 });
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: false, // Adicionado para evitar re-renderizações em modo dev que atrapalham o useSync
+  reactStrictMode: true,
+  webpack: (config) => {
+    config.externals.push({
+      'utf-8-validate': 'commonjs utf-8-validate',
+      'bufferutil': 'commonjs bufferutil',
+    });
+    return config;
+  },
 };
 
 export default withPWA(nextConfig);

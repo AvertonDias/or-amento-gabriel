@@ -73,7 +73,7 @@ import {
 } from '@/components/ui/command';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import ClientForm, { type ClientFormValues } from '@/app/dashboard/clientes/_components/client-form';
-import { clienteToFormValues } from '@/app/dashboard/clientes/page';
+import { clienteToFormValues } from '@/app/dashboard/clientes/_components/client-form';
 
 
 /* ===========================
@@ -208,7 +208,7 @@ export function BudgetEditDialog({
     }];
 
     if (formValues.telefonesAdicionais) {
-      telefones.push(...formValues.telefonesAdicionais.filter(t => t.numero).map(t => ({...t, principal: false})));
+      telefones.push(...formValues.telefonesAdicionais.filter(t => t.numero).map(t => ({ nome: t.nome, numero: t.numero, principal: false })));
     }
 
     setEditingBudget({
@@ -612,3 +612,5 @@ export function BudgetEditDialog({
     </>
   );
 }
+
+    

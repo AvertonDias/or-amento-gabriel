@@ -286,7 +286,7 @@ export default function ClientesPage() {
 
     const contactData: Partial<ClienteData> = {
       nome: contactName,
-      telefones: contactPhones.map((p, i) => ({ nome: i === 0 ? 'Principal' : 'Outro', numero: p, principal: i === 0 })),
+      telefones: contactPhones.map((p: string, i: number) => ({ nome: i === 0 ? 'Principal' : 'Outro', numero: p, principal: i === 0 })),
       email: contactEmails.length > 0 ? contactEmails[0] : '',
       endereco: contactAddresses.length > 0 ? contactAddresses[0] : '',
     };
@@ -480,3 +480,5 @@ export default function ClientesPage() {
     </div>
   );
 }
+
+    
