@@ -457,6 +457,16 @@ export function BudgetWizard({
                             </Command>
                         </PopoverContent>
                     </Popover>
+                    {clienteData.id && (
+                        <div className="mt-4 space-y-2 text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg">
+                            {clienteData.cpfCnpj && <p><strong>CPF/CNPJ:</strong> {clienteData.cpfCnpj}</p>}
+                            {clienteData.email && <p><strong>Email:</strong> {clienteData.email}</p>}
+                            {clienteData.endereco && <p><strong>Endereço:</strong> {clienteData.endereco}</p>}
+                            {clienteData.telefones?.map((tel, idx) => (
+                                tel.numero && <p key={idx}><strong>{tel.nome || 'Telefone'}:</strong> {maskTelefone(tel.numero)}</p>
+                            ))}
+                        </div>
+                    )}
                    </div>
                 )}
               </div>
@@ -512,24 +522,24 @@ export function BudgetWizard({
                             <Command>
                                 <CommandInput placeholder="Buscar item..." />
                                 <ScrollArea className="h-[250px]">
-                                <CommandList>
-                                    <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
-                                    <CommandGroup>
-                                    {materiais.map(m => (
-                                        <CommandItem key={m.id} value={m.descricao} onSelect={() => {
-                                        setNewItem({ ...newItem, materialId: m.id });
-                                        setIsMaterialPopoverOpen(false);
-                                        setTimeout(() => quantidadeInputRef.current?.focus(), 100);
-                                        }}>
-                                        <Check className={cn("mr-2 h-4 w-4", newItem.materialId === m.id ? "opacity-100" : "opacity-0")} />
-                                        <div className="flex flex-col">
-                                            <span>{m.descricao}</span>
-                                            <span className="text-xs text-muted-foreground">{formatCurrency(m.precoUnitario)}/{m.unidade} {m.tipo === 'item' && m.quantidade !== null ? `(Estoque: ${formatNumber(m.quantidade, integerUnits.includes(m.unidade) ? 0 : 2)})` : ''}</span>
-                                        </div>
-                                        </CommandItem>
-                                    ))}
-                                    </CommandGroup>
-                                </CommandList>
+                                    <CommandList>
+                                        <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
+                                        <CommandGroup>
+                                        {materiais.map(m => (
+                                            <CommandItem key={m.id} value={m.descricao} onSelect={() => {
+                                            setNewItem({ ...newItem, materialId: m.id });
+                                            setIsMaterialPopoverOpen(false);
+                                            setTimeout(() => quantidadeInputRef.current?.focus(), 100);
+                                            }}>
+                                            <Check className={cn("mr-2 h-4 w-4", newItem.materialId === m.id ? "opacity-100" : "opacity-0")} />
+                                            <div className="flex flex-col">
+                                                <span>{m.descricao}</span>
+                                                <span className="text-xs text-muted-foreground">{formatCurrency(m.precoUnitario)}/{m.unidade} {m.tipo === 'item' && m.quantidade !== null ? `(Estoque: ${formatNumber(m.quantidade, integerUnits.includes(m.unidade) ? 0 : 2)})` : ''}</span>
+                                            </div>
+                                            </CommandItem>
+                                        ))}
+                                        </CommandGroup>
+                                    </CommandList>
                                 </ScrollArea>
                             </Command>
                             </PopoverContent>
