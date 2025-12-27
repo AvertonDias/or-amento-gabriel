@@ -3,7 +3,6 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import type { ClienteData, Telefone } from '@/lib/types';
-import { useForm } from 'react-hook-form';
 
 import {
   Card,
@@ -332,7 +331,7 @@ export default function ClientesPage() {
         cpfCnpj: '',
         endereco: contactData.endereco || '',
         email: contactData.email || '',
-        telefonesAdicionais: contactData.telefones?.slice(1).map(t => ({ nome: t.nome || 'Outro', numero: t.numero })) || [],
+        telefonesAdicionais: contactData.telefones?.slice(1).map(t => ({ nome: t.nome, numero: t.numero })) || [],
       });
       toast({ title: 'Contato pronto para ser salvo!' });
     }
@@ -390,7 +389,7 @@ export default function ClientesPage() {
       cpfCnpj: '',
       endereco: selectedData.endereco || '',
       email: selectedData.email || '',
-      telefonesAdicionais: selectedData.telefones?.slice(1).map(t => ({ nome: t.nome || 'Outro', numero: t.numero })) || [],
+      telefonesAdicionais: selectedData.telefones?.slice(1).map(t => ({ nome: t.nome, numero: t.numero })) || [],
     };
     setAddClientInitialData(dataToSet);
     setIsContactSelectionModalOpen(false);

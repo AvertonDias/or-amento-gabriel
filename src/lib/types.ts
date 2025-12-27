@@ -6,14 +6,14 @@ export interface EmpresaData {
   userId: string;
   nome: string;
   endereco: string;
-  telefones: { nome: string; numero: string; principal?: boolean }[];
+  telefones: Telefone[];
   cnpj: string;
   logo?: string;
   fcmToken?: string; 
 }
 
 export interface Telefone {
-  nome?: string;
+  nome: string;
   numero: string;
   principal?: boolean;
 }

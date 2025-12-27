@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -23,7 +23,6 @@ import {
 } from '@/components/ui/accordion';
 import { PlusCircle, Trash2, Loader2, UserPlus } from 'lucide-react';
 import { maskCpfCnpj, maskTelefone } from '@/lib/utils';
-import type { Control } from 'react-hook-form';
 
 
 /* -------------------------------------------------------------------------- */
@@ -31,7 +30,7 @@ import type { Control } from 'react-hook-form';
 /* -------------------------------------------------------------------------- */
 
 const telefoneSchema = z.object({
-  nome: z.string().optional(),
+  nome: z.string(),
   numero: z
     .string()
     .transform(val => val.replace(/\D/g, ''))
@@ -97,22 +96,7 @@ export default function ClientForm({
     },
   });
   
-  const { control, reset, setValue } = form;
-
-  // Sincroniza quando o initialData (de fora) muda.
-  // Útil para o caso de importação de contatos.
-  useEffect(() => {
-    if (initialData) {
-      reset({
-        nome: initialData.nome || '',
-        telefonePrincipal: initialData.telefonePrincipal || '',
-        cpfCnpj: initialData.cpfCnpj || '',
-        endereco: initialData.endereco || '',
-        email: initialData.email || '',
-        telefonesAdicionais: initialData.telefonesAdicionais || [],
-      });
-    }
-  }, [initialData, reset]);
+  const { control } = form;
 
   const { fields, append, remove } = useFieldArray({
     control,

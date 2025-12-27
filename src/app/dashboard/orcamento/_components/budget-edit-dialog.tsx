@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import type { Orcamento, OrcamentoItem, MaterialItem, ClienteData } from '@/lib/types';
+import type { Orcamento, OrcamentoItem, MaterialItem, ClienteData, Telefone } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -201,7 +201,7 @@ export function BudgetEditDialog({
   const handleSaveClientEdits = (formValues: ClientFormValues) => {
     if (!editingBudget) return;
 
-    const telefones = [{
+    const telefones: Telefone[] = [{
       nome: 'Principal',
       numero: formValues.telefonePrincipal,
       principal: true
