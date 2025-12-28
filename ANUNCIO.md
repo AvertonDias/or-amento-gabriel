@@ -1,50 +1,49 @@
-# Anúncio: Transforme Seus Orçamentos com o "Meu Orçamento"
+# 🚀 Transforme seu Negócio com o Meu Orçamento: O App Definitivo para Profissionais de Serviço!
 
-**Título do Anúncio:** Cansado de perder tempo e dinheiro com orçamentos? Diga adeus às planilhas e modernize seu negócio com o Meu Orçamento!
+**Cansado de perder tempo com papelada e ver seu lucro diminuir? Chegou a hora de modernizar!**
 
-**Público-Alvo:** Profissionais de calhas, serralheiros, empreiteiros, autônomos da construção civil e pequenas empresas de serviços.
+**Público-Alvo:** Serralheiros, calheiros, empreiteiros, autônomos da construção civil e pequenas empresas que querem crescer.
 
 ---
 
-### Chega de papel e caneta. É hora de lucrar mais com orçamentos profissionais e rápidos.
+### 💸 Menos Burocracia, Mais Lucro.
 
-Você trabalha duro, mas a burocracia dos orçamentos consome seu tempo e corrói sua margem de lucro? Apresentamos o **Meu Orçamento**, a ferramenta digital definitiva, criada para simplificar sua gestão, impressionar seus clientes e colocar mais dinheiro no seu bolso.
+No seu dia a dia, tempo é dinheiro. Cada minuto gasto em cálculos complexos em planilhas ou cadernos desorganizados é um minuto a menos faturando. O **Meu Orçamento** nasceu para eliminar essa dor de cabeça.
 
-Com nosso aplicativo, você abandona as contas complexas e os cadernos desorganizados para abraçar uma solução moderna que funciona até sem internet.
+Apresentamos a ferramenta digital que coloca a gestão do seu negócio na palma da sua mão, funcionando **até mesmo offline**. Impressione seus clientes com agilidade e profissionalismo, e veja seu faturamento decolar.
 
-### Funcionalidades que Vão Revolucionar o seu Dia a Dia:
+### ✨ Funcionalidades que Vão Revolucionar sua Rotina:
 
-**1. Orçamentos Inteligentes e Personalizados:**
-- **Crie propostas em minutos:** Adicione itens do seu catálogo ou crie itens "avulsos" na hora. Defina quantidades, aplique suas margens de lucro e veja o valor total ser calculado instantaneamente, sem erros.
-- **Salve e gerencie tudo:** Seus orçamentos ficam salvos na nuvem, com numeração automática que reinicia a cada ano (`001-2025`, `002-2025`, etc.).
-- **Impressione seu cliente:** Envie o orçamento direto para o WhatsApp do cliente com uma mensagem pronta ou gere um PDF profissional com o logo da sua empresa.
+**1. 📝 Orçamentos Inteligentes em Minutos**
+- Crie propostas profissionais rapidamente. Adicione itens do seu catálogo ou crie serviços na hora, aplique sua margem de lucro e deixe que o app faça as contas por você, sem erros.
+- Envie o PDF direto para o WhatsApp do cliente com o logo da sua empresa. Profissionalismo que fecha negócios!
 
-**2. Conversor de Bobinas para Calheiros e Serralheiros:**
-- **Chega de "chutômetro":** Insira o peso, a largura, a espessura e o valor pago pela bobina (de alumínio ou aço galvanizado).
-- **Nossa Solução:** O sistema calcula o **custo exato por metro** e o rendimento total da bobina. Com um clique, adicione o material calculado diretamente ao seu estoque com o preço de custo correto, garantindo seu lucro em cada centímetro.
+**2. 🔄 Conversor de Bobinas (Exclusivo para Calheiros e Serralheiros)**
+- Chega de prejuízo no "chutômetro"! Insira os dados da bobina (peso, largura, espessura) e o sistema calcula o **custo exato por metro**. Adicione o material ao seu estoque com o preço de custo correto e garanta seu lucro em cada centímetro.
 
-**3. Gestão Completa de Clientes (CRM):**
-- **Agenda Digital:** Cadastre todos os seus clientes com nome, telefone, endereço, e-mail e CPF/CNPJ.
-- **Importe Contatos:** Adicione um novo cliente diretamente da agenda do seu celular com apenas um toque.
-- **Histórico Completo:** Veja todos os orçamentos (pendentes, aceitos, recusados) de um cliente em um só lugar.
+**3. 🗂️ Gestão Completa de Clientes (CRM Simples)**
+- Cadastre clientes com um toque, importando direto da sua agenda.
+- Tenha um histórico completo de todos os orçamentos (pendentes, aceitos, recusados) para cada cliente. Tudo organizado em um só lugar.
 
-**4. Estoque de Itens e Catálogo de Serviços:**
-- **Organização Total:** Cadastre todos os seus produtos e mão de obra uma única vez. Defina o preço de custo, a unidade de medida (un, m, m², kg, h) e o tipo (item ou serviço).
-- **Controle de Estoque:** Para produtos, defina a quantidade atual e um estoque mínimo. O sistema te avisa quando o material está acabando!
+**4. 📦 Controle de Estoque e Catálogo de Serviços**
+- Cadastre seus produtos e mão de obra uma única vez. Defina preço de custo, unidade (un, m, m², h) e tipo (item ou serviço).
+- O sistema avisa quando seu material está acabando! Defina um estoque mínimo e nunca mais seja pego de surpresa.
 
-**5. Relatórios em PDF (Para você e para o cliente):**
-- **PDF para o Cliente:** Um documento limpo, profissional, com os dados da sua empresa, do cliente e a lista de itens com o preço de venda final.
-- **PDF Interno:** Um relatório para seu controle, detalhando os custos, as margens de lucro e o lucro total de cada orçamento. Tenha a visão completa da saúde do seu negócio.
+**5. 📄 Relatórios em PDF: Visão Total do Negócio**
+- **Para o Cliente:** Um PDF limpo e profissional com sua marca.
+- **Para Você:** Um relatório interno detalhando custos, margens e o lucro total de cada projeto. Tenha o controle total da saúde financeira do seu negócio.
 
-**6. Personalização e Flexibilidade:**
-- **Aparência do App:** Deixe o aplicativo com a sua cara! Escolha entre diversos temas de cores e alterne entre o modo claro e escuro.
-- **Funciona Offline:** Crie e edite orçamentos onde estiver, mesmo em locais sem sinal de internet. Os dados são sincronizados automaticamente assim que você se reconectar.
+**6. ⚙️ Flexibilidade e Personalização**
+- **Sua Marca, Suas Cores:** Personalize a aparência do app com diversos temas e modos (claro e escuro).
+- **Funciona Onde Você Estiver:** Crie e edite orçamentos em qualquer lugar, mesmo sem sinal de internet. Os dados são sincronizados automaticamente.
 
 ### Por que escolher o Meu Orçamento?
 
--   **Economize Tempo:** Automatize cálculos e reduza drasticamente o tempo gasto em tarefas administrativas.
--   **Aumente Seus Lucros:** Calcule preços com precisão e garanta sua margem em cada serviço.
--   **Profissionalize Sua Imagem:** Apresente propostas modernas que transmitem confiança.
--   **Tenha Total Controle:** Gerencie seu negócio na palma da sua mão, de qualquer lugar, a qualquer hora.
+-   ✅ **Economize Horas:** Automatize os cálculos e reduza drasticamente o tempo em tarefas administrativas.
+-   📈 **Aumente Seus Lucros:** Calcule preços com precisão e garanta sua margem em cada serviço.
+-   ⭐ **Impressione Seus Clientes:** Apresente propostas modernas que transmitem confiança e fecham mais vendas.
+-   📱 **Controle Total na Palma da Mão:** Gerencie seu negócio de qualquer lugar, a qualquer hora.
 
-**Não perca mais tempo e dinheiro com métodos ultrapassados. Experimente o Meu Orçamento e leve sua empresa para o próximo nível!**
+**Não perca mais tempo e dinheiro com métodos ultrapassados. Dê o próximo passo e leve sua empresa para o futuro!**
+
+### **Baixe o Meu Orçamento e comece a lucrar mais hoje mesmo!**
