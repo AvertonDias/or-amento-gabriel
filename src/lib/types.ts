@@ -10,6 +10,7 @@ export interface EmpresaData {
   cnpj: string;
   logo?: string;
   fcmToken?: string; 
+  whatsappMessage?: string;
 }
 
 export interface Telefone {

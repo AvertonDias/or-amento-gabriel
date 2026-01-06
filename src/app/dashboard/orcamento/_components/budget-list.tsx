@@ -49,7 +49,7 @@ interface BudgetListProps {
   empresa: EmpresaData | null;
   onUpdateStatus: (
     budgetId: string,
-    status: 'Aceito' | 'Recusado'
+    status: 'Pendente' | 'Aceito' | 'Recusado'
   ) => Promise<void>;
   onDelete: (budgetId: string) => void;
   onEdit: (budget: Orcamento) => void;
@@ -135,39 +135,20 @@ export function BudgetList({
   const openWhatsApp = (orcamento: Orcamento, phone: string) => {
     const cleanPhone = `55${phone.replace(/\D/g, '')}`;
 
-    const subtotal = orcamento.itens.reduce((s, i) => s + i.precoVenda, 0);
-    const total = orcamento.totalVenda;
-    const diff = total - subtotal;
+    // Mensagem Padrão
+    let defaultText = `Olá *{cliente.nome}*!\n\nSegue seu orçamento Nº {orcamento.numero}:\n\n`;
+    defaultText += `*TOTAL:* {orcamento.total}\n\n`;
+    defaultText += `Qualquer dúvida, estou à disposição!\n\n`;
+    defaultText += `*${'{empresa.nome}'}*`;
     
-    const empresaPrincipalPhone = empresa?.telefones?.find(t => t.principal)?.numero;
+    // Usa a mensagem customizada se existir, senão a padrão
+    let text = empresa?.whatsappMessage || defaultText;
 
-    let text = `*${empresa?.nome || 'Orçamento'}*\n`;
-    if (empresaPrincipalPhone) {
-      text += `(${empresaPrincipalPhone})\n\n`;
-    }
-
-    text += `Olá *${orcamento.cliente.nome}*!\n\n`;
-    text += 'Segue seu orçamento:\n\n';
-    
-    text += `*ORÇAMENTO Nº ${orcamento.numeroOrcamento}*\n\n`;
-
-    text += "*ITENS:*\n";
-    orcamento.itens.forEach(i => {
-      text += `- ${i.materialNome} (${formatNumber(i.quantidade, 2)} ${i.unidade}): ${formatCurrency(i.precoVenda)}\n`;
-    });
-    text += "\n";
-
-    if (Math.abs(diff) > 0.01) {
-      text += `*Subtotal:* ${formatCurrency(subtotal)}\n`;
-      text += `*${diff < 0 ? 'Desconto' : 'Acréscimo'}:* ${formatCurrency(diff)}\n`;
-    }
-
-    text += `*TOTAL:* ${formatCurrency(total)}\n\n`;
-    if (orcamento.observacoes) text += `*Observações:*\n${orcamento.observacoes}\n\n`;
-
-    text += `*Validade:* ${format(addDays(parseISO(orcamento.dataCriacao), Number(orcamento.validadeDias)), 'dd/MM/yyyy')}\n\n`;
-
-    text += "Qualquer dúvida, estou à disposição. Aguardo seu retorno para darmos o próximo passo!";
+    // Substitui as variáveis
+    text = text.replace(/{cliente.nome}/g, orcamento.cliente.nome);
+    text = text.replace(/{orcamento.numero}/g, orcamento.numeroOrcamento);
+    text = text.replace(/{orcamento.total}/g, formatCurrency(orcamento.totalVenda));
+    text = text.replace(/{empresa.nome}/g, empresa?.nome || 'Nossa Empresa');
 
 
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
@@ -278,7 +259,7 @@ export function BudgetList({
                  </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                <DropdownMenuItem onClick={() => onEdit(o)}>
+                <DropdownMenuItem onClick={() => onEdit(o)} disabled={o.status !== 'Pendente'}>
                   <Pencil className="mr-2 h-4 w-4" /> Editar
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => sendWhatsApp(o)}>

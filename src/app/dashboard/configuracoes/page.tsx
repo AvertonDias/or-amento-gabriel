@@ -14,6 +14,7 @@ import {
 
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -30,6 +31,7 @@ import {
   User,
   PlusCircle,
   Loader2,
+  MessageSquare,
 } from 'lucide-react';
 
 import { useToast } from '@/hooks/use-toast';
@@ -51,6 +53,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/dexie';
+import { Badge } from '@/components/ui/badge';
 
 /* =======================
    ESTADO INICIAL
@@ -62,6 +65,8 @@ const initialEmpresaState: Omit<EmpresaData, 'id' | 'userId'> = {
   telefones: [{ nome: 'Principal', numero: '', principal: true }],
   cnpj: '',
   logo: '',
+  whatsappMessage:
+    'Olá {cliente.nome}!\n\nSegue seu orçamento Nº {orcamento.numero} no valor de {orcamento.total}.\n\nQualquer dúvida, estou à disposição!\n\n*{empresa.nome}*',
 };
 
 /* =======================
@@ -93,7 +98,11 @@ export default function ConfiguracoesPage() {
 
     let loadedData;
     if (empresaDexie) {
-      loadedData = empresaDexie.data;
+      // Mescla os dados do Dexie com o estado inicial para garantir que o campo de mensagem exista
+      loadedData = {
+        ...initialEmpresaState,
+        ...empresaDexie.data,
+      };
     } else {
       loadedData = {
         ...initialEmpresaState,
@@ -101,10 +110,7 @@ export default function ConfiguracoesPage() {
         userId: user.uid,
       };
     }
-    setEmpresa({
-      ...loadedData,
-      cnpj: loadedData.cnpj || '', // Garante que CNPJ seja sempre uma string
-    });
+    setEmpresa(loadedData);
     setInitialData(JSON.parse(JSON.stringify(loadedData))); // Deep copy
     setIsDirty(false); // Reseta o estado 'dirty'
   }, [empresaDexie, user, isLoadingData]);
@@ -156,7 +162,7 @@ export default function ConfiguracoesPage() {
      HANDLERS
   ======================= */
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (!empresa) return;
     const { name, value } = e.target;
 
@@ -520,6 +526,41 @@ export default function ConfiguracoesPage() {
               </Button>
             </div>
           </CardContent>
+        </Card>
+
+        {/* Mensagem WhatsApp */}
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <MessageSquare size={20} />
+                    Mensagem Padrão do WhatsApp
+                </CardTitle>
+                <CardDescription>
+                    Personalize o texto enviado ao compartilhar um orçamento.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <div className="space-y-2">
+                    <Label htmlFor="whatsappMessage">Texto da Mensagem</Label>
+                    <Textarea
+                        id="whatsappMessage"
+                        name="whatsappMessage"
+                        value={empresa.whatsappMessage || ''}
+                        onChange={handleChange}
+                        rows={8}
+                        placeholder="Olá {cliente.nome}! Segue seu orçamento..."
+                    />
+                 </div>
+                 <div>
+                    <p className="text-sm text-muted-foreground">Variáveis disponíveis:</p>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                        <Badge variant="secondary">{'{cliente.nome}'}</Badge>
+                        <Badge variant="secondary">{'{orcamento.numero}'}</Badge>
+                        <Badge variant="secondary">{'{orcamento.total}'}</Badge>
+                        <Badge variant="secondary">{'{empresa.nome}'}</Badge>
+                    </div>
+                 </div>
+            </CardContent>
         </Card>
 
         {/* Conta e Aparência */}
