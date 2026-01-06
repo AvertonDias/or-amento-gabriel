@@ -1,6 +1,8 @@
+
 'use client';
 
 import React, { FormEvent, useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import type { EmpresaData } from '@/lib/types';
 
 import {
@@ -76,6 +78,7 @@ const initialEmpresaState: Omit<EmpresaData, 'id' | 'userId'> = {
 
 export default function ConfiguracoesPage() {
   const [user, loadingAuth] = useAuthState(auth);
+  const router = useRouter();
   const [empresa, setEmpresa] = useState<EmpresaData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -129,12 +132,28 @@ export default function ConfiguracoesPage() {
     }
   }, [empresa, initialData]);
 
-  // Hook para o evento beforeunload
   useBeforeunload(event => {
     if (isDirty) {
       event.preventDefault();
     }
   });
+
+  useEffect(() => {
+    const handleRouteChange = (url: string) => {
+      if (isDirty) {
+        if (!window.confirm('Você tem alterações não salvas. Deseja realmente sair?')) {
+          router.events.emit('routeChangeError');
+          throw 'Abort route change. Please ignore this error.';
+        }
+      }
+    };
+
+    router.events.on('routeChangeStart', handleRouteChange);
+
+    return () => {
+      router.events.off('routeChangeStart', handleRouteChange);
+    };
+  }, [isDirty, router.events]);
 
 
   /* =======================
@@ -633,7 +652,7 @@ export default function ConfiguracoesPage() {
 
         {/* Salvar */}
         <div className="flex justify-end">
-          <Button type="submit" size="lg" disabled={isSaving}>
+          <Button type="submit" size="lg" disabled={!isDirty || isSaving}>
             {isSaving ? (
               <Loader2 size={20} className="animate-spin mr-2" />
             ) : (
