@@ -5,6 +5,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { UnifiedThemeProvider } from '@/contexts/unified-theme-provider';
 import PwaRegistry from './pwa-registry';
+import { PermissionDialogProvider } from '@/hooks/use-permission-dialog';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -46,11 +47,11 @@ export default function RootLayout({
 
       <body className={`${inter.variable} font-body antialiased`}>
         <UnifiedThemeProvider>
+          <PermissionDialogProvider>
             <PwaRegistry />
             {children}
-
-          {/* Toast global */}
-          <Toaster />
+            <Toaster />
+          </PermissionDialogProvider>
         </UnifiedThemeProvider>
       </body>
     </html>
