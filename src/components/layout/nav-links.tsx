@@ -11,7 +11,7 @@ import React, { useState } from 'react';
 import { usePermissionDialog } from '@/hooks/use-permission-dialog';
 
 export const navItems = [
-  { href: '/dashboard/orcamento', label: 'Novo Orçamento', icon: Home },
+  { href: '/dashboard/orcamento', label: 'Orçamentos', icon: Home },
   { href: '/dashboard/clientes', label: 'Clientes', icon: Users },
   { href: '/dashboard/materiais', label: 'Itens e Serviços', icon: Wrench },
   { href: '/dashboard/conversoes', label: 'Conversões', icon: Ruler },
