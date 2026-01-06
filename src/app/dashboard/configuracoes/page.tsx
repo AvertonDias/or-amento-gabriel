@@ -562,10 +562,10 @@ export default function ConfiguracoesPage() {
                  <div>
                     <p className="text-sm text-muted-foreground">Tags disponíveis (clique para adicionar):</p>
                     <div className="flex flex-wrap gap-2 mt-2">
-                        <Badge variant="secondary" onClick={() => handleAddTagToMessage('{cliente.nome}')} className="cursor-pointer">{'{cliente.nome}'}</Badge>
-                        <Badge variant="secondary" onClick={() => handleAddTagToMessage('{orcamento.numero}')} className="cursor-pointer">{'{orcamento.numero}'}</Badge>
-                        <Badge variant="secondary" onClick={() => handleAddTagToMessage('{orcamento.total}')} className="cursor-pointer">{'{orcamento.total}'}</Badge>
-                        <Badge variant="secondary" onClick={() => handleAddTagToMessage('{empresa.nome}')} className="cursor-pointer">{'{empresa.nome}'}</Badge>
+                        <Badge variant="secondary" onClick={() => handleAddTagToMessage('{cliente.nome}')} className="cursor-pointer">Nome do Cliente</Badge>
+                        <Badge variant="secondary" onClick={() => handleAddTagToMessage('{orcamento.numero}')} className="cursor-pointer">Nº do Orçamento</Badge>
+                        <Badge variant="secondary" onClick={() => handleAddTagToMessage('{orcamento.total}')} className="cursor-pointer">Valor Total</Badge>
+                        <Badge variant="secondary" onClick={() => handleAddTagToMessage('{empresa.nome}')} className="cursor-pointer">Nome da Empresa</Badge>
                     </div>
                  </div>
             </CardContent>
