@@ -18,7 +18,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { DesktopSidebar } from '@/components/layout/desktop-sidebar';
 import { MobileNavbar } from '@/components/layout/mobile-navbar';
 
-import { usePermissionDialog } from '@/hooks/use-permission-dialog';
+import { usePermissionDialog, PermissionDialogProvider } from '@/hooks/use-permission-dialog';
 import { requestForToken } from '@/lib/fcm';
 import { useSync } from '@/hooks/useSync';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -187,32 +187,34 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   ====================================================== */
   return (
     <DirtyStateProvider>
-      <TooltipProvider>
-        <PwaManager />
+      <PermissionDialogProvider>
+        <TooltipProvider>
+          <PwaManager />
 
-        <div className="flex min-h-screen w-full">
+          <div className="flex min-h-screen w-full">
 
-          <DesktopSidebar
-            isCollapsed={isSidebarCollapsed}
-            setIsCollapsed={setIsSidebarCollapsed}
-          />
+            <DesktopSidebar
+              isCollapsed={isSidebarCollapsed}
+              setIsCollapsed={setIsSidebarCollapsed}
+            />
 
-          <div
-            className={cn(
-              'flex flex-col flex-1 transition-all duration-300 ease-in-out',
-              isSidebarCollapsed
-                ? 'md:pl-[60px]'
-                : 'md:pl-[220px] lg:pl-[280px]'
-            )}
-          >
-            <MobileNavbar />
+            <div
+              className={cn(
+                'flex flex-col flex-1 transition-all duration-300 ease-in-out',
+                isSidebarCollapsed
+                  ? 'md:pl-[60px]'
+                  : 'md:pl-[220px] lg:pl-[280px]'
+              )}
+            >
+              <MobileNavbar />
 
-            <main className="flex-1 overflow-y-auto">
-              {children}
-            </main>
+              <main className="flex-1 overflow-y-auto">
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
-      </TooltipProvider>
+        </TooltipProvider>
+      </PermissionDialogProvider>
     </DirtyStateProvider>
   );
 }
