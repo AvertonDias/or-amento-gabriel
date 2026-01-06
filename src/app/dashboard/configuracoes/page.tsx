@@ -81,6 +81,9 @@ export default function ConfiguracoesPage() {
 
   const [initialData, setInitialData] = useState<EmpresaData | null>(null);
   const [isDirty, setIsDirty] = useState(false);
+  
+  const messageInputRef = useRef<HTMLTextAreaElement>(null);
+
 
   const empresaDexie = useLiveQuery(
     () => (user ? db.empresa.get(user.uid) : undefined),
@@ -276,11 +279,22 @@ export default function ConfiguracoesPage() {
   };
 
   const handleAddTagToMessage = (tag: string) => {
-    if (!empresa) return;
-    setEmpresa(prev => ({
-      ...(prev as EmpresaData),
-      whatsappMessage: (prev?.whatsappMessage || '') + ` ${tag}`
-    }));
+    const input = messageInputRef.current;
+    if (!input || !empresa) return;
+  
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const text = input.value;
+  
+    const newMessage = text.substring(0, start) + tag + text.substring(end);
+  
+    setEmpresa({ ...empresa, whatsappMessage: newMessage });
+  
+    // Foca no input e posiciona o cursor após a tag inserida
+    setTimeout(() => {
+      input.focus();
+      input.selectionStart = input.selectionEnd = start + tag.length;
+    }, 0);
   };
 
   /* =======================
@@ -553,6 +567,7 @@ export default function ConfiguracoesPage() {
                     <Textarea
                         id="whatsappMessage"
                         name="whatsappMessage"
+                        ref={messageInputRef}
                         value={empresa.whatsappMessage || ''}
                         onChange={handleChange}
                         rows={8}
