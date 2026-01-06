@@ -32,6 +32,7 @@ import {
   PlusCircle,
   Loader2,
   MessageSquare,
+  RotateCcw,
 } from 'lucide-react';
 
 import { useToast } from '@/hooks/use-toast';
@@ -296,6 +297,13 @@ export default function ConfiguracoesPage() {
       input.selectionStart = input.selectionEnd = start + tag.length;
     }, 0);
   };
+  
+  const handleResetMessage = () => {
+    if (!empresa) return;
+    setEmpresa({ ...empresa, whatsappMessage: initialEmpresaState.whatsappMessage });
+    toast({ title: 'Mensagem restaurada para o padrão.' });
+  };
+
 
   /* =======================
      SALVAR
@@ -563,12 +571,17 @@ export default function ConfiguracoesPage() {
             </CardHeader>
             <CardContent className="space-y-4">
                  <div className="space-y-2">
-                    <Label htmlFor="whatsappMessage">Texto da Mensagem</Label>
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="whatsappMessage">Texto da Mensagem</Label>
+                      <Button type="button" variant="outline" size="sm" onClick={handleResetMessage}>
+                          <RotateCcw className="mr-2 h-4 w-4" /> Restaurar Padrão
+                      </Button>
+                    </div>
                     <Textarea
                         id="whatsappMessage"
                         name="whatsappMessage"
                         ref={messageInputRef}
-                        value={empresa.whatsappMessage}
+                        value={empresa.whatsappMessage || ''}
                         onChange={handleChange}
                         rows={8}
                         placeholder="Olá {cliente.nome}! Segue seu orçamento..."
