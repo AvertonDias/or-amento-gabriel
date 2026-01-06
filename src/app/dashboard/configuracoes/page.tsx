@@ -579,8 +579,8 @@ export default function ConfiguracoesPage() {
                     <div className="flex flex-wrap gap-2 mt-2">
                         <Badge variant="secondary" onClick={() => handleAddTagToMessage('{cliente.nome}')} className="cursor-pointer">Nome do Cliente</Badge>
                         <Badge variant="secondary" onClick={() => handleAddTagToMessage('{orcamento.numero}')} className="cursor-pointer">Nº do Orçamento</Badge>
-                        <Badge variant="secondary" onClick={() => handleAddTagToMessage('{orcamento.total}')} className="cursor-pointer">Valor Total</Badge>
                         <Badge variant="secondary" onClick={() => handleAddTagToMessage('{orcamento.detalhes}')} className="cursor-pointer">Detalhes do Orçamento</Badge>
+                        <Badge variant="secondary" onClick={() => handleAddTagToMessage('{orcamento.total}')} className="cursor-pointer">Valor Total</Badge>
                         <Badge variant="secondary" onClick={() => handleAddTagToMessage('{empresa.nome}')} className="cursor-pointer">Nome da Empresa</Badge>
                     </div>
                  </div>
