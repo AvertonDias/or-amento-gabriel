@@ -275,6 +275,14 @@ export default function ConfiguracoesPage() {
     toast({ title: 'Logo removido' });
   };
 
+  const handleAddTagToMessage = (tag: string) => {
+    if (!empresa) return;
+    setEmpresa(prev => ({
+      ...(prev as EmpresaData),
+      whatsappMessage: (prev?.whatsappMessage || '') + ` ${tag}`
+    }));
+  };
+
   /* =======================
      SALVAR
   ======================= */
@@ -552,12 +560,12 @@ export default function ConfiguracoesPage() {
                     />
                  </div>
                  <div>
-                    <p className="text-sm text-muted-foreground">Variáveis disponíveis:</p>
+                    <p className="text-sm text-muted-foreground">Tags disponíveis (clique para adicionar):</p>
                     <div className="flex flex-wrap gap-2 mt-2">
-                        <Badge variant="secondary">{'{cliente.nome}'}</Badge>
-                        <Badge variant="secondary">{'{orcamento.numero}'}</Badge>
-                        <Badge variant="secondary">{'{orcamento.total}'}</Badge>
-                        <Badge variant="secondary">{'{empresa.nome}'}</Badge>
+                        <Badge variant="secondary" onClick={() => handleAddTagToMessage('{cliente.nome}')} className="cursor-pointer">{'{cliente.nome}'}</Badge>
+                        <Badge variant="secondary" onClick={() => handleAddTagToMessage('{orcamento.numero}')} className="cursor-pointer">{'{orcamento.numero}'}</Badge>
+                        <Badge variant="secondary" onClick={() => handleAddTagToMessage('{orcamento.total}')} className="cursor-pointer">{'{orcamento.total}'}</Badge>
+                        <Badge variant="secondary" onClick={() => handleAddTagToMessage('{empresa.nome}')} className="cursor-pointer">{'{empresa.nome}'}</Badge>
                     </div>
                  </div>
             </CardContent>
@@ -623,5 +631,3 @@ export default function ConfiguracoesPage() {
     </div>
   );
 }
-
-    
