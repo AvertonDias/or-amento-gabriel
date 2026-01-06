@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { FormEvent, useState, useEffect, useMemo, useRef } from 'react';
+import React, { FormEvent, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { EmpresaData } from '@/lib/types';
 
 import {
@@ -55,6 +54,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/dexie';
 import { Badge } from '@/components/ui/badge';
+import { useBeforeunload } from 'react-beforeunload';
 
 /* =======================
    ESTADO INICIAL
@@ -80,11 +80,10 @@ export default function ConfiguracoesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
-  const [initialData, setInitialData] = useState<EmpresaData | null>(null);
+  const [initialData, setInitialData] = useState<string>('');
   const [isDirty, setIsDirty] = useState(false);
   
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
-
 
   const empresaDexie = useLiveQuery(
     () => (user ? db.empresa.get(user.uid) : undefined),
@@ -102,7 +101,6 @@ export default function ConfiguracoesPage() {
 
     let loadedData;
     if (empresaDexie) {
-      // Mescla os dados do Dexie com o estado inicial para garantir que o campo de mensagem exista
       loadedData = {
         ...initialEmpresaState,
         ...empresaDexie.data,
@@ -115,8 +113,8 @@ export default function ConfiguracoesPage() {
       };
     }
     setEmpresa(loadedData);
-    setInitialData(JSON.parse(JSON.stringify(loadedData))); // Deep copy
-    setIsDirty(false); // Reseta o estado 'dirty'
+    setInitialData(JSON.stringify(loadedData));
+    setIsDirty(false);
   }, [empresaDexie, user, isLoadingData]);
   
   
@@ -125,29 +123,18 @@ export default function ConfiguracoesPage() {
   ======================= */
   
   useEffect(() => {
-    // Compara o estado atual com o inicial para definir se o formulário está "sujo"
-    if (initialData && empresa) {
-      const hasChanged = JSON.stringify(initialData) !== JSON.stringify(empresa);
-      setIsDirty(hasChanged);
+    if (initialData) {
+      const currentData = JSON.stringify(empresa);
+      setIsDirty(currentData !== initialData);
     }
   }, [empresa, initialData]);
-  
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty) {
-        e.preventDefault();
-        // A mensagem personalizada não é mais suportada na maioria dos navegadores,
-        // mas é bom ter para compatibilidade. O navegador mostrará um prompt genérico.
-        e.returnValue = 'Você tem alterações não salvas. Deseja realmente sair?';
-      }
-    };
-  
-    window.addEventListener('beforeunload', handleBeforeUnload);
-  
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [isDirty]);
+
+  // Hook para o evento beforeunload
+  useBeforeunload(event => {
+    if (isDirty) {
+      event.preventDefault();
+    }
+  });
 
 
   /* =======================
@@ -245,7 +232,7 @@ export default function ConfiguracoesPage() {
 
     const reader = new FileReader();
     reader.onload = e => {
-      const img = new window.Image(); // Corrigido: usa window.Image()
+      const img = new window.Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
         const max = 200;
@@ -291,7 +278,6 @@ export default function ConfiguracoesPage() {
   
     setEmpresa({ ...empresa, whatsappMessage: newMessage });
   
-    // Foca no input e posiciona o cursor após a tag inserida
     setTimeout(() => {
       input.focus();
       input.selectionStart = input.selectionEnd = start + tag.length;
@@ -347,8 +333,8 @@ export default function ConfiguracoesPage() {
         telefones: empresa.telefones.filter(t => t.numero.trim()),
       });
       
-      setInitialData(JSON.parse(JSON.stringify(savedData))); // Atualiza o estado inicial após salvar
-      setIsDirty(false); // Reseta o estado 'dirty'
+      setInitialData(JSON.stringify(savedData));
+      setIsDirty(false);
 
       toast({
         title: 'Sucesso',
