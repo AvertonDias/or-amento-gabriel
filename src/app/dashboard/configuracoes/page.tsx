@@ -138,23 +138,6 @@ export default function ConfiguracoesPage() {
     }
   });
 
-  useEffect(() => {
-    const handleRouteChange = (url: string) => {
-      if (isDirty) {
-        if (!window.confirm('Você tem alterações não salvas. Deseja realmente sair?')) {
-          router.events.emit('routeChangeError');
-          throw 'Abort route change. Please ignore this error.';
-        }
-      }
-    };
-
-    router.events.on('routeChangeStart', handleRouteChange);
-
-    return () => {
-      router.events.off('routeChangeStart', handleRouteChange);
-    };
-  }, [isDirty, router.events]);
-
 
   /* =======================
      CPF / CNPJ
