@@ -136,18 +136,21 @@ export function BudgetList({
     const cleanPhone = `55${phone.replace(/\D/g, '')}`;
 
     // Mensagem Padrão
-    let defaultText = `Olá *{cliente.nome}*!\n\nSegue seu orçamento Nº {orcamento.numero}:\n\n`;
-    defaultText += `*TOTAL:* {orcamento.total}\n\n`;
-    defaultText += `Qualquer dúvida, estou à disposição!\n\n`;
-    defaultText += `*${'{empresa.nome}'}*`;
+    let defaultText = `Olá *{cliente.nome}*!\n\nSegue seu orçamento Nº {orcamento.numero}:\n\n{orcamento.detalhes}\n*TOTAL:* {orcamento.total}\n\nQualquer dúvida, estou à disposição!\n\n*{empresa.nome}*`;
     
     // Usa a mensagem customizada se existir, senão a padrão
     let text = empresa?.whatsappMessage || defaultText;
+
+    // Gera os detalhes do orçamento
+    const detalhes = orcamento.itens.map(item => 
+      `- ${item.materialNome} (Qtd: ${formatNumber(item.quantidade, 2)} ${item.unidade})`
+    ).join('\n');
 
     // Substitui as variáveis
     text = text.replace(/{cliente.nome}/g, orcamento.cliente.nome);
     text = text.replace(/{orcamento.numero}/g, orcamento.numeroOrcamento);
     text = text.replace(/{orcamento.total}/g, formatCurrency(orcamento.totalVenda));
+    text = text.replace(/{orcamento.detalhes}/g, detalhes);
     text = text.replace(/{empresa.nome}/g, empresa?.nome || 'Nossa Empresa');
 
 

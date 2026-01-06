@@ -66,7 +66,7 @@ const initialEmpresaState: Omit<EmpresaData, 'id' | 'userId'> = {
   cnpj: '',
   logo: '',
   whatsappMessage:
-    'Olá {cliente.nome}!\n\nSegue seu orçamento Nº {orcamento.numero} no valor de {orcamento.total}.\n\nQualquer dúvida, estou à disposição!\n\n*{empresa.nome}*',
+    'Olá {cliente.nome}!\n\nSegue seu orçamento Nº {orcamento.numero} no valor de {orcamento.total}.\n\n{orcamento.detalhes}\n\nQualquer dúvida, estou à disposição!\n\n*{empresa.nome}*',
 };
 
 /* =======================
@@ -580,6 +580,7 @@ export default function ConfiguracoesPage() {
                         <Badge variant="secondary" onClick={() => handleAddTagToMessage('{cliente.nome}')} className="cursor-pointer">Nome do Cliente</Badge>
                         <Badge variant="secondary" onClick={() => handleAddTagToMessage('{orcamento.numero}')} className="cursor-pointer">Nº do Orçamento</Badge>
                         <Badge variant="secondary" onClick={() => handleAddTagToMessage('{orcamento.total}')} className="cursor-pointer">Valor Total</Badge>
+                        <Badge variant="secondary" onClick={() => handleAddTagToMessage('{orcamento.detalhes}')} className="cursor-pointer">Detalhes do Orçamento</Badge>
                         <Badge variant="secondary" onClick={() => handleAddTagToMessage('{empresa.nome}')} className="cursor-pointer">Nome da Empresa</Badge>
                     </div>
                  </div>
