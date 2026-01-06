@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -6,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Home, Users, Wrench, Ruler, Settings } from 'lucide-react';
+import { useDirtyState } from '@/contexts/dirty-state-context';
+import React from 'react';
 
 export const navItems = [
   { href: '/dashboard/orcamento', label: 'Novo Orçamento', icon: Home },
@@ -17,6 +18,16 @@ export const navItems = [
 
 export const NavLinks = ({ isCollapsed }: { isCollapsed: boolean }) => {
   const pathname = usePathname();
+  const { isDirty } = useDirtyState();
+
+  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (isDirty && pathname !== href) {
+      if (!window.confirm('Você possui alterações não salvas. Deseja realmente sair e descartar as alterações?')) {
+        e.preventDefault();
+      }
+    }
+  };
+
   return (
     <nav className="grid gap-1 px-2">
       {navItems.map((item) => {
@@ -26,6 +37,7 @@ export const NavLinks = ({ isCollapsed }: { isCollapsed: boolean }) => {
             <TooltipTrigger asChild>
               <Link
                 href={item.href}
+                onClick={(e) => handleLinkClick(e, item.href)}
                 className={cn(
                   'flex items-center gap-3 rounded-lg py-2 text-muted-foreground transition-all hover:text-primary',
                   isActive && 'bg-muted text-primary',

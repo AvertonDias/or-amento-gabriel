@@ -1,9 +1,8 @@
-
 'use client';
 
 import React, { FormEvent, useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import type { EmpresaData } from '@/lib/types';
+import { useUnifiedTheme } from '@/contexts/unified-theme-provider'; // Importando o contexto
 
 import {
   Card,
@@ -57,6 +56,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/dexie';
 import { Badge } from '@/components/ui/badge';
 import { useBeforeunload } from 'react-beforeunload';
+import { useDirtyState } from '@/contexts/dirty-state-context';
 
 /* =======================
    ESTADO INICIAL
@@ -78,15 +78,14 @@ const initialEmpresaState: Omit<EmpresaData, 'id' | 'userId'> = {
 
 export default function ConfiguracoesPage() {
   const [user, loadingAuth] = useAuthState(auth);
-  const router = useRouter();
   const [empresa, setEmpresa] = useState<EmpresaData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   const [initialData, setInitialData] = useState<string>('');
-  const [isDirty, setIsDirty] = useState(false);
-  
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
+
+  const { isDirty, setIsDirty } = useDirtyState();
 
   const empresaDexie = useLiveQuery(
     () => (user ? db.empresa.get(user.uid) : undefined),
@@ -118,7 +117,7 @@ export default function ConfiguracoesPage() {
     setEmpresa(loadedData);
     setInitialData(JSON.stringify(loadedData));
     setIsDirty(false);
-  }, [empresaDexie, user, isLoadingData]);
+  }, [empresaDexie, user, isLoadingData, setIsDirty]);
   
   
   /* =======================
@@ -130,7 +129,7 @@ export default function ConfiguracoesPage() {
       const currentData = JSON.stringify(empresa);
       setIsDirty(currentData !== initialData);
     }
-  }, [empresa, initialData]);
+  }, [empresa, initialData, setIsDirty]);
 
   useBeforeunload(event => {
     if (isDirty) {

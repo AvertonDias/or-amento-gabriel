@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -25,15 +24,7 @@ import { useSync } from '@/hooks/useSync';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { DirtyStateProvider } from '@/contexts/dirty-state-context';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -195,31 +186,33 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
      LAYOUT
   ====================================================== */
   return (
-    <TooltipProvider>
-      <PwaManager />
+    <DirtyStateProvider>
+      <TooltipProvider>
+        <PwaManager />
 
-      <div className="flex min-h-screen w-full">
+        <div className="flex min-h-screen w-full">
 
-        <DesktopSidebar
-          isCollapsed={isSidebarCollapsed}
-          setIsCollapsed={setIsSidebarCollapsed}
-        />
+          <DesktopSidebar
+            isCollapsed={isSidebarCollapsed}
+            setIsCollapsed={setIsSidebarCollapsed}
+          />
 
-        <div
-          className={cn(
-            'flex flex-col flex-1 transition-all duration-300 ease-in-out',
-            isSidebarCollapsed
-              ? 'md:pl-[60px]'
-              : 'md:pl-[220px] lg:pl-[280px]'
-          )}
-        >
-          <MobileNavbar />
+          <div
+            className={cn(
+              'flex flex-col flex-1 transition-all duration-300 ease-in-out',
+              isSidebarCollapsed
+                ? 'md:pl-[60px]'
+                : 'md:pl-[220px] lg:pl-[280px]'
+            )}
+          >
+            <MobileNavbar />
 
-          <main className="flex-1 overflow-y-auto">
-            {children}
-          </main>
+            <main className="flex-1 overflow-y-auto">
+              {children}
+            </main>
+          </div>
         </div>
-      </div>
-    </TooltipProvider>
+      </TooltipProvider>
+    </DirtyStateProvider>
   );
 }
