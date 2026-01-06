@@ -105,6 +105,14 @@ export const updateOrcamentoStatus = async (
     if (!existing) throw new Error("Orçamento não encontrado.");
 
     const updatedData = { ...existing.data, status, ...payload };
+
+    // Limpa as datas de aceite/recusa se o status voltar a ser pendente
+    if (status === 'Pendente') {
+        updatedData.dataAceite = null;
+        updatedData.dataRecusa = null;
+    }
+
+
     await dexieDB.orcamentos.put({
         ...existing,
         data: updatedData,

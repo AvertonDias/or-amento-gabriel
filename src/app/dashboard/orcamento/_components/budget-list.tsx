@@ -24,7 +24,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   FileText, Pencil, MessageCircle,
   CheckCircle2, XCircle, Trash2,
-  MoreVertical, FileSignature
+  MoreVertical, FileSignature, RefreshCcw
 } from 'lucide-react';
 import { addDays, format, parseISO } from 'date-fns';
 import { formatCurrency, formatNumber } from '@/lib/utils';
@@ -288,6 +288,12 @@ export function BudgetList({
                       <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Recusado')}>
                         <XCircle className="mr-2 h-4 w-4 text-red-500" /> Marcar como Recusado
                       </DropdownMenuItem>
+                       {o.status !== 'Pendente' && <DropdownMenuSeparator />}
+                       {o.status !== 'Pendente' && (
+                          <DropdownMenuItem onClick={() => onUpdateStatus(o.id, 'Pendente')}>
+                            <RefreshCcw className="mr-2 h-4 w-4" /> Reverter para Pendente
+                          </DropdownMenuItem>
+                       )}
                     </DropdownMenuSubContent>
                   </DropdownMenuPortal>
                 </DropdownMenuSub>

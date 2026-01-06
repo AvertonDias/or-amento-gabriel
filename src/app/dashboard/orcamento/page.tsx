@@ -284,7 +284,7 @@ export default function OrcamentoPage() {
 
   const handleUpdateStatus = async (
     budgetId: string,
-    status: 'Aceito' | 'Recusado'
+    status: 'Pendente' | 'Aceito' | 'Recusado'
   ) => {
     if (!user) return;
   
@@ -293,7 +293,9 @@ export default function OrcamentoPage() {
     await updateOrcamentoStatus(budgetId, status, {
       ...(status === 'Aceito'
         ? { dataAceite: now }
-        : { dataRecusa: now }),
+        : status === 'Recusado' 
+        ? { dataRecusa: now }
+        : {}),
     });
   
     const budget = orcamentosSalvos?.find(o => o.id === budgetId);
