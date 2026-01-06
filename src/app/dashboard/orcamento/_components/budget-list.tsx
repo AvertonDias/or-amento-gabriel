@@ -136,7 +136,7 @@ export function BudgetList({
     const cleanPhone = `55${phone.replace(/\D/g, '')}`;
 
     // Mensagem Padrão
-    let defaultText = `Olá *{cliente.nome}*!\n\nSegue seu orçamento Nº {orcamento.numero}:\n\n{orcamento.detalhes}\n*TOTAL:* {orcamento.total}\n\nQualquer dúvida, estou à disposição!\n\n*{empresa.nome}*`;
+    let defaultText = 'Olá *{cliente.nome}*!\n\nSegue seu orçamento {orcamento.numero}:\n\n{orcamento.detalhes}\n\n*TOTAL:* {orcamento.total}\n\nQualquer dúvida, estou à disposição!\n\n*{empresa.nome}*';
     
     // Usa a mensagem customizada se existir, senão a padrão
     let text = empresa?.whatsappMessage || defaultText;

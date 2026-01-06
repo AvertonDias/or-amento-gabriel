@@ -66,7 +66,7 @@ const initialEmpresaState: Omit<EmpresaData, 'id' | 'userId'> = {
   cnpj: '',
   logo: '',
   whatsappMessage:
-    'Olá {cliente.nome}!\n\nSegue seu orçamento Nº {orcamento.numero} no valor de {orcamento.total}.\n\n{orcamento.detalhes}\n\nQualquer dúvida, estou à disposição!\n\n*{empresa.nome}*',
+    'Olá *{cliente.nome}*!\n\nSegue seu orçamento {orcamento.numero}:\n\n{orcamento.detalhes}\n\n*TOTAL:* {orcamento.total}\n\nQualquer dúvida, estou à disposição!\n\n*{empresa.nome}*',
 };
 
 /* =======================
@@ -568,7 +568,7 @@ export default function ConfiguracoesPage() {
                         id="whatsappMessage"
                         name="whatsappMessage"
                         ref={messageInputRef}
-                        value={empresa.whatsappMessage || ''}
+                        value={empresa.whatsappMessage}
                         onChange={handleChange}
                         rows={8}
                         placeholder="Olá {cliente.nome}! Segue seu orçamento..."
