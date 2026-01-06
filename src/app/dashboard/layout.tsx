@@ -25,19 +25,19 @@ import { useSync } from '@/hooks/useSync';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 
-import { DirtyStateProvider } from '@/contexts/dirty-state-context';
+import { DirtyStateProvider, useDirtyState } from '@/contexts/dirty-state-context';
 import { useToast } from '@/hooks/use-toast';
 
 
-export default function MainLayout({ children }: { children: React.ReactNode }) {
+function MainLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const isMobile = useIsMobile();
   const { toast } = useToast();
-
+  
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const { requestPermission } = usePermissionDialog();
+  const { isDirty, setIsDirty } = useDirtyState();
   
   // Inicializa sincronização offline/online
   useSync();
@@ -48,12 +48,25 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     if (Capacitor.getPlatform() !== 'android') return;
 
-    const handler = CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+    const handler = CapacitorApp.addListener('backButton', async ({ canGoBack }) => {
       const modalOpen = document.querySelector(
         '[data-radix-collection-item][data-state="open"]'
       );
 
       if (modalOpen) return;
+
+      if (isDirty) {
+        const discard = await requestPermission({
+          title: "Você tem alterações não salvas",
+          description: "Deseja sair da página e descartar as alterações feitas?",
+          actionLabel: "Sair e Descartar",
+          cancelLabel: "Permanecer"
+        });
+        
+        if (!discard) return; // Se não descartar, não faz nada
+        
+        setIsDirty(false); // Se descartar, limpa o estado
+      }
 
       if (canGoBack) {
         window.history.back();
@@ -65,7 +78,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return () => {
       handler.remove();
     };
-  }, []);
+  }, [isDirty, setIsDirty, requestPermission]);
 
   /* =====================================================
      PERMISSÕES DO APP
@@ -187,34 +200,41 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
      LAYOUT
   ====================================================== */
   return (
+    <TooltipProvider>
+      <PwaManager />
+
+      <div className="flex min-h-screen w-full">
+
+        <DesktopSidebar
+          isCollapsed={isSidebarCollapsed}
+          setIsCollapsed={setIsSidebarCollapsed}
+        />
+
+        <div
+          className={cn(
+            'flex flex-col flex-1 transition-all duration-300 ease-in-out',
+            isSidebarCollapsed
+              ? 'md:pl-[60px]'
+              : 'md:pl-[220px] lg:pl-[280px]'
+          )}
+        >
+          <MobileNavbar />
+
+          <main className="flex-1 overflow-y-auto">
+            {children}
+          </main>
+        </div>
+      </div>
+    </TooltipProvider>
+  );
+}
+
+
+export default function MainLayout({ children }: { children: React.ReactNode }) {
+  return (
     <DirtyStateProvider>
       <PermissionDialogProvider>
-        <TooltipProvider>
-          <PwaManager />
-
-          <div className="flex min-h-screen w-full">
-
-            <DesktopSidebar
-              isCollapsed={isSidebarCollapsed}
-              setIsCollapsed={setIsSidebarCollapsed}
-            />
-
-            <div
-              className={cn(
-                'flex flex-col flex-1 transition-all duration-300 ease-in-out',
-                isSidebarCollapsed
-                  ? 'md:pl-[60px]'
-                  : 'md:pl-[220px] lg:pl-[280px]'
-              )}
-            >
-              <MobileNavbar />
-
-              <main className="flex-1 overflow-y-auto">
-                {children}
-              </main>
-            </div>
-          </div>
-        </TooltipProvider>
+        <MainLayoutContent>{children}</MainLayoutContent>
       </PermissionDialogProvider>
     </DirtyStateProvider>
   );
